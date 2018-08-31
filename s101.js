@@ -2,7 +2,6 @@ const EventEmitter = require('events').EventEmitter;
 const util = require('util');
 const SmartBuffer = require('smart-buffer').SmartBuffer;
 const winston = require('winston');
-const BER = require('./ber.js');
 
 const S101_BOF = 0xFE;
 const S101_EOF = 0xFF;
@@ -162,21 +161,22 @@ S101Codec.prototype.handleEmberFrame = function(frame) {
         }
     }
 
-    var payload = frame.readBuffer();
 
-    if(flags & FLAG_SINGLE_PACKET) {
+    var payload = frame.readBuffer();
+    payload = payload.slice(0, payload.length - 2);
+    if(flags === FLAG_SINGLE_PACKET) {
         winston.debug('single ember packet');
         self.handleEmberPacket(SmartBuffer.fromBuffer(payload));
         self.emberbuf.clear();
-    } else if(flags & FLAG_FIRST_MULTI_PACKET) {
+    } else if(flags === FLAG_FIRST_MULTI_PACKET) {
         winston.debug('multi ember packet start');
         self.emberbuf.clear();
         self.emberbuf.writeBuffer(payload);
-    } else if(flags & FLAG_LAST_MULTI_PACKET) {
+    } else if(flags === FLAG_LAST_MULTI_PACKET) {
         winston.debug('multi ember packet end');
         self.emberbuf.writeBuffer(payload);
         self.emberbuf.moveTo(0);
-        self.handleEmberBuffer(self.emberbuf);
+        self.handleEmberPacket(self.emberbuf);
         self.emberbuf.clear();
     } else {
         winston.debug('multi ember packet');
@@ -245,6 +245,7 @@ S101Codec.prototype.keepAliveRequest = function() {
     packet.writeUInt8(SLOT);
     packet.writeUInt8(MSG_EMBER);
     packet.writeUInt8(CMD_KEEPALIVE_REQ);
+    packet.writeUInt8(VERSION);
     return finalizeBuffer(packet);
 }
 
@@ -254,6 +255,7 @@ S101Codec.prototype.keepAliveResponse = function() {
     packet.writeUInt8(SLOT);
     packet.writeUInt8(MSG_EMBER);
     packet.writeUInt8(CMD_KEEPALIVE_RESP);
+    packet.writeUInt8(VERSION);
     return finalizeBuffer(packet);
 }
 
