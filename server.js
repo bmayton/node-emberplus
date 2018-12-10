@@ -281,9 +281,8 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
     if (client !== undefined) {
         client.sendBERNode(root);
     }
-    else {
-        this.updateSubscribers(matrix.getPath(), root, client);
-    }
+    if (this._debug) { console.log("Updating subscribers for matrix change"); }
+    this.updateSubscribers(matrix.getPath(), root, client);
 }
 
 const validateMatrixOperation = function(matrix, target, sources) {

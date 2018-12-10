@@ -1105,7 +1105,7 @@ MatrixConnection.prototype.setSources = function(sources) {
         delete this.sources;
         return;
     }
-    let s = new Set(sources);
+    let s = new Set(sources.map(i => Number(i)));
     this.sources = [...s].sort(); // sources should be an array
 }
 
@@ -1141,9 +1141,7 @@ MatrixConnection.decode = function(ber) {
             c.target = seq.readInt();
         }
         else if (tag == BER.CONTEXT(1)) {
-            //sources
-            var sources = seq.readRelativeOID(BER.EMBER_RELATIVE_OID);
-            c.sources = sources.split(".");
+            c.sources = seq.readRelativeOID(BER.EMBER_RELATIVE_OID).split(".").map(i => Number(i));
         } else if (tag == BER.CONTEXT(2)) {
             c.operation = MatrixOperation.get(seq.readInt());
 
