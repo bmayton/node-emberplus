@@ -475,6 +475,45 @@ TreeServer.prototype.updateSubscribers = function(path, response, origin) {
     }
 }
 
+const parseMatrixContent = function(matrixContent, content) {
+    if (content.labels) {
+        matrixContent.labels = [];
+        for(let l = 0; l < content.labels.length; l++) {
+            matrixContent.labels.push(
+                new ember.Label(content.labels[l])
+            );
+        }
+        delete content.labels;
+    }
+    if (content.type != null) {
+        if (content.type == "oneToN") {
+            matrixContent.type = ember.MatrixType.oneToN;
+        }
+        else if (content.type == "oneToOne") {
+            matrixContent.type = ember.MatrixType.oneToOne;
+        }
+        else if (content.type == "nToN") {
+            matrixContent.type = ember.MatrixType.nToN;
+        }
+        else {
+            throw new Error(`Invalid matrix type ${content.type}`);
+        }
+        delete content.type;
+    }
+    if (content.mode != null) {
+        if (content.mode == "linear") {
+            matrixContent.mode = ember.MatrixMode.linear;
+        }
+        else if (content.mode == "nonLinear") {
+            matrixContent.mode = ember.MatrixMode.nonLinear;
+        }
+        else {
+            throw new Error(`Invalid matrix mode ${content.mode}`);
+        }
+        delete content.mode;
+    }
+}
+
 const parseObj = function(parent, obj) {
     let path = parent.getPath();
     for(let i = 0; i < obj.length; i++) {
@@ -503,18 +542,7 @@ const parseObj = function(parent, obj) {
         else if (content.targetCount !== undefined) {
             emberElement = new ember.MatrixNode(number);
             emberElement.contents = new ember.MatrixContents();
-
-            if (content.labels) {
-                emberElement.contents.labels = [];
-                for(let l = 0; l < content.labels.length; l++) {
-                    emberElement.contents.labels.push(
-                        new ember.Label(content.labels[l])
-                    );
-                }
-                delete content.labels;
-            }
-
-
+            parseMatrixContent(emberElement.contents, content);
             if (content.connections) {
                 emberElement.connections = {};
                 for (let c in content.connections) {

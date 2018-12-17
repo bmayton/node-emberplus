@@ -869,7 +869,7 @@ util.inherits(MatrixNode, TreeNode);
 module.exports.MatrixNode = MatrixNode;
 
 function MatrixContents() {
-    this.type = MatrixType.oneToOne;
+    this.type = MatrixType.oneToN;
     this.mode = MatrixMode.linear;
 }
 
