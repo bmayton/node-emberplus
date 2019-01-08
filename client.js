@@ -174,7 +174,12 @@ S101Socket.prototype.connect = function (timeout = 2) {
             winston.debug('socket connected');
 
             self.keepaliveIntervalTimer = setInterval(() => {
-                self.sendKeepaliveRequest();
+                try {
+                    self.sendKeepaliveRequest();
+                }
+                catch(e) {
+                    self.emit("error", e);
+                }
             }, 1000 * self.keepaliveInterval);
 
             self.codec.on('keepaliveReq', () => {
@@ -202,7 +207,9 @@ S101Socket.prototype.connect = function (timeout = 2) {
     });
 
     self.socket.on('data', (data) => {
-        self.codec.dataIn(data);
+        if (self.isConnected()) {
+            self.codec.dataIn(data);
+        }
     });
 
     self.socket.on('close', () => {
@@ -257,9 +264,11 @@ S101Socket.prototype.sendKeepaliveResponse = function () {
 
 S101Socket.prototype.sendBER = function (data) {
     var self = this;
-    var frames = self.codec.encodeBER(data);
-    for (var i = 0; i < frames.length; i++) {
-        self.socket.write(frames[i]);
+    if (self.isConnected()) {
+        var frames = self.codec.encodeBER(data);
+        for (var i = 0; i < frames.length; i++) {
+            self.socket.write(frames[i]);
+        }
     }
 }
 
