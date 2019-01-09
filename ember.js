@@ -106,17 +106,15 @@ Root.prototype.addChild = function(child) {
 
 Root.prototype.encode = function(ber) {
     ber.startSequence(BER.APPLICATION(0));
-
     if(this.elements !== undefined) {
         ber.startSequence(BER.APPLICATION(11));
-        ber.startSequence(BER.CONTEXT(0));
         for(var i=0; i<this.elements.length; i++) {
+            ber.startSequence(BER.CONTEXT(0));
             this.elements[i].encode(ber);
+            ber.endSequence(); // BER.CONTEXT(0)
         }
-        ber.endSequence(); // BER.CONTEXT(0)
         ber.endSequence();
     }
-
     ber.endSequence(); // BER.APPLICATION(0)
 }
 
@@ -163,6 +161,10 @@ TreeNode.prototype.isFunction = function() {
     return (this instanceof QualifiedFunction);
 }
 
+TreeNode.prototype.isRoot = function() {
+    return this._parent == null;
+}
+
 TreeNode.prototype.isQualified = function() {
     return ((this instanceof QualifiedParameter)||
     (this instanceof QualifiedNode) ||
@@ -191,6 +193,20 @@ TreeNode.prototype.cancelCallbacks = function() {
         }
     }
 }
+
+TreeNode.prototype.getMinimalContent = function() {
+    let obj;
+    if (this.isQualified()) {
+        obj = new this.constructor(this.path);
+    }
+    else {
+        obj = new this.constructor(this.number);
+    }
+    if (this.contents !== undefined) {
+        obj.contents= this.contents;
+    }
+    return obj;
+};
 
 TreeNode.prototype.getDuplicate = function() {
     let obj = this.getMinimal();
@@ -545,7 +561,7 @@ QualifiedNode.prototype.getMinimal = function(complete = false) {
 
 QualifiedNode.prototype.update = function(other) {
     callbacks = QualifiedNode.super_.prototype.update.apply(this);
-    if((other === undefined) && (other.contents !== undefined)) {
+    if((other !== undefined) && (other.contents !== undefined)) {
         if (this.contents == null) {
             this.contents = other.contents;
         }
@@ -2297,7 +2313,7 @@ Parameter.prototype.setValue = function(value, callback) {
 }
 
 Parameter.prototype.toQualified = function() {
-    let qp = new QualifiedNode(this.getPath());
+    let qp = new QualifiedParameter(this.getPath());
     qp.update(this);
     return qp;
 }

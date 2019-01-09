@@ -358,19 +358,23 @@ TreeServer.prototype.getResponse = function(element) {
 
 TreeServer.prototype.getQualifiedResponse = function(element) {
     let res = new ember.Root();
-    let dup = element.toQualified();
+    let dup;
+    if (element.isRoot() === false) {
+        dup = element.toQualified();
+    }
     let children = element.getChildren();
     if (children != null) {
         for (let i = 0; i < children.length; i++) {
-            dup.addChild(children[i].getDuplicate());
+            res.addChild(children[i].toQualified().getMinimalContent());
         }
     }
-    res.elements = [dup];
+    else {
+       res.addChild(dup);
+    }
     return res;
 }
 
 TreeServer.prototype.handleGetDirectory = function(client, element) {
-
     if (client !== undefined) {
         if ((element.isMatrix() || element.isParameter()) &&
             (!element.isStream())) {
@@ -378,12 +382,9 @@ TreeServer.prototype.handleGetDirectory = function(client, element) {
             // report their value changes automatically.
             this.subscribe(client, element);
         }
-        let res;
-        if (client.request.path == null) {
-            res = this.getResponse(element);
-        }
-        else {
-            res = this.getQualifiedResponse(element);
+        let res = this.getQualifiedResponse(element);
+        if (this._debug) {
+            console.log("getDirectory response", res);
         }
         client.sendBERNode(res);
     }
