@@ -169,7 +169,7 @@ S101Socket.prototype.connect = function (timeout = 2) {
             port: self.port,
             host: self.address,
             timeout: timeout
-        },  
+        },
         () => {
             winston.debug('socket connected');
 
@@ -213,12 +213,11 @@ S101Socket.prototype.connect = function (timeout = 2) {
     });
 
     self.socket.on('close', () => {
+        clearInterval(self.keepaliveIntervalTimer);
         self.emit('disconnected');
         self.status = "disconnected";
         self.socket = null;
     });
-
-
 }
 
 S101Socket.prototype.isConnected = function () {
@@ -239,7 +238,6 @@ S101Socket.prototype.disconnect = function () {
             });
             self.socket.once('error', reject);
             clearInterval(self.keepaliveIntervalTimer);
-            clearTimeout(self._timeout);
             self.socket.end();
             self.status = "disconnected";
         }
