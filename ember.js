@@ -84,7 +84,7 @@ Root.decode = function(ber) {
         } else if (tag == BER.APPLICATION(23)) { // InvocationResult BER.APPLICATION(23)
            return InvocationResult.decode(ber)
         } else {
-            console.log("unexpected message tag", tag, ber.toString());
+            throw new errors.UnimplementedEmberTypeError(tag);
         }
     }
     return r;
@@ -1799,7 +1799,7 @@ _Function.decode = function(ber) {
 
 _Function.prototype.encode = function(ber) {
     ber.startSequence(BER.APPLICATION(19));
-    
+
     ber.startSequence(BER.CONTEXT(0));
     ber.writeInt(this.number);
     ber.endSequence(); // BER.CONTEXT(0)
@@ -2025,11 +2025,11 @@ Invocation._id = 1
 Invocation.prototype.encode = function(ber) {
     ber.startSequence(BER.APPLICATION(22));
     // ber.startSequence(BER.EMBER_SEQUENCE);
-    
+
     ber.startSequence(BER.CONTEXT(0));
     ber.writeInt(Invocation._id++)
     ber.endSequence();
-    
+
     ber.startSequence(BER.CONTEXT(1));
     ber.startSequence(BER.EMBER_SEQUENCE)
     for(var i =0; i < this.arguments.length; i++) {
@@ -2039,7 +2039,7 @@ Invocation.prototype.encode = function(ber) {
     }
     ber.endSequence();
     ber.endSequence();
-    
+
     ber.endSequence(); // BER.APPLICATION(22)
 
 }
