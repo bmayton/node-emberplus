@@ -168,7 +168,7 @@ S101Socket.prototype.connect = function (timeout = 2) {
     self.socket = net.createConnection({
             port: self.port,
             host: self.address,
-            timeout: timeout
+            timeout: 1000 * timeout
         },
         () => {
             winston.debug('socket connected');
@@ -204,15 +204,14 @@ S101Socket.prototype.connect = function (timeout = 2) {
         }
     ).on('error', (e) => {
         self.emit("error", e);
-    });
-
-    self.socket.on('data', (data) => {
+    }).on("timeout", () => {
+        self.socket.destroy();
+        self.emit("error", new Error(`Could not connect to ${self.address}:${self.port} after a timeout of ${timeout} seconds`));
+    }).on('data', (data) => {
         if (self.isConnected()) {
             self.codec.dataIn(data);
         }
-    });
-
-    self.socket.on('close', () => {
+    }).on('close', () => {
         clearInterval(self.keepaliveIntervalTimer);
         self.emit('disconnected');
         self.status = "disconnected";
