@@ -165,6 +165,12 @@ S101Socket.prototype.connect = function (timeout = 2) {
     self.emit('connecting');
 
     self.codec = new S101Codec();
+
+    const connectTimeoutListener = () => {
+        self.socket.destroy();
+        self.emit("error", new Error(`Could not connect to ${self.address}:${self.port} after a timeout of ${timeout} seconds`));
+    };
+
     self.socket = net.createConnection({
             port: self.port,
             host: self.address,
@@ -172,6 +178,10 @@ S101Socket.prototype.connect = function (timeout = 2) {
         },
         () => {
             winston.debug('socket connected');
+
+            // Disable connect timeout to hand-over to keepalive mechanism
+            self.socket.removeListener("timeout", connectTimeoutListener);
+            self.socket.setTimeout(0);
 
             self.keepaliveIntervalTimer = setInterval(() => {
                 try {
@@ -204,10 +214,8 @@ S101Socket.prototype.connect = function (timeout = 2) {
         }
     ).on('error', (e) => {
         self.emit("error", e);
-    }).on("timeout", () => {
-        self.socket.destroy();
-        self.emit("error", new Error(`Could not connect to ${self.address}:${self.port} after a timeout of ${timeout} seconds`));
-    }).on('data', (data) => {
+    }).once("timeout", connectTimeoutListener
+    ).on('data', (data) => {
         if (self.isConnected()) {
             self.codec.dataIn(data);
         }
