@@ -186,8 +186,7 @@ S101Socket.prototype.connect = function (timeout = 2) {
             self.keepaliveIntervalTimer = setInterval(() => {
                 try {
                     self.sendKeepaliveRequest();
-                }
-                catch(e) {
+                } catch (e) {
                     self.emit("error", e);
                 }
             }, 1000 * self.keepaliveInterval);
@@ -211,20 +210,22 @@ S101Socket.prototype.connect = function (timeout = 2) {
             });
 
             self.emit('connected');
-        }
-    ).on('error', (e) => {
-        self.emit("error", e);
-    }).once("timeout", connectTimeoutListener
-    ).on('data', (data) => {
-        if (self.isConnected()) {
-            self.codec.dataIn(data);
-        }
-    }).on('close', () => {
-        clearInterval(self.keepaliveIntervalTimer);
-        self.emit('disconnected');
-        self.status = "disconnected";
-        self.socket = null;
-    });
+        })
+        .on('error', (e) => {
+            self.emit("error", e);
+        })
+        .once("timeout", connectTimeoutListener)
+        .on('data', (data) => {
+            if (self.isConnected()) {
+                self.codec.dataIn(data);
+            }
+        })
+        .on('close', () => {
+            clearInterval(self.keepaliveIntervalTimer);
+            self.emit('disconnected');
+            self.status = "disconnected";
+            self.socket = null;
+        });
 }
 
 S101Socket.prototype.isConnected = function () {
