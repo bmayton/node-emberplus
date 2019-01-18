@@ -41,6 +41,22 @@ describe("DeviceTree", () => {
                         .then(() => tree.disconnect())
                 })
         });
+
+        it("should not disconnect after 5 seconds of inactivity", () => {
+            return Promise.resolve()
+                .then(() => {
+                    let tree = new DeviceTree(LOCALHOST, PORT);
+
+                    tree.on("error", error => {
+                        throw error;
+                    });
+
+                    return Promise.resolve()
+                        .then(() => tree.connect())
+                        .then(() => new Promise(resolve => setTimeout(resolve, 5000)))
+                        .then(() => tree.disconnect())
+                })
+        }, 7000);
     });
 
     it("timeout should be taken into account when connecting to unknown host", () => {
