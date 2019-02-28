@@ -2297,7 +2297,7 @@ Parameter.prototype.setValue = function(value, callback) {
 }
 
 Parameter.prototype.toQualified = function() {
-    let qp = new QualifiedNode(this.getPath());
+    let qp = new QualifiedParameter(this.getPath());
     qp.update(this);
     return qp;
 }
