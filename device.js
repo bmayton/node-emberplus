@@ -150,7 +150,7 @@ DeviceTree.prototype.getDirectory = function (qnode) {
             }
 
             self.callback = (error, node) => {
-                if (node == null) { return; } 
+                if (node == null) { return; }
                 if (error) {
                     if (self._debug) {
                         console.log("Received getDirectory error", error);
@@ -160,25 +160,37 @@ DeviceTree.prototype.getDirectory = function (qnode) {
                     reject(error);
                     return;
                 }
-                let requestedPath = qnode.getPath();
-                if (requestedPath === "") {
+                if (qnode instanceof ember.Root) {
                     if (qnode.elements == null || qnode.elements.length === 0) {
                         if (self._debug) {
-                           console.log("getDirectory response", node);
+                            console.log("getDirectory response", node);
                         }
                         return self.callback(new Error("Invalid qnode for getDirectory"));
                     }
-                    requestedPath = qnode.elements["0"].getPath();
-                }
-                const nodeElements = node == null ? null : node.elements;
-                if (nodeElements != null
-                    && nodeElements.every(el => el.getPath() === requestedPath || isDirectSubPathOf(el.getPath(), requestedPath))) {
-                    if (self._debug) {
-                        console.log("Received getDirectory response", node);
+
+                    const nodeElements = node == null ? null : node.elements;
+
+                    if (nodeElements != null
+                        && nodeElements.every(el => el._parent instanceof ember.Root)) {
+                        if (self._debug) {
+                            console.log("Received getDirectory response", node);
+                        }
+                        self.clearTimeout(); // clear the timeout now. The resolve below may take a while.
+                        self.finishRequest();
+                        resolve(node); // make sure the info is treated before going to next request.
                     }
-                    self.clearTimeout(); // clear the timeout now. The resolve below may take a while.
-                    self.finishRequest();
-                    resolve(node); // make sure the info is treated before going to next request.
+                } else {
+                    let requestedPath = qnode.getPath();
+                    const nodeElements = node == null ? null : node.elements;
+                    if (nodeElements != null
+                        && nodeElements.every(el => isDirectSubPathOf(el.getPath(), requestedPath))) {
+                        if (self._debug) {
+                            console.log("Received getDirectory response", node);
+                        }
+                        self.clearTimeout(); // clear the timeout now. The resolve below may take a while.
+                        self.finishRequest();
+                        resolve(node); // make sure the info is treated before going to next request.
+                    }
                 }
             };
 

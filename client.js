@@ -165,19 +165,28 @@ S101Socket.prototype.connect = function (timeout = 2) {
     self.emit('connecting');
 
     self.codec = new S101Codec();
+
+    const connectTimeoutListener = () => {
+        self.socket.destroy();
+        self.emit("error", new Error(`Could not connect to ${self.address}:${self.port} after a timeout of ${timeout} seconds`));
+    };
+
     self.socket = net.createConnection({
             port: self.port,
             host: self.address,
-            timeout: timeout
+            timeout: 1000 * timeout
         },
         () => {
             winston.debug('socket connected');
 
+            // Disable connect timeout to hand-over to keepalive mechanism
+            self.socket.removeListener("timeout", connectTimeoutListener);
+            self.socket.setTimeout(0);
+
             self.keepaliveIntervalTimer = setInterval(() => {
                 try {
                     self.sendKeepaliveRequest();
-                }
-                catch(e) {
+                } catch (e) {
                     self.emit("error", e);
                 }
             }, 1000 * self.keepaliveInterval);
@@ -201,23 +210,22 @@ S101Socket.prototype.connect = function (timeout = 2) {
             });
 
             self.emit('connected');
-        }
-    ).on('error', (e) => {
-        self.emit("error", e);
-    });
-
-    self.socket.on('data', (data) => {
-        if (self.isConnected()) {
-            self.codec.dataIn(data);
-        }
-    });
-
-    self.socket.on('close', () => {
-        clearInterval(self.keepaliveIntervalTimer);
-        self.emit('disconnected');
-        self.status = "disconnected";
-        self.socket = null;
-    });
+        })
+        .on('error', (e) => {
+            self.emit("error", e);
+        })
+        .once("timeout", connectTimeoutListener)
+        .on('data', (data) => {
+            if (self.isConnected()) {
+                self.codec.dataIn(data);
+            }
+        })
+        .on('close', () => {
+            clearInterval(self.keepaliveIntervalTimer);
+            self.emit('disconnected');
+            self.status = "disconnected";
+            self.socket = null;
+        });
 }
 
 S101Socket.prototype.isConnected = function () {
