@@ -382,6 +382,19 @@ TreeServer.prototype.handleGetDirectory = function(client, element) {
             // report their value changes automatically.
             this.subscribe(client, element);
         }
+        else if (element.isNode()) {
+            const children = element.getChildren();
+            if (children != null) {
+                for (let i = 0; i < children.length; i++) {
+                    const child = children[i];
+                    if ((child.isMatrix() || child.isParameter()) &&
+                        (!child.isStream())) {
+                        this.subscribe(client, child);
+                    }
+                }
+            }
+        }
+
         let res = this.getQualifiedResponse(element);
         if (this._debug) {
             console.log("getDirectory response", res);

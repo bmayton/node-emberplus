@@ -4,7 +4,7 @@ const DeviceTree = require("../").DeviceTree;
 
 
 const LOCALHOST = "127.0.0.1";
-const PORT = 9008;
+const PORT = 9009;
 
 
 const init = function(_src,_tgt) {
@@ -90,7 +90,7 @@ describe("server", function() {
 
     describe("JSONtoTree", function() {
         let jsonTree;
-        before(function() {
+        beforeAll(function() {
             jsonTree = init();
         });
         it("should generate an ember tree from json", function() {
@@ -106,7 +106,7 @@ describe("server", function() {
 
     describe("Server - Client communication", function() {
         let server,client;
-        before(function() {
+        beforeAll(function() {
             jsonTree = init();
             const root = TreeServer.JSONtoTree(jsonTree);
             server = new TreeServer(LOCALHOST, PORT, root);
@@ -115,7 +115,7 @@ describe("server", function() {
                 console.log("server listening");
             });
         });
-        after(function() {
+        afterAll(function() {
             client.disconnect();
             server.close();
         })
@@ -142,6 +142,7 @@ describe("server", function() {
                 .then(() => {
                     expect(client.root.elements[0].children[0].children.length).toBe(4);
                     expect(client.root.elements[0].children[0].children[3].contents.identifier).toBe("author");
+                    expect(server.subscribers["0.0.0"]).toBeDefined();
                 });
         });
     });

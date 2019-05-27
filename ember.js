@@ -149,6 +149,10 @@ TreeNode.prototype.addChild = function(child) {
     this.children.push(child);
 }
 
+TreeNode.prototype.isNode = function() {
+    return ((this instanceof Node) || (this instanceof QualifiedNode));
+}
+
 TreeNode.prototype.isMatrix = function() {
     return ((this instanceof MatrixNode) || (this instanceof QualifiedMatrix));
 }
