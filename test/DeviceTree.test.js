@@ -3,7 +3,6 @@ const sinon = require("sinon");
 const Decoder = require('../').Decoder;
 const DeviceTree = require("../").DeviceTree;
 const TreeServer = require("../").TreeServer;
-const S101Client = require("../").S101Client;
 
 const LOCALHOST = "127.0.0.1";
 const UNKNOWN_HOST = "192.168.99.99";
