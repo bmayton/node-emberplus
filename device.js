@@ -278,7 +278,11 @@ DeviceTree.prototype.finishRequest = function () {
     self.callback = undefined;
     self.clearTimeout();
     self.activeRequest = null;
-    self.makeRequest();
+    try {
+        self.makeRequest();
+    } catch(e) {
+        console.log("warn:" + e.message)
+    }
 };
 
 DeviceTree.prototype.timeoutRequest = function (id) {
