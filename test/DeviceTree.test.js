@@ -1,4 +1,5 @@
 const fs = require("fs");
+const sinon = require("sinon");
 const Decoder = require('../').Decoder;
 const DeviceTree = require("../").DeviceTree;
 const TreeServer = require("../").TreeServer;
@@ -9,6 +10,7 @@ const PORT = 9008;
 
 describe("DeviceTree", () => {
     describe("With server", () => {
+        /** @type {TreeServer} */
         let server;
         beforeAll(() => {
             return Promise.resolve()
@@ -42,6 +44,26 @@ describe("DeviceTree", () => {
                 })
         });
 
+        it("should gracefully connect and getDirectory", () => {
+            let tree = new DeviceTree(LOCALHOST, PORT);
+            let stub = sinon.stub(tree.client, "sendBER");
+            stub.onFirstCall().returns();
+            stub.onSecondCall().throws(new Error("blah"));
+            stub.callThrough();
+            return Promise.resolve()
+                .then(() => tree.connect())
+                .then(() => {tree.getDirectory().catch(() => {})})
+                .then(() => tree.getDirectory())
+                .then(() => {
+                    stub.restore();
+                    tree.disconnect();
+                }, error => {
+                    stub.restore();
+                    tree.disconnect();
+                    throw error;
+                })
+
+        }, 10000);
         it("should not disconnect after 5 seconds of inactivity", () => {
             return Promise.resolve()
                 .then(() => {
