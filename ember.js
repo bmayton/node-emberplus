@@ -593,6 +593,9 @@ function QualifiedNodeCommand(self, cmd, callback) {
 }
 
 QualifiedNode.prototype.getDirectory = function(callback) {
+    if(callback !== undefined) {
+        this._directoryCallbacks.push((error, node) => { callback(error, node) });
+    }
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
@@ -1412,6 +1415,9 @@ function QualifiedMatrixCommand(self, cmd, callback) {
 }
 
 QualifiedMatrix.prototype.getDirectory = function(callback) {
+    if(callback !== undefined) {
+        this._directoryCallbacks.push((error, node) => { callback(error, node) });
+    }
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
@@ -1728,6 +1734,9 @@ QualifiedFunction.prototype.invoke = function(params, callback) {
 }
 
 QualifiedFunction.prototype.getDirectory = function(callback) {
+    if(callback !== undefined) {
+        this._directoryCallbacks.push((error, node) => { callback(error, node) });
+    }
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
@@ -2208,6 +2217,9 @@ function QualifiedParameterCommand(self, cmd, callback) {
 }
 
 QualifiedParameter.prototype.getDirectory = function(callback) {
+    if(callback !== undefined) {
+        this._directoryCallbacks.push((error, node) => { callback(error, node) });
+    }
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }

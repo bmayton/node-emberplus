@@ -336,6 +336,7 @@ DeviceTree.prototype.handleQualifiedNode = function (parent, node) {
                 return callbacks;
             }
             parent.addChild(node);
+	    callbacks = parent.update(parent);
         }
         element = node;
     }

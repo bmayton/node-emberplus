@@ -6,7 +6,11 @@ const DeviceTree = require("../").DeviceTree;
 const LOCALHOST = "127.0.0.1";
 const PORT = 9009;
 
-
+const wait = function(t) {
+    return new Promise(resolve => {
+        setTimeout(resolve, t);
+    });
+}
 const init = function(_src,_tgt) {
     const targets = _tgt === undefined ? [ "tgt1", "tgt2", "tgt3" ] : _tgt;
     const sources = _src === undefined ? [ "src1", "src2", "src3" ] : _src;
@@ -126,7 +130,7 @@ describe("server", function() {
                 .then(() => client.connect())
                 .then(() => {
                     console.log("client connected");
-                    return client.getDirectory()
+                    return client.getDirectory();
                 })
                 .then(() => {
                     expect(client.root).toBeDefined();
@@ -142,8 +146,36 @@ describe("server", function() {
                 .then(() => {
                     expect(client.root.elements[0].children[0].children.length).toBe(4);
                     expect(client.root.elements[0].children[0].children[3].contents.identifier).toBe("author");
+                    // Issue #33 TreeServer.handleGetDirectory does not subscribe to child parameters
                     expect(server.subscribers["0.0.0"]).toBeDefined();
+                    // Keepalive
+                    server.clie
                 });
+        });
+	it("should be able to get child with getNodeByPath", function() {
+	  //server._debug = true;
+          client = new DeviceTree(LOCALHOST, PORT);
+	//client._debug = true;
+            //client._debug = true;
+            return Promise.resolve()
+		.then(() => client.connect())
+                .then(() => {
+                    console.log("client connected");
+	            return client.getDirectory();
+	        })
+		.then(() => {
+                    return new Promise((resolve, reject) => {
+			    client.root.getNodeByPath(client.client, ["scoreMaster", "identity", "product"], (err, child) => {
+				    if (err) { reject(err) }
+				    else {
+					    resolve(child);
+				    }
+			    });
+                    });
+                })
+		.then(child => {
+			console.log(child);
+		});
         });
     });
 });
