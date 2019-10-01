@@ -1,6 +1,6 @@
 {
   "name": "emberplus",
-  "version": "1.7.24",
+  "version": "1.7.25",
   "description": "Javascript implementation of the Ember+ automation protocol",
   "main": "index.js",
   "scripts": {
@@ -30,7 +30,7 @@
   "devDependencies": {
     "eslint": "^5.5.0",
     "jest": "^23.5.0",
-    "jest-cli": "^24.9.0"
+    "jest-cli": "^24.9.0",
     "sinon": "^7.4.1"
   }
 }
