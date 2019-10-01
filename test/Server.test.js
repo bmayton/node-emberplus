@@ -149,7 +149,7 @@ describe("server", function() {
                     // Issue #33 TreeServer.handleGetDirectory does not subscribe to child parameters
                     expect(server.subscribers["0.0.0"]).toBeDefined();
                     // Keepalive
-                    server.clie
+	            client.disconnect();
                 });
         });
 	it("should be able to get child with getNodeByPath", function() {
