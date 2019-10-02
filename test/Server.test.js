@@ -80,7 +80,11 @@ const init = function(_src,_tgt) {
                                     // Must be 2
                                     number: 2,
                                     children: labels(sources)
-                                }
+                                },
+                                {
+				    identifier: "group 1",
+                                    children: [ {identifier: "sdp A", value: "A"}, {identifier: "sdp B", value: "B"}]
+				}
                             ]
                         }
                     ]
@@ -175,7 +179,61 @@ describe("server", function() {
                 })
 		.then(child => {
 			console.log(child);
+		})
+		.then(() => {
+                    return new Promise((resolve, reject) => {
+                            client.root.getNodeByPath(client.client, ["scoreMaster", "router", "labels"], (err, child) => {
+                                    if (err) { reject(err) }
+                                    else {
+                                            resolve(child);
+                                    }
+                            });
+                    });
+                })
+		.then(child => {
+                        console.log(child);
+			client.disconnect();
+                });
+	});
+	it("should be able to get child with tree.getNodeByPath", function() {
+          //server._debug = true;
+          client = new DeviceTree(LOCALHOST, PORT);
+        //client._debug = true;
+            //client._debug = true;
+            return Promise.resolve()
+                .then(() => client.connect())
+                .then(() => {
+                    console.log("client connected");
+                    return client.getDirectory();
+                })
+                .then(() =>  client.getNodeByPath("scoreMaster/identity/product"))
+                .then(child => {
+                        console.log(child);
+			return client.getNodeByPath("scoreMaster/router/labels/group 1");
+		})
+                .then(child => {
+                        console.log("router/labels", child);
+			client.disconnect();
+                });
+         });
+	 it("should throw an erro if getNodeByPath for unknown path", function() {
+          //server._debug = true;
+          client = new DeviceTree(LOCALHOST, PORT);
+          return Promise.resolve()
+                .then(() => client.connect())
+                .then(() => {
+                    console.log("client connected");
+                    return client.getDirectory();
+                })
+                .then(() => client.getNodeByPath("scoreMaster/router/labels/group 1"))
+                .then(child => {
+                        console.log("router/labels", child);
+			throw new Error("Should not succeed");
+                })
+	        .catch(e => {
+			client.disconnect();
+			expect(e).toMatch(/invalid path/);
 		});
-        });
+          });
     });
 });
