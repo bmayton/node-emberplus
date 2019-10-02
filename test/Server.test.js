@@ -232,7 +232,8 @@ describe("server", function() {
                 })
 	        .catch(e => {
 			client.disconnect();
-			expect(e).toMatch(/invalid path/);
+			console.log(e);
+			expect(e.message).toMatch(/timeout/);
 		});
           });
     });

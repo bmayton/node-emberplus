@@ -407,7 +407,10 @@ TreeNode.prototype.getNodeByPath = function(client, path, callback) {
             }
             child = node.getElement(path[0]);
             if(child === null) {
-                callback('invalid path: "' + path[0] + '"');
+		    //let e = new Error('invalid path: "' + path[0] + '"');
+		//	console.log(e.message ,"Self:", self, "Node:", node);
+                //callback(e);
+		    //DO NOT REJECT !!!! We could still be updating the tree.
                 return;
             } else {
                 child.getNodeByPath(client, path.slice(1), callback);

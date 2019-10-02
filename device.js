@@ -388,12 +388,12 @@ DeviceTree.prototype.handleNode = function (parent, node) {
     return callbacks;
 };
 
-DeviceTree.prototype.getNodeByPath = function (path) {
+DeviceTree.prototype.getNodeByPath = function (path, timeout = 2) {
     var self = this;
     if (typeof path === 'string') {
         path = path.split('/');
     }
-
+    var timeoutError = new Error("Request timeout");
     return new Promise((resolve, reject) => {
         self.addRequest((error) => {
             if (error) {
@@ -401,14 +401,25 @@ DeviceTree.prototype.getNodeByPath = function (path) {
                 self.finishRequest();
                 return;
             }
-            self.root.getNodeByPath(self.client, path, (error, node) => {
+	    var timedOut = false;
+	    var cb = (error, node) => {
+		if (timer) {
+			clearTimeout(timer);
+		}
+		if (timedOut) { return; }
                 if (error) {
                     reject(error);
                 } else {
                     resolve(node);
                 }
                 self.finishRequest();
-            });
+            };
+	    var cbTimeout = () => {
+		timedOut = true;
+		reject(timeoutError);
+            }
+	    var timer = timeout === 0 ? null : setTimeout(cbTimeout, timeout * 1000);
+            self.root.getNodeByPath(self.client, path, cb);
         });
     });
 };
