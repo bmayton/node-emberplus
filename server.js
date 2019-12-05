@@ -535,7 +535,7 @@ const parseObj = function(parent, obj) {
         let content = obj[i];
         let number = content.number !== undefined ? content.number : i;
         delete content.number;
-        if (content.value !== undefined) {
+        if (content.value !== undefined) {            
             emberElement = new ember.Parameter(number);
             emberElement.contents = new ember.ParameterContents(content.value);
             if (content.type) {

@@ -29,7 +29,7 @@ describe("DeviceTree", () => {
         });
 
         afterAll(() => server.close());
-
+	});
         it("should gracefully connect and disconnect", () => {
             return Promise.resolve()
                 .then(() => {
