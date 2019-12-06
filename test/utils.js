@@ -71,9 +71,9 @@ const init = function(_src,_tgt) {
                                     children: labels(sources)
                                 },
                                 {
-				    identifier: "group 1",
+				                    identifier: "group 1",
                                     children: [ {identifier: "sdp A", value: "A"}, {identifier: "sdp B", value: "B"}]
-				}
+				                }
                             ]
                         }
                     ]

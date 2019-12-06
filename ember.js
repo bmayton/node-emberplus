@@ -282,6 +282,26 @@ TreeNode.prototype.getChildren = function() {
     return null;
 }
 
+function path2number(path) {
+    try {
+        let numbers = path.split(".");
+        if (numbers.length > 0) {
+            return Number(numbers[numbers.length - 1]);
+        }
+    }
+    catch(e) {
+        // ignore
+    }
+}
+
+TreeNode.prototype.getNumber = function() {
+    if (this.isQualified()) {
+        return path2number(this.getPath());
+    }
+    else {
+        return this.number;
+    }
+}
 
 _getElementByPath = function(children, pathArray, path) {
     if ((children === null)||(children === undefined)||(pathArray.length < 1))  {
@@ -338,7 +358,7 @@ TreeNode.prototype.getElementByNumber = function(index) {
     var children = this.getChildren();
     if(children === null) return null;
     for(var i=0; i<children.length; i++) {
-        if(children[i].number === index) {
+        if(children[i].getNumber() === index) {
             return children[i];
         }
     }
@@ -545,21 +565,9 @@ QualifiedNode.decode = function(ber) {
     return qn;
 }
 
-function path2number(path) {
-    try {
-        let numbers = path.split(".");
-        if (numbers.length > 0) {
-            return Number(numbers[numbers.length - 1]);
-        }
-    }
-    catch(e) {
-        // ignore
-    }
-}
-
 QualifiedNode.prototype.getMinimal = function(complete = false) {
-    let number = path2number(this.path);
-    let n = new Node(number);
+    const number = this.getNumber();
+    const n = new Node(number);
     if (complete && (this.contents != null)) {
         n.contents = this.contents;
     }
@@ -1298,8 +1306,8 @@ function QualifiedMatrix(path) {
 util.inherits(QualifiedMatrix, TreeNode);
 
 QualifiedMatrix.prototype.getMinimal = function(complete = false) {
-    let number = path2number(this.path);
-    let m = new MatrixNode(number);
+    const number = this.getNumber();
+    const m = new MatrixNode(number);
     if (complete) {
         if (this.contents != null) {
             m.contents = this.contents;
@@ -1360,8 +1368,8 @@ QualifiedMatrix.decode = function(ber) {
 }
 
 function MatrixUpdate(matrix, newMatrix) {
-    if (newMatrix !== undefined) {
-        if (newMatrix.contents !== undefined) {
+    if (newMatrix != null) {
+        if (newMatrix.contents != null) {
             if (matrix.contents == null) {
                 matrix.contents = newMatrix.contents;
             }
@@ -1373,14 +1381,14 @@ function MatrixUpdate(matrix, newMatrix) {
                 }
             }
         }
-        if (newMatrix.targets !== undefined) {
+        if (newMatrix.targets != null) {
             matrix.targets = newMatrix.targets;
         }
-        if (newMatrix.sources !== undefined) {
+        if (newMatrix.sources != null) {
             matrix.sources = newMatrix.sources;
         }
-        if (newMatrix.connections !== undefined) {
-            if (matrix.connections === undefined) {
+        if (newMatrix.connections != null) {
+            if (matrix.connections == null) {
                 matrix.connections = {};
             }
             for(let id in newMatrix.connections) {
@@ -2125,8 +2133,8 @@ util.inherits(QualifiedParameter, TreeNode);
 module.exports.QualifiedParameter = QualifiedParameter;
 
 QualifiedParameter.prototype.getMinimal = function(complete = false) {
-    let number = path2number(this.path);
-    let p = new Parameter(number);
+    const number = this.getNumber();
+    const p = new Parameter(number);
     if (complete) {
         if (this.contents != null) {
             p = this.contents;

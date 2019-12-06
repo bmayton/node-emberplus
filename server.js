@@ -225,15 +225,15 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
     var root; // ember message root
     if (matrix.isQualified()) {
         root = new ember.Root();
-        res = new ember.QualifiedMatrix(matrix.path);
+        res = new ember.QualifiedMatrix(matrix.getPath());
         root.elements = [res]; // do not use addchild or the element will get removed from the tree.
     }
     else {
         res = new ember.MatrixNode(matrix.number);
         root = matrix._parent.getTreeBranch(res);
-    }
+    }    
     res.connections = {};
-    for(let id in connections) {
+    for(let id in connections) {        
         if (!connections.hasOwnProperty(id)) {
             continue;
         }
@@ -241,7 +241,7 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
         let conResult = new ember.MatrixConnection(connection.target);
         let emitType;
         res.connections[connection.target] = conResult;
-
+        
 
         // Apply changes
 

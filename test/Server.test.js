@@ -1,6 +1,7 @@
 const expect = require("expect");
 const TreeServer = require("../server");
 const DeviceTree = require("../").DeviceTree;
+const ember = require("../ember");
 const {jsonRoot} = require("./utils");
 
 const LOCALHOST = "127.0.0.1";
@@ -89,6 +90,39 @@ describe("server", function() {
                 })
                 .then(() => {
                     expect(server.tree.elements[0].children[0].children[1].contents.value).toBe("gdnet");          
+                    return client.disconnect();
+                });
+        });
+        it("should be able to make a matrix connection", () => {
+            client = new DeviceTree(LOCALHOST, PORT);
+            //client._debug = true;
+            return Promise.resolve()
+                .then(() => client.connect())
+                .then(() => {
+                    return client.getDirectory();
+                })
+                .then(() => client.expand(client.root.elements[0]))
+                .then(() => {
+                    console.log(client.root.elements[0].children[1].children[0]);
+                    const matrix = client.root.elements[0].children[1].children[0];
+                    const connections = {}
+                    const target0Connection = new ember.MatrixConnection(0);
+                    target0Connection.operation = ember.MatrixOperation.connect;
+                    target0Connection.setSources([1]); // connect with src 1
+                    connections[0] = target0Connection;
+                    const p = new Promise(resolve => {
+                        client.on("value-change", node => {
+                            resolve(node);
+                        });
+                    });                    
+                    client.client.sendBERNode(matrix.connect(connections));
+                    return p;
+                })
+                .then(node => {
+                    console.log(client.root.elements[0].children[1].children[0]);
+                    expect(client.root.elements[0].children[1].children[0].connections['0'].sources).toBeDefined();
+                    expect(client.root.elements[0].children[1].children[0].connections['0'].sources.length).toBe(1);
+                    expect(client.root.elements[0].children[1].children[0].connections['0'].sources[0]).toBe(1);
                     return client.disconnect();
                 });
         });
