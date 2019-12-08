@@ -108,7 +108,7 @@ DeviceTree.prototype.expand = function (node) {
     if (node == null) {
         return Promise.reject(new Error("Invalid null node"));
     }
-    if (node.isParameter() || node.isMatrix()) {
+    if (node.isParameter() || node.isMatrix() || node.isFunction()) {
         return self.getDirectory(node);
     }    
     return self.getDirectory(node).then((res) => {

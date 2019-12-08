@@ -45,7 +45,7 @@ Root.decode = function(ber) {
                 console.log("Application 0 start");
             }
 
-            if (tag == BER.APPLICATION(11)) {
+            if (tag === BER.APPLICATION(11)) {
                 if (DEBUG) {
                     console.log("Application 11 start");
                 }
@@ -66,7 +66,11 @@ Root.decode = function(ber) {
                         throw e;
                     }
                 }
-            } else {
+            } 
+            else if (tag === BER.APPLICATION(23)) { // InvocationResult BER.APPLICATION(23)
+                return InvocationResult.decode(ber)
+            }
+            else {
                 // StreamCollection BER.APPLICATION(6)
                 // InvocationResult BER.APPLICATION(23)
                 throw new errors.UnimplementedEmberTypeError(tag);
@@ -81,9 +85,8 @@ Root.decode = function(ber) {
                 console.log(e.stack);
                 return r;
             }
-        } else if (tag == BER.APPLICATION(23)) { // InvocationResult BER.APPLICATION(23)
-           return InvocationResult.decode(ber)
-        } else {
+        }          
+        else {
             throw new errors.UnimplementedEmberTypeError(tag);
         }
     }
@@ -324,6 +327,61 @@ _getElementByPath = function(children, pathArray, path) {
     return null;
 }
 
+TreeNode.prototype.toJSON = function() {
+    let res = {};
+    const node = this;
+    if (node.number) {
+        res.number = node.number
+    }
+    if (node.path) {
+        res.path = node.path;
+    }
+    if (node.contents) {
+        for(let prop in node.contents) {
+            if (node.contents.hasOwnProperty(prop)) {
+                let type = typeof node.contents[prop];
+                if ((type === "string") || (type === "number")) {
+                    res[prop] = node.contents[prop];
+                }
+                else if (node.contents[prop].value !== undefined) {
+                    res[prop] = node.contents[prop].value;
+                }
+                else {
+                    res[prop] = node.contents[prop];
+                }
+            }
+        }
+    }
+    if (node.isMatrix()) {
+        if (node.targets) {
+            res.targets = node.targets.slice(0);
+        }
+        if (node.sources) {
+            res.sources = node.sources.slice(0);
+        }
+        if (node.connections) {
+            res.connections = {};
+            for (let target in node.connections) {
+                if (node.connections.hasOwnProperty(target)) {
+                    res.connections[target] = {target: target, sources: []};
+                    if (node.connections[target].sources) {
+                        res.connections[target].sources = node.connections[target].sources.slice(0);
+                    }
+                }
+            }
+
+        }
+    }
+    let children = node.getChildren();
+    if (children) {
+        res.children = [];
+        for(let child of children) {
+            res.children.push(child.toJSON());
+        }
+    }
+    return res;
+};
+
 TreeNode.prototype.getElementByPath = function(path) {
     var children = this.getChildren();
     if ((children === null)||(children === undefined))  {
@@ -506,7 +564,7 @@ Element.decode = function(ber) {
     }
     else if(tag == BER.APPLICATION(19)) {
         if (DEBUG) { console.log("Function decode");}
-        return _Function.decode(ber);
+        return Function.decode(ber);
     } else if (tag == BER.APPLICATION(20)) {
         if (DEBUG) { console.log("QualifiedFunction decode");}
         return QualifiedFunction.decode(ber);
@@ -1543,6 +1601,68 @@ QualifiedMatrix.prototype.encode = function(ber) {
 
 module.exports.QualifiedMatrix = QualifiedMatrix;
 
+
+/*********************************
+ *  FunctionArgument
+ ********************************/
+/*
+TupleDescription ::=
+ SEQUENCE OF [0] TupleItemDescription
+TupleItemDescription ::=
+ [APPLICATION 21] IMPLICIT
+ SEQUENCE {
+ type [0] ParameterType,
+ name [1] EmberString OPTIONAL
+ }
+Invocation ::=
+ [APPLICATION 22] IMPLICIT
+ SEQUENCE {
+ invocationId [0] Integer32 OPTIONAL,
+ arguments [1] Tuple OPTIONAL
+ }
+Tuple ::=
+ SEQUENCE OF [0] Value
+*/
+
+function FunctionArgument(type = null, value = null) {
+    /** @type {ParameterType} */
+    this.type = type;
+    this.value = value;
+}
+
+FunctionArgument.prototype.encode = function(ber) {
+    ber.startSequence(BER.APPLICATION(21));
+    if (this.type != null) {
+        ber.startSequence(BER.CONTEXT(0));
+        ber.writeInt(this.type.value);
+        ber.endSequence();
+    }
+    if (this.name != null) {
+        ber.startSequence(BER.CONTEXT(1));
+        ber.writeString(this.name);
+        ber.endSequence();
+    }
+    ber.endSequence();
+}
+
+FunctionArgument.decode = function(ber) {
+    var tuple = new FunctionArgument();
+    ber = ber.getSequence(BER.APPLICATION(21));
+    while(ber.remain > 0) {
+        tag = ber.peek();
+        var seq = ber.getSequence(tag);
+        if (tag === BER.CONTEXT(0)) {
+            tuple.type = ParameterType.get(seq.readInt());
+        }
+        else if (tag === BER.CONTEXT(1)) {
+            tuple.name = seq.readString(BER.EMBER_STRING);
+        }
+    }
+    return tuple;
+}
+
+module.exports.FunctionArgument = FunctionArgument;
+
 /****************************************************************************
  * FunctionContent
  ***************************************************************************/
@@ -1550,36 +1670,6 @@ module.exports.QualifiedMatrix = QualifiedMatrix;
 function FunctionContent() {
 }
 
-decodeTupleDescription = function(ber) {
-    var tuple = {};
-    ber = ber.getSequence(BER.APPLICATION(21));
-    while(ber.remain > 0) {
-        tag = ber.peek();
-        var seq = ber.getSequence(tag);
-        if (tag === BER.CONTEXT(0)) {
-            tuple.type = seq.readInt();
-        }
-        else if (tag === BER.CONTEXT(1)) {
-            tuple.name = seq.readString(BER.EMBER_STRING);
-        }
-    }
-    return tuple;
-};
-
-encodeTupleDescription = function(tuple, ber) {
-    ber.startSequence(BER.APPLICATION(21));
-    if (tuple.type !== undefined) {
-        ber.startSequence(BER.CONTEXT(0));
-        ber.writeInt(tuple.type);
-        ber.endSequence();
-    }
-    if (tuple.name !== undefined) {
-        ber.startSequence(BER.CONTEXT(1));
-        ber.writeString(tuple.name);
-        ber.endSequence();
-    }
-    ber.endSequence();
-}
 
 FunctionContent.decode = function(ber) {
     var fc = new FunctionContent();
@@ -1598,7 +1688,7 @@ FunctionContent.decode = function(ber) {
                 tag = seq.peek();
                 var dataSeq = seq.getSequence(BER.CONTEXT(0));
                 if (tag === BER.CONTEXT(0)) {
-                    fc.arguments.push(decodeTupleDescription(dataSeq));
+                    fc.arguments.push(FunctionArgument.decode(dataSeq));
                 }
             }
         } else if(tag == BER.CONTEXT(3)) {
@@ -1607,7 +1697,7 @@ FunctionContent.decode = function(ber) {
                 tag = seq.peek();
                 var dataSeq = seq.getSequence(tag);
                 if (tag === BER.CONTEXT(0)) {
-                    fc.result.push(decodeTupleDescription(dataSeq));
+                    fc.result.push(FunctionArgument.decode(dataSeq));
                 }
             }
         } else if(tag == BER.CONTEXT(4)) {
@@ -1623,36 +1713,34 @@ FunctionContent.decode = function(ber) {
 FunctionContent.prototype.encode = function(ber) {
     ber.startSequence(BER.EMBER_SET);
 
-    if(this.identifier !== undefined) {
+    if(this.identifier != null) {
         ber.startSequence(BER.CONTEXT(0));
         ber.writeString(this.identifier, BER.EMBER_STRING);
         ber.endSequence(); // BER.CONTEXT(0)
     }
 
-    if(this.description !== undefined) {
+    if(this.description != null) {
         ber.startSequence(BER.CONTEXT(1));
         ber.writeString(this.description, BER.EMBER_STRING);
         ber.endSequence(); // BER.CONTEXT(1)
     }
 
-    if(this.arguments !== undefined) {
+    if(this.arguments != null) {
         ber.startSequence(BER.CONTEXT(2));
         ber.startSequence(BER.EMBER_SEQUENCE);
         for(var i =0; i < this.arguments.length; i++) {
-            ber.startSequence(BER.CONTEXT(0));
-            encodeTupleDescription(this.arguments[i], ber);
-            ber.endSequence();
+            this.arguments[i].encode(ber);
         }
         ber.endSequence();
         ber.endSequence(); // BER.CONTEXT(2)
     }
 
-    if(this.result !== undefined) {
+    if(this.result != null) {
         ber.startSequence(BER.CONTEXT(3));
         ber.startSequence(BER.EMBER_SEQUENCE);
         for(var i =0; i < this.result; i++) {
             ber.startSequence(BER.CONTEXT(0));
-            encodeTupleDescription(this.result[i], ber);
+            this.result[i].encode(ber);
             ber.endSequence();
         }
         ber.endSequence();
@@ -1803,16 +1891,16 @@ module.exports.QualifiedFunction = QualifiedFunction;
  ***************************************************************************/
 
 
-function _Function(number) {
-    _Function.super_.call(this);
+function Function(number) {
+    Function.super_.call(this);
     if(number !== undefined)
         this.number = number;
 };
 
-util.inherits(_Function, TreeNode);
+util.inherits(Function, TreeNode);
 
-_Function.decode = function(ber) {
-    var f = new _Function();
+Function.decode = function(ber) {
+    var f = new Function();
     ber = ber.getSequence(BER.APPLICATION(19));
 
     while(ber.remain > 0) {
@@ -1833,11 +1921,11 @@ _Function.decode = function(ber) {
             throw new errors.UnimplementedEmberTypeError(tag);
         }
     }
-    if (DEBUG) { console.log("_Function", f); }
+    if (DEBUG) { console.log("Function", f); }
     return f;
 }
 
-_Function.prototype.encode = function(ber) {
+Function.prototype.encode = function(ber) {
     ber.startSequence(BER.APPLICATION(19));
 
     ber.startSequence(BER.CONTEXT(0));
@@ -1865,10 +1953,10 @@ _Function.prototype.encode = function(ber) {
     ber.endSequence(); // BER.APPLICATION(19)
 }
 
-module.exports._Function = _Function;
+module.exports.Function = Function;
 
 
-_Function.prototype.invoke = function(callback) {
+Function.prototype.invoke = function(callback) {
     if(callback !== undefined) {
         this._directoryCallbacks.push((error, node) => { callback(error, node) });
     }
@@ -2028,8 +2116,12 @@ module.exports.Command = Command;
 /****************************************************************************
  * Invocation
  ***************************************************************************/
-function Invocation() {
+function Invocation(id = null) {
+    this.id = id == null ? Invocation._id++ : id;
+    this.arguments = [];
 }
+
+Invocation._id = 1
 
 Invocation.prototype.decode = function(ber) {
     let invocation = new Invocation();
@@ -2042,13 +2134,9 @@ Invocation.prototype.decode = function(ber) {
         }
         if(tag == BER.CONTEXT(1)) {
             invocation.arguments = [];
-            let seq = ber.getSequence(BER.EMBER_SEQUENCE);
+            const seq = ber.getSequence(BER.EMBER_SEQUENCE);
             while(seq.remain > 0) {
-                tag = seq.peek();
-                var dataSeq = seq.getSequence(BER.CONTEXT(0));
-                if (tag === BER.CONTEXT(0)) {
-                    invocation.arguments.push(dataSeq.readValue());
-                }
+                invocation.arguments.push(FunctionArgument.decode(seq));
             }
         }
         else {
@@ -2060,21 +2148,23 @@ Invocation.prototype.decode = function(ber) {
     return invocation;
 }
 
-Invocation._id = 1
 
 Invocation.prototype.encode = function(ber) {
     ber.startSequence(BER.APPLICATION(22));
     // ber.startSequence(BER.EMBER_SEQUENCE);
 
     ber.startSequence(BER.CONTEXT(0));
-    ber.writeInt(Invocation._id++)
+    ber.writeInt(this.id)
     ber.endSequence();
 
     ber.startSequence(BER.CONTEXT(1));
-    ber.startSequence(BER.EMBER_SEQUENCE)
-    for(var i =0; i < this.arguments.length; i++) {
-        ber.startSequence(BER.CONTEXT(0))
-        ber.writeValue(this.arguments[i])
+    ber.startSequence(BER.EMBER_SEQUENCE);
+    for(var i = 0; i < this.arguments.length; i++) {
+        ber.startSequence(BER.CONTEXT(0));
+        ber.writeValue(
+            this.arguments[i].value, 
+            ParameterTypetoBERTAG(this.arguments[i].type
+        ));
         ber.endSequence();
     }
     ber.endSequence();
@@ -2370,6 +2460,19 @@ var ParameterAccess = new Enum({
     readWrite: 3
 });
 
+
+/*
+BER VAlue
+Value ::=
+ CHOICE {
+ integer Integer64,
+ real REAL,
+ string EmberString,
+ boolean BOOLEAN,
+ octets OCTET STRING,
+ null NULL
+ }*/
+
 var ParameterType = new Enum({
     integer: 1,
     real: 2,
@@ -2379,6 +2482,18 @@ var ParameterType = new Enum({
     enum: 6,
     octets: 7
 });
+
+function ParameterTypetoBERTAG(type) {
+    switch (type.value) {
+        case 1: return BER.EMBER_INTEGER;
+        case 2: return BER.EMBER_REAL;
+        case 3: return BER.EMBER_STRING;
+        case 4: return BER.EMBER_BOOLEAN;
+        case 7: return BER.EMBER_OCTETSTRING;
+        default:
+            throw new Error(`Unhandled ParameterType ${type}`);
+    }    
+}
 
 module.exports.ParameterAccess = ParameterAccess;
 module.exports.ParameterType = ParameterType;
