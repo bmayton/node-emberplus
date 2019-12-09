@@ -42,6 +42,9 @@ tree.connect()
 
 ### Function
 ```javascript
+const DeviceTree = require('emberplus').DeviceTree;
+const ember = require("emberplus").Ember;
+
 const client = new DeviceTree(HOST, PORT);
 client.connect())
 .then(() => client.getDirectory())
@@ -90,6 +93,9 @@ server.listen().then(() => { console.log("listening"); }).catch((e) => { console
 
 ### Construct Tree
 ```javascript
+const TreeServer = require("emberplus").TreeServer;
+const {ParameterType, FunctionArgument} = require("emberplus").Ember;
+
 const targets = _tgt === undefined ? [ "tgt1", "tgt2", "tgt3" ] : _tgt;
 const sources = _src === undefined ? [ "src1", "src2", "src3" ] : _src;
 const labels = function(endpoints) {
