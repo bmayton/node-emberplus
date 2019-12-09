@@ -27,7 +27,7 @@ describe("server", function() {
             expect(root.elements.length).toBe(1);
             console.log("root", root.elements[0].contents);
             expect(root.elements[0].contents.identifier).toBe("scoreMaster");
-            expect(root.elements[0].children.length).toBe(2);
+            expect(root.elements[0].children.length).toBe(jsonTree[0].children.length);
         });
     });
 
@@ -63,7 +63,7 @@ describe("server", function() {
                     return client.getDirectory(client.root.elements[0]);
                 })
                 .then(() => {
-                    expect(client.root.elements[0].children.length).toBe(2);
+                    expect(client.root.elements[0].children.length).toBe(jsonTree[0].children.length);
                     return client.getDirectory(client.root.elements[0].children[0]);
                 })
                 .then(() => {
@@ -123,6 +123,31 @@ describe("server", function() {
                     expect(client.root.elements[0].children[1].children[0].connections['0'].sources).toBeDefined();
                     expect(client.root.elements[0].children[1].children[0].connections['0'].sources.length).toBe(1);
                     expect(client.root.elements[0].children[1].children[0].connections['0'].sources[0]).toBe(1);
+                    return client.disconnect();
+                });
+        });
+        it("should be able to call a function with parameters", () => {
+            client = new DeviceTree(LOCALHOST, PORT);
+            //client._debug = true;
+            return Promise.resolve()
+                .then(() => client.connect())
+                .then(() => {
+                    return client.getDirectory();
+                })
+                .then(() => client.expand(client.root.elements[0]))
+                .then(() => {
+                    const func = client.root.elements[0].children[2];
+                    return client.invokeFunction(func, [
+                        new ember.FunctionArgument(ember.ParameterType.integer, 1),
+                        new ember.FunctionArgument(ember.ParameterType.integer, 7)
+                    ]);
+                })
+                .then(result => {
+                    console.log(result);
+                    expect(result).toBeDefined();
+                    expect(result.result).toBeDefined();
+                    expect(result.result.length).toBe(1);
+                    expect(result.result[0].value).toBe(8);
                     return client.disconnect();
                 });
         });

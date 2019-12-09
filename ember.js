@@ -101,7 +101,9 @@ Root.prototype.addElement = function(ele) {
     this.elements.push(ele);
 }
 
-
+Root.prototype.addResult = function(result) {
+    this.result = result;
+}
 
 Root.prototype.addChild = function(child) {
     this.addElement(child);
@@ -109,7 +111,7 @@ Root.prototype.addChild = function(child) {
 
 Root.prototype.encode = function(ber) {
     ber.startSequence(BER.APPLICATION(0));
-    if(this.elements !== undefined) {
+    if(this.elements != null) {
         ber.startSequence(BER.APPLICATION(11));
         for(var i=0; i<this.elements.length; i++) {
             ber.startSequence(BER.CONTEXT(0));
@@ -117,6 +119,9 @@ Root.prototype.encode = function(ber) {
             ber.endSequence(); // BER.CONTEXT(0)
         }
         ber.endSequence();
+    }
+    if (this.result != null) {
+        this.result.encode(ber);
     }
     ber.endSequence(); // BER.APPLICATION(0)
 }
@@ -165,7 +170,7 @@ TreeNode.prototype.isParameter = function() {
 }
 
 TreeNode.prototype.isFunction = function() {
-    return (this instanceof QualifiedFunction);
+    return ((this instanceof QualifiedFunction) || (this instanceof Function));
 }
 
 TreeNode.prototype.isRoot = function() {
@@ -1624,10 +1629,11 @@ Tuple ::=
  SEQUENCE OF [0] Value
 */
 
-function FunctionArgument(type = null, value = null) {
+function FunctionArgument(type = null, value = null, name = null) {
     /** @type {ParameterType} */
     this.type = type;
     this.value = value;
+    this.name = name;
 }
 
 FunctionArgument.prototype.encode = function(ber) {
@@ -1639,7 +1645,7 @@ FunctionArgument.prototype.encode = function(ber) {
     }
     if (this.name != null) {
         ber.startSequence(BER.CONTEXT(1));
-        ber.writeString(this.name);
+        ber.writeString(this.name, BER.EMBER_STRING);
         ber.endSequence();
     }
     ber.endSequence();
@@ -1668,6 +1674,8 @@ module.exports.FunctionArgument = FunctionArgument;
  ***************************************************************************/
 
 function FunctionContent() {
+    this.arguments = [];
+    this.result = [];
 }
 
 
@@ -1683,13 +1691,10 @@ FunctionContent.decode = function(ber) {
             fc.description = seq.readString(BER.EMBER_STRING);
         } else if(tag == BER.CONTEXT(2)) {
             fc.arguments = [];
-            seq = seq.getSequence(BER.EMBER_SEQUENCE);
-            while(seq.remain > 0) {
-                tag = seq.peek();
-                var dataSeq = seq.getSequence(BER.CONTEXT(0));
-                if (tag === BER.CONTEXT(0)) {
-                    fc.arguments.push(FunctionArgument.decode(dataSeq));
-                }
+            var dataSeq = seq.getSequence(BER.EMBER_SEQUENCE);                  
+            while(dataSeq.remain > 0) {
+                seq = dataSeq.getSequence(BER.CONTEXT(0));
+                fc.arguments.push(FunctionArgument.decode(seq));
             }
         } else if(tag == BER.CONTEXT(3)) {
             fc.result = [];
@@ -1728,8 +1733,10 @@ FunctionContent.prototype.encode = function(ber) {
     if(this.arguments != null) {
         ber.startSequence(BER.CONTEXT(2));
         ber.startSequence(BER.EMBER_SEQUENCE);
-        for(var i =0; i < this.arguments.length; i++) {
+        for(var i = 0; i < this.arguments.length; i++) {
+            ber.startSequence(BER.CONTEXT(0));
             this.arguments[i].encode(ber);
+            ber.endSequence();
         }
         ber.endSequence();
         ber.endSequence(); // BER.CONTEXT(2)
@@ -1756,11 +1763,12 @@ module.exports.FunctionContent = FunctionContent;
  * QualifiedFunction
  ***************************************************************************/
 
-function QualifiedFunction(path) {
+function QualifiedFunction(path, func) {
     QualifiedFunction.super_.call(this);
     if (path != undefined) {
         this.path = path;
     }
+    this.func = func;
 }
 
 util.inherits(QualifiedFunction, TreeNode);
@@ -1891,10 +1899,10 @@ module.exports.QualifiedFunction = QualifiedFunction;
  ***************************************************************************/
 
 
-function Function(number) {
+function Function(number, func) {
     Function.super_.call(this);
-    if(number !== undefined)
-        this.number = number;
+    this.number = number;
+    this.func = func;
 };
 
 util.inherits(Function, TreeNode);
@@ -1953,8 +1961,11 @@ Function.prototype.encode = function(ber) {
     ber.endSequence(); // BER.APPLICATION(19)
 }
 
-module.exports.Function = Function;
-
+Function.prototype.toQualified = function() {
+    const qf = new QualifiedFunction(this.getPath());
+    qf.update(this);
+    return qf;
+}
 
 Function.prototype.invoke = function(callback) {
     if(callback !== undefined) {
@@ -1966,6 +1977,24 @@ Function.prototype.invoke = function(callback) {
     });
 }
 
+Function.prototype.update = function(other) {
+    callbacks = Function.super_.prototype.update.apply(this);
+    if ((other !== undefined) && (other.contents !== undefined)) {
+        if (this.contents == null) {
+            this.contents = other.contents;
+        }
+        else {
+            for (var key in other.contents) {
+                if (other.contents.hasOwnProperty(key)) {
+                    this.contents[key] = other.contents[key];
+                }
+            }
+        }
+    }
+    return callbacks;
+}
+
+module.exports.Function = Function;
 
 
 /****************************************************************************
@@ -2077,7 +2106,7 @@ Command.decode = function(ber) {
             c.fieldFlags = FieldFlags.get(seq.readInt());
         }
         else if(tag == BER.CONTEXT(2)) {
-            c.invocation = Invocation.decode(ber);
+            c.invocation = Invocation.decode(seq);
         }
         else {
             // TODO: options
@@ -2123,20 +2152,29 @@ function Invocation(id = null) {
 
 Invocation._id = 1
 
-Invocation.prototype.decode = function(ber) {
-    let invocation = new Invocation();
+Invocation.decode = function(ber) {
+    let invocation = null;
     ber = ber.getSequence(BER.APPLICATION(22));
     while(ber.remain > 0) {
         var tag = ber.peek();
         var seq = ber.getSequence(tag);
         if(tag == BER.CONTEXT(0)) {
-            invocation.invocationId = seq.readInt();
+            const invocationId = seq.readInt();
+            invocation = new Invocation(invocationId);
         }
-        if(tag == BER.CONTEXT(1)) {
+        else if(tag == BER.CONTEXT(1)) {
+            if (invocation == null) {
+                throw new Error("Missing invocationID");
+            }
             invocation.arguments = [];
-            const seq = ber.getSequence(BER.EMBER_SEQUENCE);
+            seq = seq.getSequence(BER.EMBER_SEQUENCE);
             while(seq.remain > 0) {
-                invocation.arguments.push(FunctionArgument.decode(seq));
+                const dataSeq = seq.getSequence(BER.CONTEXT(0));
+                tag = dataSeq.peek();                
+                const val = dataSeq.readValue();
+                invocation.arguments.push(
+                    new FunctionArgument(ParameterTypefromBERTAG(tag), val)
+                );
             }
         }
         else {
@@ -2171,14 +2209,65 @@ Invocation.prototype.encode = function(ber) {
     ber.endSequence();
 
     ber.endSequence(); // BER.APPLICATION(22)
-
 }
 /****************************************************************************
  * InvocationResult
  ***************************************************************************/
-function InvocationResult() {
+
+ function InvocationResult(invocationId = null) {
+    this.invocationId = invocationId;
 }
+
+util.inherits(InvocationResult, TreeNode);
 module.exports.InvocationResult = InvocationResult;
+
+InvocationResult.prototype.setFailure = function() {
+    this.success = false;
+}
+
+InvocationResult.prototype.setSuccess = function() {
+    this.success = true;
+}
+
+/**
+ * @param{}
+ */
+InvocationResult.prototype.setResult = function(result) {
+    if (!Array.isArray(result)) {
+        throw new Error("Invalid inovation result. Should be array");
+    }
+    this.result = result;
+}
+
+InvocationResult.prototype.encode = function(ber) {
+    ber.startSequence(BER.APPLICATION(23));
+    if (this.invocationId != null) {
+        ber.startSequence(BER.CONTEXT(0));
+        ber.writeInt(this.invocationId);
+        ber.endSequence();
+    }
+    if (this.success != null) {
+        ber.startSequence(BER.CONTEXT(1));
+        ber.writeBoolean(this.success);
+        ber.endSequence();
+    }
+    if (this.result != null && this.result.length) {
+        ber.startSequence(BER.CONTEXT(2));
+        ber.startSequence(BER.EMBER_SEQUENCE);
+        for (let i = 0; i < this.result.length; i++) {
+            ber.startSequence(BER.CONTEXT(0));
+            ber.writeValue(this.result[i].value, ParameterTypetoBERTAG(this.result[i].type));
+            ber.endSequence();
+        }
+        ber.endSequence();
+        ber.endSequence();
+    }
+    ber.endSequence(); // BER.APPLICATION(23)}
+}
+
+InvocationResult.prototype.toQualified = function() {
+    return this;
+}
 
 InvocationResult.decode = function(ber) {
     let invocationResult = new InvocationResult();
@@ -2195,9 +2284,14 @@ InvocationResult.decode = function(ber) {
             let res = seq.getSequence(BER.EMBER_SEQUENCE);
             while(res.remain > 0) {
                 tag = res.peek();
-                var resTag = res.getSequence(BER.CONTEXT(0));
                 if (tag === BER.CONTEXT(0)) {
-                    invocationResult.result.push(resTag.readValue());
+                    var resTag = res.getSequence(BER.CONTEXT(0));                
+                    tag = resTag.peek();
+                    invocationResult.result.push(
+                        new FunctionArgument(
+                            ParameterTypefromBERTAG(tag),
+                            resTag.readValue()
+                    ));
                 }
             }
             continue
@@ -2209,6 +2303,9 @@ InvocationResult.decode = function(ber) {
 
     return invocationResult;
 }
+
+
+
 /****************************************************************************
  * QualifiedParameter
  ***************************************************************************/
@@ -2492,6 +2589,18 @@ function ParameterTypetoBERTAG(type) {
         case 7: return BER.EMBER_OCTETSTRING;
         default:
             throw new Error(`Unhandled ParameterType ${type}`);
+    }    
+}
+
+function ParameterTypefromBERTAG(tag) {
+    switch (tag) {
+        case BER.EMBER_INTEGER: return ParameterType.integer;
+        case BER.EMBER_REAL: return ParameterType.real;
+        case BER.EMBER_STRING: return ParameterType.string;
+        case BER.EMBER_BOOLEAN: return ParameterType.boolean;
+        case BER.EMBER_OCTETSTRING: return ParameterType.octets;
+        default:
+            throw new Error(`Unhandled BER TAB ${tag}`);
     }    
 }
 

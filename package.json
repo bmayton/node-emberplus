@@ -1,6 +1,6 @@
 {
   "name": "emberplus",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Javascript implementation of the Ember+ automation protocol",
   "main": "index.js",
   "scripts": {
@@ -11,12 +11,13 @@
   "contributors": [
     {
       "name": "Gilles Dufour",
-      "email": "dufour.gilles@gmail.com"
+      "email": "dufour.gilles@gmail.com",
+      "web": "www.gdnet.be"
     }
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/bmayton/node-emberplus"
+    "url": "https://github.com/dufourgilles/node-emberplus"
   },
   "license": "MIT",
   "dependencies": {

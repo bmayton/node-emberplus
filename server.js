@@ -106,7 +106,7 @@ TreeServer.prototype.handleRoot = function(client, root) {
     }
     else if (node instanceof ember.Command) {
         // Command on root element
-        this.handleCommand(client, this.tree, node.number);
+        this.handleCommand(client, this.tree, node);
         return "root";
     }
     else {
@@ -127,14 +127,14 @@ TreeServer.prototype.handleQualifiedNode = function(client, node) {
     // Find this element in our tree
     const element = this.tree.getElementByPath(path);
 
-    if ((element === null) || (element === undefined)) {
+    if (element == null) {
         this.emit("error", new Error(`unknown element at path ${path}`));
         return this.handleError(client);
     }
 
-    if ((node.children !== undefined) && (node.children.length === 1) &&
+    if ((node.children != null) && (node.children.length === 1) &&
         (node.children[0] instanceof ember.Command)) {
-        this.handleCommand(client, element, node.children[0].number);
+        this.handleCommand(client, element, node.children[0]);
     }
     else {
         if (node instanceof ember.QualifiedMatrix) {
@@ -142,7 +142,7 @@ TreeServer.prototype.handleQualifiedNode = function(client, node) {
         }
         else if (node instanceof ember.QualifiedParameter) {
             this.handleQualifiedParameter(client, element, node);
-        }
+        }        
     }
     return path;
 }
@@ -326,18 +326,28 @@ TreeServer.prototype.matrixSet = function(path, target, sources) {
     doMatrixOperation(this, path, target, sources, ember.MatrixOperation.absolute);
 }
 
+TreeServer.prototype.handleQualifiedFunction = function(client, element, node) {
+
+}
+
+
 TreeServer.prototype.handleCommand = function(client, element, cmd) {
-    if (cmd === ember.GetDirectory) {
-        this.handleGetDirectory(client, element);
-    }
-    else if (cmd === ember.Subscribe) {
-        this.handleSubscribe(client, element);
-    }
-    else if (cmd === ember.Unsubscribe) {
-        this.handleUnSubscribe(client, element);
-    }
-    else {
-        this.emit("error", new Error(`invalid command ${cmd}`));
+    switch(cmd.number) {
+        case ember.GetDirectory:
+            this.handleGetDirectory(client, element);
+            break;
+        case ember.Subscribe:
+            this.handleSubscribe(client, element);
+            break;
+        case ember.Unsubscribe:
+            this.handleUnSubscribe(client, element);
+            break;
+        case ember.Invoke:
+            this.handleInvoke(client, cmd.invocation, element);
+            break;
+        default:
+            this.emit("error", new Error(`invalid command ${cmd}`));
+            break;
     }
 }
 
@@ -357,7 +367,7 @@ TreeServer.prototype.getResponse = function(element) {
 }
 
 TreeServer.prototype.getQualifiedResponse = function(element) {
-    let res = new ember.Root();
+    const res = new ember.Root();
     let dup;
     if (element.isRoot() === false) {
         dup = element.toQualified();
@@ -372,6 +382,26 @@ TreeServer.prototype.getQualifiedResponse = function(element) {
        res.addChild(dup);
     }
     return res;
+}
+
+TreeServer.prototype.handleInvoke = function(client, invocation, element) {
+    const result = new ember.InvocationResult();
+    result.invocationId = invocation.id;
+    if (element == null || !element.isFunction()) {
+        result.setFailure();        
+    }
+    else {
+        try {        
+            result.setResult(element.func(invocation.arguments));
+        }
+        catch(e){
+            this.emit("error", e);
+            result.setFailure();
+        }
+    }
+    const res = new ember.Root();
+    res.addResult(result);
+    client.sendBERNode(res);
 }
 
 TreeServer.prototype.handleGetDirectory = function(client, element) {
@@ -395,7 +425,7 @@ TreeServer.prototype.handleGetDirectory = function(client, element) {
             }
         }
 
-        let res = this.getQualifiedResponse(element);
+        const res = this.getQualifiedResponse(element);
         if (this._debug) {
             console.log("getDirectory response", res);
         }
@@ -529,13 +559,12 @@ const parseMatrixContent = function(matrixContent, content) {
 }
 
 const parseObj = function(parent, obj) {
-    let path = parent.getPath();
     for(let i = 0; i < obj.length; i++) {
         let emberElement;
         let content = obj[i];
         let number = content.number !== undefined ? content.number : i;
         delete content.number;
-        if (content.value !== undefined) {            
+        if (content.value != null) {            
             emberElement = new ember.Parameter(number);
             emberElement.contents = new ember.ParameterContents(content.value);
             if (content.type) {
@@ -553,7 +582,20 @@ const parseObj = function(parent, obj) {
                 emberElement.contents.access = ember.ParameterAccess.read;
             }
         }
-        else if (content.targetCount !== undefined) {
+        else if (content.func != null) {
+            emberElement = new ember.Function(number, content.func);
+            emberElement.contents = new ember.FunctionContent();
+            if (content.arguments != null) {
+                for(let argument of content.arguments) {
+                    emberElement.contents.arguments.push(new ember.FunctionArgument(
+                        argument.type,
+                        argument.value,
+                        argument.name
+                    ));
+                }
+            }
+        }
+        else if (content.targetCount != null) {
             emberElement = new ember.MatrixNode(number);
             emberElement.contents = new ember.MatrixContents();
             parseMatrixContent(emberElement.contents, content);
@@ -583,7 +625,11 @@ const parseObj = function(parent, obj) {
             emberElement.contents = new ember.NodeContents();
         }
         for(let id in content) {
-            if ((id !== "children") && (content.hasOwnProperty(id))) {
+            if (emberElement.isFunction() && id === "arguments") {
+                // we did it already.
+                continue;
+            }
+            if ((id !== "children") &&  (content.hasOwnProperty(id))) {
                 emberElement.contents[id] = content[id];
             }
             else {

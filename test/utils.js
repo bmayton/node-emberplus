@@ -1,4 +1,4 @@
-const {ParameterAccess} = require("../ember");
+const {ParameterType, FunctionArgument} = require("../ember");
 
 const init = function(_src,_tgt) {
     const targets = _tgt === undefined ? [ "tgt1", "tgt2", "tgt3" ] : _tgt;
@@ -75,6 +75,28 @@ const init = function(_src,_tgt) {
                                     children: [ {identifier: "sdp A", value: "A"}, {identifier: "sdp B", value: "B"}]
 				                }
                             ]
+                        }
+                    ]
+                },
+                {
+                    // path "0.2"
+                    identifier: "addFunction",
+                    func: args => {
+                        const res = new FunctionArgument();
+                        res.type = ParameterType.integer;
+                        res.value = args[0].value + args[1].value;
+                        return [res];
+                    },
+                    arguments: [
+                        {
+                            type: ParameterType.integer,
+                            value: null,
+                            name: "arg1"
+                        },
+                        {
+                            type: ParameterType.integer,
+                            value: null,
+                            name: "arg2"
                         }
                     ]
                 }
