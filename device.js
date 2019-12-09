@@ -224,6 +224,80 @@ DeviceTree.prototype.getDirectory = function (qnode) {
     });
 };
 
+DeviceTree.prototype.matrixOPeration = function(matrixNode, targetID, sources, operation = ember.MatrixOperation.connect) {
+    return new Promise((resolve, reject) => {
+        if (!Array.isArray(sources)) {
+            return reject(new Error("Sources should be an array"));
+        }
+        try {
+            matrixNode.validateConnection(targetID, sources);
+        }
+        catch(e) {
+            return reject(e);
+        }
+        const connections = {}
+        const targetConnection = new ember.MatrixConnection(targetID);
+        targetConnection.operation = operation;
+        targetConnection.setSources(sources); 
+        connections[targetID] = targetConnection;
+
+        this.addRequest({node: matrixNode, func: (error) => {
+            if (error) {
+                this.finishRequest();
+                reject(error);
+                return;
+            }
+
+            this.callback = (error, node) => {
+                const requestedPath = matrixNode.getPath();
+                if (node == null) { 
+                    if (this._debug) {
+                        console.log(`received null response for ${requestedPath}`);
+                    }
+                    return; 
+                }
+                if (error) {
+                    if (this._debug) {
+                        console.log("Received getDirectory error", error);
+                    }
+                    this.clearTimeout(); // clear the timeout now. The resolve below may take a while.
+                    this.finishRequest();
+                    reject(error);
+                    return;
+                }
+                let matrix = null;
+                if (node != null) {
+                    matrix = node.elements[0];
+                }
+                if (matrix != null && matrix.isMatrix() && matrix.getPath() === requestedPath) {
+                    this.clearTimeout(); // clear the timeout now. The resolve below may take a while.
+                    this.finishRequest();
+                    resolve(matrix);
+                }
+                else {
+                    if (this._debug) {
+                        console.log(`unexpected node response during matrix connect ${requestedPath}`, 
+                        JSON.stringify(matrix.toJSON(), null, 4));
+                    }
+                }
+            }
+            this.client.sendBERNode(matrixNode.connect(connections));
+        }});
+    });
+}
+
+DeviceTree.prototype.matrixConnect = function(matrixNode, targetID, sources) {
+    return this.matrixOPeration(matrixNode, targetID,sources, ember.MatrixOperation.connect)
+}
+
+DeviceTree.prototype.matrixDisconnect = function(matrixNode, targetID, sources) {
+    return this.matrixOPeration(matrixNode, targetID,sources, ember.MatrixOperation.disconnect)
+}
+
+DeviceTree.prototype.matrixSetConnection = function(matrixNode, targetID, sources) {
+    return this.matrixOPeration(matrixNode, targetID,sources, ember.MatrixOperation.absolute)
+}
+
 DeviceTree.prototype.invokeFunction = function (fnNode, params) {
     var self = this;
     return new Promise((resolve, reject) => {
@@ -245,6 +319,7 @@ DeviceTree.prototype.invokeFunction = function (fnNode, params) {
                     }
                     resolve(result);
                 }
+                // cleaning callback and making next request.
                 self.finishRequest();
             };
 
@@ -307,7 +382,11 @@ DeviceTree.prototype.finishRequest = function () {
     try {
         self.makeRequest();
     } catch(e) {
-        console.log("warn:" + e.message)
+        if (self._debug) {console.log(e);}
+        if (self.callback != null) {
+            self.callback(e);
+        }
+        self.emit("error", e);
     }
 };
 
@@ -408,40 +487,80 @@ DeviceTree.prototype.handleNode = function (parent, node) {
     return callbacks;
 };
 
-DeviceTree.prototype.getNodeByPath = function (path, timeout = 2) {
+DeviceTree.prototype.getNodeByPathnum = function (path) {
+    var self = this;
+    if (typeof path === 'string') {
+        path = path.split('.');
+    }
+    var pos = 0;
+    var lastMissingPos = -1;
+    var currentNode = this.root;
+    const getNext = () => {
+        return Promise.resolve()
+        .then(() => {
+            const children = currentNode.getChildren();
+            const number = Number(path[pos]);
+            if (children != null) {
+                for (let i = 0; i < children.length; i++) {
+                    var node = children[i];
+                    if (node.getNumber() === number) {
+                        // We have this part already.
+                        pos++;
+                        if (pos >= path.length) {
+                            return node;
+                        }
+                        currentNode = node;                   
+                        return getNext();
+                    }
+                }
+            }
+            // We do not have that node yet.
+            if (lastMissingPos === pos) {
+                throw new Error(`Failed path discovery at ${path.slice(0, pos).join("/")}`);
+            }
+            lastMissingPos = pos;
+            return this.getDirectory(currentNode).then(() => getNext());
+        });
+    }
+    return getNext();
+};
+
+DeviceTree.prototype.getNodeByPath = function (path) {
     var self = this;
     if (typeof path === 'string') {
         path = path.split('/');
     }
-    var timeoutError = new Error("Request timeout");
-    return new Promise((resolve, reject) => {
-        self.addRequest({path: path, func: (error) => {
-            if (error) {
-                reject(error);
-                self.finishRequest();
-                return;
-            }
-	    var timedOut = false;
-	    var cb = (error, node) => {
-		if (timer) {
-			clearTimeout(timer);
-		}
-		if (timedOut) { return; }
-                if (error) {
-                    reject(error);
-                } else {
-                    resolve(node);
+    var pos = 0;
+    var lastMissingPos = -1;
+    var currentNode = this.root;
+    const getNext = () => {
+        return Promise.resolve()
+        .then(() => {
+            const children = currentNode.getChildren();
+            const identifier = path[pos];
+            if (children != null) {
+                for (let i = 0; i < children.length; i++) {
+                    var node = children[i];
+                    if (node.contents != null && node.contents.identifier === identifier) {
+                        // We have this part already.
+                        pos++;
+                        if (pos >= path.length) {
+                            return node;
+                        }
+                        currentNode = node;                   
+                        return getNext();
+                    }
                 }
-                self.finishRequest();
-            };
-	    var cbTimeout = () => {
-		timedOut = true;
-		reject(timeoutError);
             }
-	    var timer = timeout === 0 ? null : setTimeout(cbTimeout, timeout * 1000);
-            self.root.getNodeByPath(self.client, path, cb);
-        }});
-    });
+            // We do not have that node yet.
+            if (lastMissingPos === pos) {
+                throw new Error(`Failed path discovery at ${path.slice(0, pos + 1).join("/")}`);
+            }
+            lastMissingPos = pos;
+            return this.getDirectory(currentNode).then(() => getNext());
+        });
+    }
+    return getNext();
 };
 
 DeviceTree.prototype.subscribe = function (node, callback) {

@@ -37,6 +37,12 @@ describe("server", function() {
             jsonTree = jsonRoot();
             const root = TreeServer.JSONtoTree(jsonTree);
             server = new TreeServer(LOCALHOST, PORT, root);
+            server.on("error", e => {
+                console.log(e);
+            });
+            server.on("clientError", e => {
+                console.log(e);
+            });
             //server._debug = true;
             return server.listen().then(() => {
                 console.log("server listening");
@@ -93,39 +99,7 @@ describe("server", function() {
                     return client.disconnect();
                 });
         });
-        it("should be able to make a matrix connection", () => {
-            client = new DeviceTree(LOCALHOST, PORT);
-            //client._debug = true;
-            return Promise.resolve()
-                .then(() => client.connect())
-                .then(() => {
-                    return client.getDirectory();
-                })
-                .then(() => client.expand(client.root.elements[0]))
-                .then(() => {
-                    console.log(client.root.elements[0].children[1].children[0]);
-                    const matrix = client.root.elements[0].children[1].children[0];
-                    const connections = {}
-                    const target0Connection = new ember.MatrixConnection(0);
-                    target0Connection.operation = ember.MatrixOperation.connect;
-                    target0Connection.setSources([1]); // connect with src 1
-                    connections[0] = target0Connection;
-                    const p = new Promise(resolve => {
-                        client.on("value-change", node => {
-                            resolve(node);
-                        });
-                    });                    
-                    client.client.sendBERNode(matrix.connect(connections));
-                    return p;
-                })
-                .then(node => {
-                    console.log(client.root.elements[0].children[1].children[0]);
-                    expect(client.root.elements[0].children[1].children[0].connections['0'].sources).toBeDefined();
-                    expect(client.root.elements[0].children[1].children[0].connections['0'].sources.length).toBe(1);
-                    expect(client.root.elements[0].children[1].children[0].connections['0'].sources[0]).toBe(1);
-                    return client.disconnect();
-                });
-        });
+        
         it("should be able to call a function with parameters", () => {
             client = new DeviceTree(LOCALHOST, PORT);
             //client._debug = true;
@@ -152,49 +126,49 @@ describe("server", function() {
                 });
         });
         
-	it("should be able to get child with getNodeByPath", function() {
-	  //server._debug = true;
-          client = new DeviceTree(LOCALHOST, PORT);
-	//client._debug = true;
+        it("should be able to get child with getNodeByPath", function() {
+            //server._debug = true;
+            client = new DeviceTree(LOCALHOST, PORT);
+            //client._debug = true;
             //client._debug = true;
             return Promise.resolve()
-		.then(() => client.connect())
+                .then(() => client.connect())
                 .then(() => {
                     console.log("client connected");
-	            return client.getDirectory();
-	        })
-		.then(() => {
+                    return client.getDirectory();
+                })
+                .then(() => {
                     return new Promise((resolve, reject) => {
-			    client.root.getNodeByPath(client.client, ["scoreMaster", "identity", "product"], (err, child) => {
-				    if (err) { reject(err) }
-				    else {
-					    resolve(child);
-				    }
-			    });
+                        client.root.getNodeByPath(client.client, ["scoreMaster", "identity", "product"], (err, child) => {
+                            if (err) { reject(err) }
+                            else {
+                                resolve(child);
+                            }
+                        });
                     });
                 })
-		.then(child => {
-			console.log(child);
-		})
-		.then(() => {
-                    return new Promise((resolve, reject) => {
-                            client.root.getNodeByPath(client.client, ["scoreMaster", "router", "labels"], (err, child) => {
-                                    if (err) { reject(err) }
-                                    else {
-                                            resolve(child);
-                                    }
-                            });
+                .then(child => {
+                console.log(child);
+            })
+            .then(() => {
+                return new Promise((resolve, reject) => {
+                    client.root.getNodeByPath(client.client, ["scoreMaster", "router", "labels"], (err, child) => {
+                            if (err) { reject(err) }
+                            else {
+                                    resolve(child);
+                            }
                     });
-                })
-		.then(child => {
-                        console.log(child);
-			client.disconnect();
                 });
-	});
-	it("should be able to get child with tree.getNodeByPath", function() {
-          //server._debug = true;
-          client = new DeviceTree(LOCALHOST, PORT);
-        //client._debug = true;
+            })
+            .then(child => {
+                console.log(child);
+                client.disconnect();
+            });
+        });
+	    it("should be able to get child with tree.getNodeByPath", function() {
+            //server._debug = true;
+            client = new DeviceTree(LOCALHOST, PORT);
+            //client._debug = true;
             //client._debug = true;
             return Promise.resolve()
                 .then(() => client.connect())
@@ -204,33 +178,57 @@ describe("server", function() {
                 })
                 .then(() =>  client.getNodeByPath("scoreMaster/identity/product"))
                 .then(child => {
-                        console.log(child);
-			return client.getNodeByPath("scoreMaster/router/labels/group 1");
-		})
+                    console.log(child);
+                    return client.getNodeByPath("scoreMaster/router/labels/group 1");
+                })
                 .then(child => {
-                        console.log("router/labels", child);
-			client.disconnect();
+                    console.log("router/labels", child);
+			        client.disconnect();
                 });
-         });
-	 it("should throw an erro if getNodeByPath for unknown path", function() {
-          //server._debug = true;
-          client = new DeviceTree(LOCALHOST, PORT);
-          return Promise.resolve()
+        });
+        it("should throw an error if getNodeByPath for unknown path", function() {
+            //server._debug = true;
+            client = new DeviceTree(LOCALHOST, PORT);
+            return Promise.resolve()
                 .then(() => client.connect())
                 .then(() => {
                     console.log("client connected");
                     return client.getDirectory();
                 })
-                .then(() => client.getNodeByPath("scoreMaster/router/labels/group 1"))
+                .then(() => client.getNodeByPath("scoreMaster/router/labels/group"))
                 .then(child => {
-                        console.log("router/labels", child);
-			throw new Error("Should not succeed");
+                    console.log("router/labels", child);
+                    throw new Error("Should not succeed");
                 })
-	        .catch(e => {
-			client.disconnect();
-			console.log(e);
-			expect(e.message).toMatch(/timeout/);
-		});
-          });
+                .catch(e => {
+                    client.disconnect();
+                    console.log(e);
+                    expect(e.message).toMatch(/Failed path discovery/);
+                });
+        });
+        it("should be able to make a matrix connection", () => {
+            client = new DeviceTree(LOCALHOST, PORT);
+            //client._debug = true;
+            return Promise.resolve()
+                .then(() => client.connect())
+                .then(() => {
+                    return client.getDirectory();
+                })
+                .then(() => client.getNodeByPathnum("0.1.0"))
+                .then(matrix => {
+                    console.log(matrix);
+                    client._debug = true;
+                    server._debug = true;  
+                    return client.matrixConnect(matrix, 0, [1]);
+                })
+                .then(matrix => client.getNodeByPathnum(matrix.getPath()))
+                .then(matrix => {
+                    console.log(matrix);
+                    expect(matrix.connections['0'].sources).toBeDefined();
+                    expect(matrix.connections['0'].sources.length).toBe(1);
+                    expect(matrix.connections['0'].sources[0]).toBe(1);
+                    return client.disconnect();
+                });
+        });
     });
 });

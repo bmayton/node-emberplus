@@ -223,7 +223,10 @@ TreeServer.prototype.handleQualifiedParameter = function(client, element, parame
 TreeServer.prototype.handleMatrixConnections = function(client, matrix, connections, response = true) {
     var res;
     var root; // ember message root
-    if (matrix.isQualified()) {
+    if (this._debug) {
+        console.log("Handling Matrix Connection");
+    }
+    if (client.request.isQualified()) {
         root = new ember.Root();
         res = new ember.QualifiedMatrix(matrix.getPath());
         root.elements = [res]; // do not use addchild or the element will get removed from the tree.
@@ -281,7 +284,9 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
     if (client !== undefined) {
         client.sendBERNode(root);
     }
-    if (this._debug) { console.log("Updating subscribers for matrix change"); }
+    if (this._debug) { 
+        console.log("Updating subscribers for matrix change");
+     }
     this.updateSubscribers(matrix.getPath(), root, client);
 }
 

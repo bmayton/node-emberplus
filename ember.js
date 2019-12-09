@@ -828,6 +828,55 @@ function MatrixNode(number) {
 }
 
 
+function validateConnection(matrixNode, targetID, sources) {
+    if (targetID < 0) {
+        throw new Error(`Invalid negative target index ${targetID}`);
+    }
+    for(let i = 0; i < sources.length; i++) {
+        if (sources[i] < 0) {
+            throw new Error(`Invalid negative source at index ${i}`);
+        }
+    }
+    if (matrixNode.contents.mode === MatrixMode.linear) {
+        if (targetID >= matrixNode.contents.targetCount) {
+            throw new Error(`targetID ${targetID} higher than max value ${matrixNode.contents.targetCount}`);
+        }
+        for(let i = 0; i < sources.length; i++) {
+            if (sources[i] >= matrixNode.contents.sourceCount) {
+                throw new Error(`Invalid source at index ${i}`);
+            }
+        }
+    }
+    else if ((matrixNode.targets == null) || (matrixNode.sources == null)) {
+        throw new Error("Non-Linear matrix should have targets and sources");
+    }    
+    else {
+        let found = false;
+        for(let i = 0; i < matrixNode.targets; i++) {
+            if (matrixNode.targets[i] === targetID) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            throw new Error(`Unknown targetid ${targetID}`);
+        }
+        found = false;
+        for(let i = 0; i < sources.length; i++) {
+            for(let j = 0; i < matrixNode.sources; j++) {
+                if (matrixNode.sources[j] === sources[i]) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                throw new Error(`Unknown source at index ${i}`);
+            }
+        }
+    }
+}
+
+
 MatrixNode.decode = function(ber) {
     var m = new MatrixNode();
     ber = ber.getSequence(BER.APPLICATION(13));
@@ -862,6 +911,9 @@ MatrixNode.decode = function(ber) {
     return m;
 };
 
+MatrixNode.prototype.validateConnection = function(targetID, sources) {
+    validateConnection(this, targetID, sources);
+}
 
 MatrixNode.prototype.encode = function(ber) {
     ber.startSequence(BER.APPLICATION(13));
@@ -1238,7 +1290,13 @@ MatrixConnection.decode = function(ber) {
             c.target = seq.readInt();
         }
         else if (tag == BER.CONTEXT(1)) {
-            c.sources = seq.readRelativeOID(BER.EMBER_RELATIVE_OID).split(".").map(i => Number(i));
+            const sources = seq.readRelativeOID(BER.EMBER_RELATIVE_OID);
+            if (sources === "") {
+               c .sources = [];
+            }
+            else {                
+                c.sources = sources.split(".").map(i => Number(i));
+            }
         } else if (tag == BER.CONTEXT(2)) {
             c.operation = MatrixOperation.get(seq.readInt());
 
@@ -1388,6 +1446,9 @@ QualifiedMatrix.prototype.getMinimal = function(complete = false) {
     return m;
 }
 
+QualifiedMatrix.prototype.validateConnection = function(targetID, sources) {
+    validateConnection(this, targetID, sources);
+}
 
 QualifiedMatrix.decode = function(ber) {
     var qm = new QualifiedMatrix();

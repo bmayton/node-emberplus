@@ -20,50 +20,88 @@ Server has been added in version 1.6.0.
 ## Example usage
 
 ### Client
+Get Full tree:
 ```javascript
 const DeviceTree = require('emberplus').DeviceTree;
 var root;
 var tree = new DeviceTree("10.9.8.7", 9000);
-tree.connect()
-.then(() => { 
-   return tree.getDirectory();
-})
-.then((r) => { 
-   root = r ;
-   return tree.expand(r.elements[0]);
-})
-.then(() => {
-   console.log("done"); 
-})
-.catch((e) => {
-   console.log(e.stack);
+tree.on("error", e => {
+   console.log(e);
 });
+tree.connect()
+   .then(() => tree.getDirectory())
+   .then((r) => { 
+      root = r ;
+      return tree.expand(r.elements[0]);
+   })
+   .then(() => {
+      console.log("done"); 
+   })
+   .catch((e) => {
+      console.log(e.stack);
+   });
 ```
 
-### Function
+Get Specific Branch:
 ```javascript
 const DeviceTree = require('emberplus').DeviceTree;
 const ember = require("emberplus").Ember;
 
 const client = new DeviceTree(HOST, PORT);
 client.connect())
-.then(() => client.getDirectory())
-.then(() => {console.log(JSON.stringify(client.root.toJSON(), null, 4));})
-.then(() => client.expand(client.root.elements[0]))
-.then(() => {
-    console.log(JSON.stringify(client.root.elements[0].toJSON(), null, 4));
-    let func;
-    if (TINYEMBER) {
-        func = client.root.elements[0].children[4].children[0];
-    }
-    else {
-        func = client.root.elements[0].children[2];
-    }
-    return client.invokeFunction(func, [
-        new ember.FunctionArgument(ember.ParameterType.integer, 1),
-        new ember.FunctionArgument(ember.ParameterType.integer, 7)
-    ]);
-})
+   .then(() => client.getDirectory())
+   .then(() => {console.log(JSON.stringify(client.root.toJSON(), null, 4));})
+   .then(() => client.getNodeByPath("scoreMaster/router/labels/group 1"))
+   .then(() => client.getNodeByPathnum("0.2"))
+   .then(() => {
+      console.log(JSON.stringify(client.root.elements[0].toJSON(), null, 4));    
+   });
+```
+
+### Invoking Function
+```javascript
+const DeviceTree = require('emberplus').DeviceTree;
+const ember = require("emberplus").Ember;
+
+const client = new DeviceTree(HOST, PORT);
+client.connect())
+   .then(() => client.getDirectory())
+   .then(() => {console.log(JSON.stringify(client.root.toJSON(), null, 4));})
+   .then(() => client.expand(client.root.elements[0]))
+   .then(() => {
+      console.log(JSON.stringify(client.root.elements[0].toJSON(), null, 4));
+      let func;
+      if (TINYEMBER) {
+         func = client.root.elements[0].children[4].children[0];
+      }
+      else {
+         func = client.root.elements[0].children[2];
+      }
+      return client.invokeFunction(func, [
+         new ember.FunctionArgument(ember.ParameterType.integer, 1),
+         new ember.FunctionArgument(ember.ParameterType.integer, 7)
+      ]);
+   });
+```
+
+### Matrix Connection
+```javascript
+const DeviceTree = require('emberplus').DeviceTree;
+const ember = require("emberplus").Ember;
+
+const client = new DeviceTree(HOST, PORT);
+client.connect()
+   .then(() => client.getDirectory())
+   .then(() => client.getNodeByPathnum("0.1.0"))
+   .then(matrix => {
+      console.log("Connecting source 1 to target 0); 
+      return client.matrixConnect(matrix, 0, [1]);
+   })
+   .then(() => client.matrixDisconnect(matrix, 0, [1]))
+   .then(() => client.matrixSetConnection(matrix, 0, [0,1]))
+   .then(matrix => client.getNodeByPathnum(matrix.getPath()))
+   .then(() => client.disconnect());
+
 ```
 
 ### Packet decoder
