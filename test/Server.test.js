@@ -14,7 +14,6 @@ const wait = function(t) {
 }
 
 describe("server", function() {
-
     describe("JSONtoTree", function() {
         let jsonTree;
         beforeAll(function() {
@@ -51,7 +50,7 @@ describe("server", function() {
         afterAll(function() {
             client.disconnect();
             server.close();
-        })
+        });
         it("should receive and decode the full tree", function () {
             client = new DeviceTree(LOCALHOST, PORT);
             //client._debug = true;
@@ -231,4 +230,45 @@ describe("server", function() {
                 });
         });
     });
+    describe("Matrix Connect", function() {
+        let jsonTree;
+        let server;
+        beforeEach(function() {
+            jsonTree = jsonRoot();
+            const root = TreeServer.JSONtoTree(jsonTree);
+            server = new TreeServer(LOCALHOST, PORT, root);
+        });
+        it("should verify if connection allowed in 1-to-N", function() {
+            const matrix = server.tree.elements[0].children[1].children[0];
+            const connection = new ember.MatrixConnection(0);
+            connection.setSources([1]);
+            connection.operation = ember.MatrixOperation.connect;
+            let res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeTruthy();
+            matrix.connections[0].sources = [0];
+            res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeFalsy();
+            connection.operation = ember.MatrixOperation.absolute;
+            res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeTruthy();
+        });
+        it("should verify if connection allowed in 1-to-1", function() {
+            const matrix = server.tree.elements[0].children[1].children[0];
+            matrix.contents.type = ember.MatrixType.oneToOne;
+            const connection = new ember.MatrixConnection(0);
+            connection.setSources([1]);
+            connection.operation = ember.MatrixOperation.connect;
+            let res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeTruthy();
+            matrix.connections[0].sources = [0];
+            res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeFalsy();
+            connection.operation = ember.MatrixOperation.absolute;
+            res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeTruthy();
+            matrix.connections[1].sources = [1];
+            res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeFalsy();
+        });
+    });    
 });

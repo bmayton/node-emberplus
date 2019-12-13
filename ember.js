@@ -843,7 +843,7 @@ function canConnect(matrixNode, targetID, sources, operation) {
         }
         if (mode === MatrixMode.linear) {
             for(let s = 0; s < sources.length; s++) {
-                for(let i = 0; i < matrixNode.targetCount; i++) {
+                for(let i = 0; i < matrixNode.contents.targetCount; i++) {
                     const connection = matrixNode.connections[i];
                     if (connection == null || connection.sources == null) {
                         continue;
@@ -966,7 +966,7 @@ MatrixNode.prototype.validateConnection = function(targetID, sources) {
 }
 
 MatrixNode.prototype.canConnect = function(targetID, sources, operation) {
-    canConnect(this, targetID, sources, operation);
+    return canConnect(this, targetID, sources, operation);
 }
 
 MatrixNode.prototype.encode = function(ber) {
@@ -1508,7 +1508,7 @@ QualifiedMatrix.prototype.validateConnection = function(targetID, sources) {
 }
 
 QualifiedMatrix.prototype.canConnect = function(targetID, sources, operation) {
-    canConnect(this, targetID, sources, operation);
+    return canConnect(this, targetID, sources, operation);
 }
 
 QualifiedMatrix.decode = function(ber) {

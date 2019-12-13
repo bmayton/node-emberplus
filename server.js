@@ -226,7 +226,7 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
     if (this._debug) {
         console.log("Handling Matrix Connection");
     }
-    if (client.request.isQualified()) {
+    if (client != null && client.request.isQualified()) {
         root = new ember.Root();
         res = new ember.QualifiedMatrix(matrix.getPath());
         root.elements = [res]; // do not use addchild or the element will get removed from the tree.
@@ -246,27 +246,37 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
         res.connections[connection.target] = conResult;
         
 
-        // Apply changes
-
-        if ((connection.operation === undefined) ||
-            (connection.operation.value == ember.MatrixOperation.absolute)) {
-            matrix.connections[connection.target].setSources(connection.sources);
-            emitType = "matrix-change";
-        }
-        else if (connection.operation == ember.MatrixOperation.connect) {
-            matrix.connections[connection.target].connectSources(connection.sources);
-            emitType = "matrix-connect";
-        }
-        else { // Disconnect
+        if (((connection.operation === undefined) ||
+             (connection.operation === ember.MatrixOperation.connect)) &&
+            (matrix.canConnect(connection.target,connection.sources,connection.operation))) {
+            // Apply changes
+            if ((connection.operation === undefined) ||
+                (connection.operation.value == ember.MatrixOperation.absolute)) {
+                matrix.connections[connection.target].setSources(connection.sources);
+                emitType = "matrix-change";
+            }
+            else if (connection.operation == ember.MatrixOperation.connect) {
+                matrix.connections[connection.target].connectSources(connection.sources);
+                emitType = "matrix-connect";
+            }
+            conResult.disposition = ember.MatrixDisposition.modified;
+        }            
+        else if (connection.operarion === ember.MatrixOperation.disconnect) { // Disconnect
             matrix.connections[connection.target].disconnectSources(connection.sources);
+            conResult.disposition = ember.MatrixDisposition.modified;
             emitType = "matrix-disconnect";
+        }
+        else {
+            if (this._debug) {
+                console.log(`Invalid Matrix operation ${connection.operarion} on target ${connection.target} with sources ${JSON.stringify(connection.sources)}`);
+            }
+            conResult.disposition = ember.MatrixDisposition.tally;
+            return;
         }
 
         // Send response or update subscribers.
-
-        if (response) {
-            conResult.sources = matrix.connections[connection.target].sources;
-            conResult.disposition = ember.MatrixDisposition.modified;
+        conResult.sources = matrix.connections[connection.target].sources;
+        if (response) {            
             // We got a request so emit something.
             this.emit(emitType, {
                 target: connection.target,
@@ -277,17 +287,19 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
         else {
             // the action has been applied.  So we should either send the current state (absolute)
             // or send the action itself (connection.sources)
-            conResult.sources = matrix.connections[connection.target].sources;
             conResult.operation = ember.MatrixOperation.absolute;
         }
     }
     if (client !== undefined) {
         client.sendBERNode(root);
     }
-    if (this._debug) { 
-        console.log("Updating subscribers for matrix change");
-     }
-    this.updateSubscribers(matrix.getPath(), root, client);
+
+    if (conResult.disposition !== ember.MatrixDisposition.tally) {
+        if (this._debug) { 
+            console.log("Updating subscribers for matrix change");
+        }
+        this.updateSubscribers(matrix.getPath(), root, client);
+    }
 }
 
 const validateMatrixOperation = function(matrix, target, sources) {
