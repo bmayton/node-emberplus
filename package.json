@@ -8,9 +8,10 @@
     "eslint": "eslint ./",
     "start": "node server.js"
   },
-  "author": "Brian Mayton <bmayton@bdm.cc> (http://bdm.cc)",
+  "author": "Gilles Dufour <dufour.gilles@gmail.com> (www.gdnet.be)",
   "contributors": [
-    "Gilles Dufour <dufour.gilles@gmail.com> (www.gdnet.be)"
+    "Gilles Dufour <dufour.gilles@gmail.com> (www.gdnet.be)",
+    "Brian Mayton <bmayton@bdm.cc> (http://bdm.cc)",
   ],
   "repository": {
     "type": "git",
