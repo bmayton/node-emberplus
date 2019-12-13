@@ -51,7 +51,7 @@ const init = function(_src,_tgt) {
                             targetCount: targets.length,
                             sourceCount: sources.length,
                             connections: buildConnections(sources, targets),
-                            labels: ["0.1.1000"]
+                            labels: [{basePath: "0.1.1000", description: "primary"}]
                         },
                         {
                             identifier: "labels",

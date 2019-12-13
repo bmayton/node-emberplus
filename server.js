@@ -528,9 +528,20 @@ const parseMatrixContent = function(matrixContent, content) {
     if (content.labels) {
         matrixContent.labels = [];
         for(let l = 0; l < content.labels.length; l++) {
-            matrixContent.labels.push(
-                new ember.Label(content.labels[l])
-            );
+            if (typeof (content.labels[l]) === "object") {
+                matrixContent.labels.push(
+                    new ember.Label(
+                        content.labels[l].basePath,
+                        content.labels[l].description
+                    )
+                );
+            }
+            else {
+                // for backward compatibility... Remove in the future
+                matrixContent.labels.push(
+                    new ember.Label(content.labels[l])
+                );
+            }
         }
         delete content.labels;
     }

@@ -827,6 +827,56 @@ function MatrixNode(number) {
         this.number = number;
 }
 
+function canConnect(matrixNode, targetID, sources, operation) {
+    const type = matrixNode.contents.type == null ? MatrixType.oneToN : matrixNode.contents.type;
+    const mode = matrixNode.contents.mode == null ? MatrixConnection.linear : matrixNode.contents.mode;
+    const connection = matrixNode.connections[targetID];;
+    const oldSources = connection == null || connection.sources == null ? [] : connection.sources.slice();
+    const newSources = operation === MatrixOperation.absolute ? sources : oldSources.concat(sources);
+    const sMap = new Set(newSources.map(i => Number(i)));
+    if (type === MatrixType.oneToN) { 
+        return sMap.size < 2;
+    }
+    else if (type === MatrixType.oneToOne) {
+        if (sMap.size > 1) {
+            return false;
+        }
+        if (mode === MatrixMode.linear) {
+            for(let s = 0; s < sources.length; s++) {
+                for(let i = 0; i < matrixNode.targetCount; i++) {
+                    const connection = matrixNode.connections[i];
+                    if (connection == null || connection.sources == null) {
+                        continue;
+                    }
+                    for(let j = 0; j < connection.sources.length; j++) {
+                        if (connection.sources[j] === sources[s] && targetID !== i) {
+                            // This source is already connected to another target
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            for(let s = 0; s < sources.length; s++) {
+                for(let t = 0; t < matrixNode.targets.length; t++) {
+                    const target = matrixNode.targets[t];
+                    const connection = matrixNode.connections[target];
+                    if (connection == null || connection.sources == null) {
+                        continue;
+                    }
+                    for(let j = 0; j < connection.sources.length; j++) {
+                        if (connection.sources[j] === sources[s] && targetID !== target) {
+                            // This source is already connected to another target
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
 
 function validateConnection(matrixNode, targetID, sources) {
     if (targetID < 0) {
@@ -873,7 +923,7 @@ function validateConnection(matrixNode, targetID, sources) {
                 throw new Error(`Unknown source at index ${i}`);
             }
         }
-    }
+    }    
 }
 
 
@@ -913,6 +963,10 @@ MatrixNode.decode = function(ber) {
 
 MatrixNode.prototype.validateConnection = function(targetID, sources) {
     validateConnection(this, targetID, sources);
+}
+
+MatrixNode.prototype.canConnect = function(targetID, sources, operation) {
+    canConnect(this, targetID, sources, operation);
 }
 
 MatrixNode.prototype.encode = function(ber) {
@@ -1337,9 +1391,12 @@ MatrixConnection.prototype.encode = function(ber) {
 
 module.exports.MatrixConnection = MatrixConnection;
 
-function Label(path) {
+function Label(path, description) {
     if (path) {
         this.basePath = path;
+    }
+    if (description) {
+        this.description = description;
     }
 }
 
@@ -1365,12 +1422,12 @@ Label.decode = function(ber) {
 
 Label.prototype.encode = function(ber) {
     ber.startSequence(BER.APPLICATION(18));
-    if (this.basePath !== undefined) {
+    if (this.basePath != null) {
         ber.startSequence(BER.CONTEXT(0));
         ber.writeRelativeOID(this.basePath, BER.EMBER_RELATIVE_OID);
         ber.endSequence();
     }
-    if (this.description !== undefined) {
+    if (this.description != null) {
         ber.startSequence(BER.CONTEXT(1));
         ber.writeString(this.description, BER.EMBER_STRING);
         ber.endSequence();
@@ -1448,6 +1505,10 @@ QualifiedMatrix.prototype.getMinimal = function(complete = false) {
 
 QualifiedMatrix.prototype.validateConnection = function(targetID, sources) {
     validateConnection(this, targetID, sources);
+}
+
+QualifiedMatrix.prototype.canConnect = function(targetID, sources, operation) {
+    canConnect(this, targetID, sources, operation);
 }
 
 QualifiedMatrix.decode = function(ber) {
