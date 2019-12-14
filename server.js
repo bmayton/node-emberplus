@@ -247,6 +247,7 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
         
 
         if (((connection.operation === undefined) ||
+             (connection.operation === ember.MatrixOperation.absolute) ||
              (connection.operation === ember.MatrixOperation.connect)) &&
             (matrix.canConnect(connection.target,connection.sources,connection.operation))) {
             // Apply changes

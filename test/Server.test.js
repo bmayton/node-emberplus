@@ -275,6 +275,40 @@ describe("server", function() {
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeFalsy();
         });
+        it("should return modified answer on absolute connect", function() {
+            let client;
+            server.on("error", e => {
+                console.log(e);
+            });
+            server.on("clientError", e => {
+                console.log(e);
+            });
+            //server._debug = true;
+            return server.listen()
+                .then(() => {
+                    client = new DeviceTree(LOCALHOST, PORT);
+                    return Promise.resolve()
+                })
+                .then(() => client.connect())
+                .then(() => client.getDirectory())
+                .then(() => client.getNodeByPathnum("0.1.0"))
+                .then(matrix => {
+                    console.log(matrix);
+                    return client.matrixSetConnection(matrix, 0, [1]);
+                })
+                .then(result => {
+                    console.log(result);
+                    expect(result).toBeDefined();
+                    expect(result.connections).toBeDefined();
+                    expect(result.connections[0]).toBeDefined();
+                    expect(result.connections[0].disposition).toBe(ember.MatrixDisposition.modified);
+                    return client.disconnect();
+                })
+                .then(() => {
+                    console.log("closing server");
+                    server.close();
+                });
+        });
     });
     describe("Parameters subscribe/unsubscribe", function( ){
         let jsonTree;
