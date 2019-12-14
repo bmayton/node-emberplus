@@ -563,19 +563,45 @@ DeviceTree.prototype.getNodeByPath = function (path) {
     return getNext();
 };
 
-DeviceTree.prototype.subscribe = function (node, callback) {
-    if (node instanceof ember.Parameter && node.isStream()) {
-        // TODO: implement
+DeviceTree.prototype.subscribe = function (qnode, callback) {
+    if (qnode.isParameter() && qnode.isStream()) {
+        var self = this;
+        if (qnode == null) {
+            self.root.clear();
+            qnode = self.root;
+        }
+        return new Promise((resolve, reject) => {
+            self.addRequest({node: qnode, func: (error) => {              
+                if (self._debug) {
+                    console.log("Sending subscribe", qnode);
+                }
+                self.client.sendBERNode(qnode.subscribe(callback));
+                self.finishRequest();
+                resolve();
+            }});
+        });
     } else {
         node.addCallback(callback);
     }
 };
 
-DeviceTree.prototype.unsubscribe = function (node, callback) {
-    if (node instanceof ember.Parameter && node.isStream()) {
-        // TODO: implement
-    } else {
-        node.addCallback(callback);
+DeviceTree.prototype.unsubscribe = function (qnode, callback) {
+    if (qnode.isParameter() && qnode.isStream()) {
+        var self = this;
+        if (qnode == null) {
+            self.root.clear();
+            qnode = self.root;
+        }
+        return new Promise((resolve, reject) => {
+            self.addRequest({node: qnode, func: (error) => {              
+                if (self._debug) {
+                    console.log("Sending subscribe", qnode);
+                }
+                self.client.sendBERNode(qnode.unsubscribe(callback));
+                self.finishRequest();
+                resolve();
+            }});
+        });
     }
 };
 

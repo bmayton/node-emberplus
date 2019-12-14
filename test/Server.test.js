@@ -48,8 +48,7 @@ describe("server", function() {
             });
         });
         afterAll(function() {
-            client.disconnect();
-            server.close();
+            return server.close();
         });
         it("should receive and decode the full tree", function () {
             client = new DeviceTree(LOCALHOST, PORT);
@@ -154,14 +153,14 @@ describe("server", function() {
                     client.root.getNodeByPath(client.client, ["scoreMaster", "router", "labels"], (err, child) => {
                             if (err) { reject(err) }
                             else {
-                                    resolve(child);
+                                resolve(child);
                             }
                     });
                 });
             })
             .then(child => {
                 console.log(child);
-                client.disconnect();
+                return client.disconnect();
             });
         });
 	    it("should be able to get child with tree.getNodeByPath", function() {
@@ -182,7 +181,7 @@ describe("server", function() {
                 })
                 .then(child => {
                     console.log("router/labels", child);
-			        client.disconnect();
+			        return client.disconnect();
                 });
         });
         it("should throw an error if getNodeByPath for unknown path", function() {
@@ -200,9 +199,9 @@ describe("server", function() {
                     throw new Error("Should not succeed");
                 })
                 .catch(e => {
-                    client.disconnect();
                     console.log(e);
                     expect(e.message).toMatch(/Failed path discovery/);
+                    return client.disconnect();                    
                 });
         });
         it("should be able to make a matrix connection", () => {
@@ -229,7 +228,7 @@ describe("server", function() {
                     return client.disconnect();
                 });
         });
-    });
+    });    
     describe("Matrix Connect", function() {
         let jsonTree;
         let server;
@@ -240,7 +239,7 @@ describe("server", function() {
         });
         it("should verify if connection allowed in 1-to-N", function() {
             const matrix = server.tree.elements[0].children[1].children[0];
-            const connection = new ember.MatrixConnection(0);
+            let connection = new ember.MatrixConnection(0);
             connection.setSources([1]);
             connection.operation = ember.MatrixOperation.connect;
             let res = matrix.canConnect(connection.target,connection.sources,connection.operation);
@@ -249,6 +248,11 @@ describe("server", function() {
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeFalsy();
             connection.operation = ember.MatrixOperation.absolute;
+            res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeTruthy();
+            connection = new ember.MatrixConnection(1);
+            connection.operation = ember.MatrixOperation.absolute;
+            connection.setSources([1]);
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeTruthy();
         });
@@ -266,9 +270,98 @@ describe("server", function() {
             connection.operation = ember.MatrixOperation.absolute;
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeTruthy();
+            matrix.connections[0].sources = [];
             matrix.connections[1].sources = [1];
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeFalsy();
         });
-    });    
+    });
+    describe("Parameters subscribe/unsubscribe", function( ){
+        let jsonTree;
+        let server;
+        beforeAll(function() {
+            jsonTree = jsonRoot();
+            const root = TreeServer.JSONtoTree(jsonTree);
+            server = new TreeServer(LOCALHOST, PORT, root);
+            server.on("error", e => {
+                console.log(e);
+            });
+            server.on("clientError", e => {
+                console.log(e);
+            });
+            return server.listen();
+        });
+        afterAll(function() {
+            return server.close();
+        });
+        it("should not auto subscribe stream parameter", function() {
+            const parameter = server.tree.elements[0].children[0].children[2];
+            console.log(parameter);
+            expect(parameter.isStream()).toBeTruthy();
+            expect(server.subscribers["0.0.2"]).not.toBeDefined();
+        });
+        it("should be able subscribe to parameter changes", function() {
+            const client = new DeviceTree(LOCALHOST, PORT);
+            const cb = () => {
+                return "updated";
+            }
+            //client._debug = true;
+            return Promise.resolve()
+                .then(() => client.connect())
+                .then(() => {
+                    return client.getDirectory();
+                })
+                .then(() => client.getNodeByPathnum("0.0.2"))
+                .then(parameter => {
+                    console.log(parameter);
+                    expect(server.subscribers["0.0.2"]).not.toBeDefined();
+                    expect(parameter.contents.subscribers).toBeDefined();
+                    expect(parameter.contents.subscribers.size).toBe(0);
+                    server._subscribe = server.subscribe;
+                    let _resolve;
+                    const p = new Promise((resolve, reject) => {
+                        _resolve = resolve;
+                    });
+                    server.subscribe = (c,e) => {
+                        server._subscribe(c,e);
+                        _resolve();
+                    };
+                    return client.subscribe(parameter, cb).then(() => (p))
+                })
+                .then(() => {                    
+                    expect(server.subscribers["0.0.2"]).toBeDefined();
+                    expect(server.subscribers["0.0.2"].size).toBe(1);
+                    return client.getNodeByPathnum("0.0.2");
+                })
+                .then(parameter => {                    
+                    expect(parameter.contents.subscribers).toBeDefined();
+                    expect(parameter.contents.subscribers.size).toBe(1);
+                    server._unsubscribe = server.unsubscribe;
+                    let _resolve;
+                    const p = new Promise((resolve, reject) => {
+                        _resolve = resolve;
+                    });
+                    server.unsubscribe = (c,e) => {
+                        console.log("unsubscribe");
+                        server._unsubscribe(c,e);
+                        _resolve();
+                    };
+                    console.log(parameter);
+                    return client.unsubscribe(parameter, cb).then(() => (p))
+                })
+                .then(() => {       
+                    console.log(server.subscribers);             
+                    expect(server.subscribers["0.0.2"]).toBeDefined();
+                    return client.getNodeByPathnum("0.0.2");
+                })
+                .then(parameter => {
+                    console.log(parameter);
+                    expect(server.subscribers["0.0.2"]).toBeDefined();
+                    expect(server.subscribers["0.0.2"].size).toBe(0);
+                    expect(parameter.contents.subscribers).toBeDefined();
+                    expect(parameter.contents.subscribers.size).toBe(0);
+                })
+                .then(() => client.disconnect());
+        });
+    });
 });

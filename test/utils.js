@@ -35,7 +35,7 @@ const init = function(_src,_tgt) {
                     children: [
                         {identifier: "product", value: "S-CORE Master"},
                         {identifier: "company", value: "EVS", access: "readWrite"},
-                        {identifier: "version", value: "1.2.0"},
+                        {identifier: "version", value: "1.2.0", streamIdentifier: 1234567},
                         {identifier: "author", value: "g.dufour@evs.com"},
                     ]
                 },

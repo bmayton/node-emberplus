@@ -185,8 +185,8 @@ TreeNode.prototype.isQualified = function() {
 }
 
 TreeNode.prototype.isStream = function() {
-    return this.contents !== undefined &&
-        this.contents.streamDescriptor !== undefined;
+    return this.contents != null &&
+        this.contents.streamIdentifier != null;
 }
 
 TreeNode.prototype.addCallback = function(callback) {
@@ -273,12 +273,18 @@ TreeNode.prototype.subscribe = function(callback) {
     if(callback !== undefined) {
         this._directoryCallbacks.push((error, node) => { callback(error, node) });
     }
+    if (this.isParameter() && this.isStream()) {
+        this.contents.subscribers.add(callback);
+    }
     return this.getTreeBranch(new Command(COMMAND_SUBSCRIBE));
 }
 
 TreeNode.prototype.unsubscribe = function(callback) {
     if(callback !== undefined) {
         this._directoryCallbacks.push((error, node) => { callback(error, node) });
+    }
+    if (this.isParameter() && this.isStream()) {
+        this.contents.subscribers.delete(callback);
     }
     return this.getTreeBranch(new Command(COMMAND_UNSUBSCRIBE));
 }
@@ -680,12 +686,18 @@ QualifiedNode.prototype.subscribe = function(callback) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
+    if (this.isStream()) {
+        this.contents.subscribers.add(callback);
+    }
     return QualifiedNodeCommand(this, COMMAND_SUBSCRIBE, callback)
 }
 
 QualifiedNode.prototype.unsubscribe = function(callback) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
+    }
+    if (this.isStream()) {
+        this.contents.subscribers.delete(callback);
     }
     return QualifiedNodeCommand(this, COMMAND_UNSUBSCRIBE, callback)
 }
@@ -812,6 +824,9 @@ Node.prototype.update = function(other) {
 Node.prototype.subscribe = function(callback) {
     if(this._callbacks.indexOf(callback) < 0) {
         this._callbacks.push(callback);
+    }
+    if (this.isStream()) {
+        this.contents.subscribers.add(callback);
     }
 }
 
@@ -1624,12 +1639,18 @@ QualifiedMatrix.prototype.subscribe = function(callback) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
+    if (this.isStream()) {
+        this.contents.subscribers.add(callback);
+    }
     return QualifiedMatrixCommand(this, COMMAND_SUBSCRIBE, callback);
 }
 
 QualifiedMatrix.prototype.unsubscribe = function(callback) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
+    }
+    if (this.isStream()) {
+        this.contents.subscribers.delete(callback);
     }
     return QualifiedMatrixCommand(this, COMMAND_UNSUBSCRIBE, callback);
 }
@@ -2519,6 +2540,9 @@ QualifiedParameter.prototype.update = function(other) {
                     this.contents[key] = other.contents[key];
                 }
             }
+            for(let cb of this.contents.subscribers) {
+                cb();
+            } 
         }
     }
     return callbacks;
@@ -2550,12 +2574,18 @@ QualifiedParameter.prototype.subscribe = function(callback) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
+    if (this.isStream()) {
+        this.contents.subscribers.add(callback);
+    }
     return QualifiedParameterCommand(this, COMMAND_SUBSCRIBE, callback);
 }
 
 QualifiedParameter.prototype.unsubscribe = function(callback) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
+    }
+    if (this.isStream()) {
+        this.contents.subscribers.delete(callback);
     }
     return QualifiedParameterCommand(this, COMMAND_UNSUBSCRIBE, callback);
 }
@@ -2665,6 +2695,9 @@ Parameter.prototype.update = function(other) {
                 if (other.contents.hasOwnProperty(key)) {
                     this.contents[key] = other.contents[key];
                 }
+            }            
+            for(let cb of this.contents.subscribers) {
+                cb();
             }
         }
     }
@@ -2730,6 +2763,7 @@ module.exports.ParameterAccess = ParameterAccess;
 module.exports.ParameterType = ParameterType;
 
 function ParameterContents(value, type) {
+    this.subscribers = new Set();
     if(value !== undefined) {
         this.value = value;
     }

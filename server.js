@@ -221,7 +221,7 @@ TreeServer.prototype.handleQualifiedParameter = function(client, element, parame
 
 
 TreeServer.prototype.handleMatrixConnections = function(client, matrix, connections, response = true) {
-    var res;
+    var res,conResult;
     var root; // ember message root
     if (this._debug) {
         console.log("Handling Matrix Connection");
@@ -241,7 +241,7 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
             continue;
         }
         let connection = connections[id];
-        let conResult = new ember.MatrixConnection(connection.target);
+        conResult = new ember.MatrixConnection(connection.target);
         let emitType;
         res.connections[connection.target] = conResult;
         
@@ -294,7 +294,7 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
         client.sendBERNode(root);
     }
 
-    if (conResult.disposition !== ember.MatrixDisposition.tally) {
+    if (conResult != null && conResult.disposition !== ember.MatrixDisposition.tally) {
         if (this._debug) { 
             console.log("Updating subscribers for matrix change");
         }
@@ -451,10 +451,16 @@ TreeServer.prototype.handleGetDirectory = function(client, element) {
 }
 
 TreeServer.prototype.handleSubscribe = function(client, element) {
+    if (this._debug) {
+        console.log("subscribe");
+    }
     this.subscribe(client, element);
 }
 
 TreeServer.prototype.handleUnSubscribe = function(client, element) {
+    if (this._debug) {
+        console.log("unsubscribe");
+    }
     this.unsubscribe(client, element);
 }
 
