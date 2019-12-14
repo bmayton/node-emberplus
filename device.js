@@ -141,7 +141,7 @@ DeviceTree.prototype.expand = function (node) {
 };
 
 function isDirectSubPathOf(path, parent) {
-    return path.lastIndexOf('.') === parent.length && path.startsWith(parent)
+    return path === parent || (path.lastIndexOf('.') === parent.length && path.startsWith(parent));
 }
 
 DeviceTree.prototype.getDirectory = function (qnode) {
