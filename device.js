@@ -492,6 +492,7 @@ DeviceTree.prototype.getNodeByPathnum = function (path) {
     if (typeof path === 'string') {
         path = path.split('.');
     }
+    var pathnumError = new Error(`Failed path discovery at ${path.slice(0, pos).join("/")}`);
     var pos = 0;
     var lastMissingPos = -1;
     var currentNode = this.root;
@@ -516,7 +517,7 @@ DeviceTree.prototype.getNodeByPathnum = function (path) {
             }
             // We do not have that node yet.
             if (lastMissingPos === pos) {
-                throw new Error(`Failed path discovery at ${path.slice(0, pos).join("/")}`);
+                throw pathnumError;
             }
             lastMissingPos = pos;
             return this.getDirectory(currentNode).then(() => getNext());
@@ -530,6 +531,7 @@ DeviceTree.prototype.getNodeByPath = function (path) {
     if (typeof path === 'string') {
         path = path.split('/');
     }
+    var pathError = new Error(`Failed path discovery at ${path.slice(0, pos + 1).join("/")}`);
     var pos = 0;
     var lastMissingPos = -1;
     var currentNode = this.root;
@@ -554,7 +556,7 @@ DeviceTree.prototype.getNodeByPath = function (path) {
             }
             // We do not have that node yet.
             if (lastMissingPos === pos) {
-                throw new Error(`Failed path discovery at ${path.slice(0, pos + 1).join("/")}`);
+                throw pathError;
             }
             lastMissingPos = pos;
             return this.getDirectory(currentNode).then(() => getNext());

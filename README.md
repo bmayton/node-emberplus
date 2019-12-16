@@ -136,11 +136,11 @@ const {ParameterType, FunctionArgument} = require("emberplus").Ember;
 
 const targets = _tgt === undefined ? [ "tgt1", "tgt2", "tgt3" ] : _tgt;
 const sources = _src === undefined ? [ "src1", "src2", "src3" ] : _src;
-const labels = function(endpoints) {
+const labels = function(endpoints, type) {
    let labels = [];
    for (let i = 0; i < endpoints.length; i++) {
       let endpoint = endpoints[i];
-      let l = { identifier: `Label-${i}` };
+      let l = { identifier: `${type}-${i}` };
       if (endpoint) {
             l.value = endpoint;
       }
@@ -194,13 +194,13 @@ const jsonTree = [
                               identifier: "targets",
                               // Must be 1
                               number: 1,
-                              children: labels(targets)
+                              children: labels(targets, "t")
                            },
                            {
                               identifier: "sources",
                               // Must be 2
                               number: 2,
-                              children: labels(sources)
+                              children: labels(sources, "s")
                            },
                            {
                            identifier: "group 1",
