@@ -838,8 +838,11 @@ module.exports.Node = Node;
 
 function MatrixNode(number) {
     MatrixNode.super_.call(this);
-    if(number !== undefined)
+    if(number !== undefined) {
         this.number = number;
+    }
+    this._connectedSources = {};
+    this._numConnections = 0;
 }
 
 function canConnect(matrixNode, targetID, sources, operation) {
@@ -856,39 +859,26 @@ function canConnect(matrixNode, targetID, sources, operation) {
         if (sMap.size > 1) {
             return false;
         }
-        if (mode === MatrixMode.linear) {
-            for(let s = 0; s < sources.length; s++) {
-                for(let i = 0; i < matrixNode.contents.targetCount; i++) {
-                    const connection = matrixNode.connections[i];
-                    if (connection == null || connection.sources == null) {
-                        continue;
-                    }
-                    for(let j = 0; j < connection.sources.length; j++) {
-                        if (connection.sources[j] === sources[s] && targetID !== i) {
-                            // This source is already connected to another target
-                            return false;
-                        }
-                    }
-                }
-            }
+        const sourceConnections = matrixNode._connectedSources[sources[0]];
+        return sourceConnections == null || sourceConnections.size === 0 || sourceConnections.has(targetID);
+    }
+    else {
+        // N to N
+        if (matrixNode.contents.maximumConnectsPerTarget != null &&
+            newSources.length > matrixNode.contents.maximumConnectsPerTarget) {
+            return false;
         }
-        else {
-            for(let s = 0; s < sources.length; s++) {
-                for(let t = 0; t < matrixNode.targets.length; t++) {
-                    const target = matrixNode.targets[t];
-                    const connection = matrixNode.connections[target];
-                    if (connection == null || connection.sources == null) {
-                        continue;
-                    }
-                    for(let j = 0; j < connection.sources.length; j++) {
-                        if (connection.sources[j] === sources[s] && targetID !== target) {
-                            // This source is already connected to another target
-                            return false;
-                        }
-                    }
-                }
+        if (matrixNode.contents.maximumTotalConnects != null) {
+            let count = matrixNode._numConnections;
+            if (oldSources) {
+                count -= oldSources.length;
             }
+            if (newSources) {
+                count += newSources.length;
+            }
+            return count <= matrixNode.contents.maximumTotalConnects;
         }
+        
     }
     return true;
 }
@@ -1061,6 +1051,74 @@ MatrixNode.prototype.encode = function(ber) {
     }
 
     ber.endSequence(); // BER.APPLICATION(3)
+}
+
+MatrixNode.prototype.setSources = function(targetID, sources) {
+    return MatrixNode.setSources(this, targetID, sources);
+}
+MatrixNode.prototype.connectSources = function(targetID, sources) {
+    return MatrixNode.connectSources(this, targetID, sources);
+}
+MatrixNode.prototype.disconnectSources = function(targetID, sources) {
+    return MatrixNode.disconnectSources(this, targetID, sources);
+}
+MatrixNode.prototype.getSourceConnections = function(source) {
+    return MatrixNode.getSourceConnections(this, source);
+}
+
+MatrixNode.getSourceConnections = function(matrix, source) {
+    const targets =  matrix._connectedSources[source];
+    if (targets) {
+        return [...targets];
+    }
+    return [];
+}
+
+MatrixNode.setSources = function(matrix, targetID, sources) {
+    const currentSource = matrix.connections[targetID] == null || matrix.connections[targetID].sources == null ? 
+    [] : matrix.connections[targetID].sources;
+    if (currentSource.length > 0) {
+        MatrixNode.disconnectSources(matrix, targetID, currentSource)
+    }
+    MatrixNode.connectSources(matrix, targetID, sources);
+}
+
+MatrixNode.connectSources = function(matrix, targetID, sources) {
+    const target = Number(targetID);
+    if (matrix.connections[target] == null) {
+        matrix.connections[target] = new MatrixConnection(target);
+    }
+    matrix.connections[target].connectSources(sources);
+    if (sources != null) {
+        for(let source of sources) {
+            if (matrix._connectedSources[source] == null) {
+                matrix._connectedSources[source] = new Set();
+            }
+            if (!matrix._connectedSources[source].has(target)) {
+                matrix._connectedSources[source].add(target);
+                matrix._numConnections++;
+            }
+        }
+    }
+}
+
+MatrixNode.disconnectSources = function(matrix, targetID, sources) {
+    const target = Number(targetID);
+    if (matrix.connections[target] == null) {
+        matrix.connections[target] = new MatrixConnection(target);
+    }
+    matrix.connections[target].disconnectSources(sources);
+    if (sources != null) {
+        for(let source of sources) {
+            if (matrix._connectedSources[source] == null) {
+                continue;
+            }
+            if (matrix._connectedSources[source].has(target)) {
+                matrix._connectedSources[source].delete(target);
+                matrix._numConnections--;
+            }
+        }
+    }
 }
 
 MatrixNode.prototype.update = function(other) {
@@ -1494,6 +1552,8 @@ function QualifiedMatrix(path) {
     if (path != undefined) {
         this.path = path;
     }
+    this._connectedSources = {};
+    this._numConnections = 0;
 }
 
 util.inherits(QualifiedMatrix, TreeNode);
@@ -1524,6 +1584,19 @@ QualifiedMatrix.prototype.validateConnection = function(targetID, sources) {
 
 QualifiedMatrix.prototype.canConnect = function(targetID, sources, operation) {
     return canConnect(this, targetID, sources, operation);
+}
+
+QualifiedMatrix.prototype.setSources = function(targetID, sources) {
+    return MatrixNode.setSources(this, targetID, sources);
+}
+QualifiedMatrix.prototype.connectSources = function(targetID, sources) {
+    return MatrixNode.connectSources(this, targetID, sources);
+}
+QualifiedMatrix.prototype.disconnectSources = function(targetID, sources) {
+    return MatrixNode.disconnectSources(this, targetID, sources);
+}
+QualifiedMatrix.prototype.getSourceConnections = function(source) {
+    return MatrixNode.getSourceConnections(this, source);
 }
 
 QualifiedMatrix.decode = function(ber) {

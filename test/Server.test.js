@@ -264,16 +264,71 @@ describe("server", function() {
             connection.operation = ember.MatrixOperation.connect;
             let res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeTruthy();
-            matrix.connections[0].sources = [0];
+            matrix.setSources(0, [0]);
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeFalsy();
+            // We can't connect but in 1-on-1 server should disconnect existing source and connect new one.
+            server.handleMatrixConnections(null, matrix, {0: connection}, false);
+            expect(matrix.connections[0].sources[0]).toBe(1);
+
             connection.operation = ember.MatrixOperation.absolute;
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeTruthy();
-            matrix.connections[0].sources = [];
-            matrix.connections[1].sources = [1];
+            matrix.setSources(0, []);
+            matrix.setSources(1, [1]);
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeFalsy();
+        });
+        it("should verify if connection allowed in N-to-N", function() {
+            const matrix = server.tree.elements[0].children[1].children[0];
+            matrix.contents.type = ember.MatrixType.nToN;
+            matrix.contents.maximumTotalConnects = 2;
+            matrix.setSources(0, [0,1]);
+
+            const connection = new ember.MatrixConnection(0);
+            connection.setSources([2]);
+            connection.operation = ember.MatrixOperation.connect;
+            let res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeFalsy();
+
+            matrix.setSources(2, [2]);
+            matrix.setSources(1, [1]);
+            matrix.setSources(0, []);
+            res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeFalsy();
+
+            matrix.setSources(1, []);
+            res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeTruthy();
+
+            matrix.setSources(0, [1,2]);
+            matrix.setSources(1, []);
+            connection.operation = ember.MatrixOperation.absolute;
+            res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeTruthy();
+
+
+            matrix.contents.maximumTotalConnects = 20;
+            matrix.contents.maximumConnectsPerTarget = 1;
+
+            matrix.setSources(2, [2]);
+            matrix.setSources(1, [1]);
+            matrix.setSources(0, [0]);
+            connection.setSources([2]);
+            connection.operation = ember.MatrixOperation.connect;
+
+            res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeFalsy();
+
+            matrix.setSources(0, []);
+            res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeTruthy();
+
+            matrix.setSources(0, [0]);
+            connection.operation = ember.MatrixOperation.absolute;
+            res = matrix.canConnect(connection.target,connection.sources,connection.operation);
+            expect(res).toBeTruthy();
+
         });
         it("should return modified answer on absolute connect", function() {
             let client;

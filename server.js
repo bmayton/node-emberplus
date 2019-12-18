@@ -70,7 +70,7 @@ util.inherits(TreeServer, EventEmitter);
 TreeServer.prototype.listen = function() {
     return new Promise((resolve, reject) => {
         this.callback = (e) => {
-            if (e === undefined) {
+            if (e == null) {
                 return resolve();
             }
             return reject(e);
@@ -82,7 +82,7 @@ TreeServer.prototype.listen = function() {
 TreeServer.prototype.close = function () {
     return new Promise((resolve, reject) => {
         this.callback = (e) => {
-            if (e === undefined) {
+            if (e == null) {
                 return resolve();
             }
             return reject(e);
@@ -92,7 +92,7 @@ TreeServer.prototype.close = function () {
 };
 
 TreeServer.prototype.handleRoot = function(client, root) {
-    if ((root === undefined) || (root.elements === undefined) || (root.elements < 1)) {
+    if ((root == null) || (root.elements == null) || (root.elements < 1)) {
         this.emit("error", new Error("invalid request"));
         return;
     }
@@ -153,7 +153,7 @@ TreeServer.prototype.handleNode = function(client, node) {
     let element = node;
     let path = [];
     while(element !== undefined) {
-        if (element.number === undefined) {
+        if (element.number == null) {
             this.emit("error", "invalid request");
             return;
         }
@@ -170,7 +170,7 @@ TreeServer.prototype.handleNode = function(client, node) {
     }
     let cmd = element;
 
-    if (cmd === undefined) {
+    if (cmd == null) {
         this.emit("error", "invalid request");
         return this.handleError(client);
     }
@@ -245,25 +245,40 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
         let emitType;
         res.connections[connection.target] = conResult;
         
-
-        if (((connection.operation === undefined) ||
-             (connection.operation === ember.MatrixOperation.absolute) ||
-             (connection.operation === ember.MatrixOperation.connect)) &&
-            (matrix.canConnect(connection.target,connection.sources,connection.operation))) {
+        if (matrix.contents.type === ember.MatrixType.oneToOne && 
+            connection.operation !== ember.MatrixOperation.disconnect &&
+            connection.sources != null && connection.sources.length === 1) {
+            // if the source is being used already, disconnect it.
+            const targets = matrix.getSourceConnections(connection.sources[0]);
+            if (targets.length === 1) {
+                const disconnect = new ember.MatrixConnection(targets[0]);
+                disconnect.setSources([]);
+                disconnect.disposition = ember.MatrixDisposition.modified;
+                res.connections[targets[0]] = disconnect;
+                matrix.setSources(targets[0], []);
+            }
+            // if the target is connected already, disconnect it
+            if (matrix.connections[connection.target].sources != null && 
+                matrix.connections[connection.target].sources.length === 1) {
+                matrix.setSources(connection.target, []);
+            }
+        }
+        if (connection.operation !== ember.MatrixOperation.disconnect &&
+            matrix.canConnect(connection.target,connection.sources,connection.operation)) {
             // Apply changes
-            if ((connection.operation === undefined) ||
+            if ((connection.operation == null) ||
                 (connection.operation.value == ember.MatrixOperation.absolute)) {
-                matrix.connections[connection.target].setSources(connection.sources);
+                matrix.setSources(connection.target, connection.sources);
                 emitType = "matrix-change";
             }
             else if (connection.operation == ember.MatrixOperation.connect) {
-                matrix.connections[connection.target].connectSources(connection.sources);
+                matrix.connectSources(connection.target, connection.sources);
                 emitType = "matrix-connect";
             }
             conResult.disposition = ember.MatrixDisposition.modified;
         }            
         else if (connection.operarion === ember.MatrixOperation.disconnect) { // Disconnect
-            matrix.connections[connection.target].disconnectSources(connection.sources);
+            matrix.disconnectSources(connection.target, connection.sources);
             conResult.disposition = ember.MatrixDisposition.modified;
             emitType = "matrix-disconnect";
         }
@@ -291,7 +306,7 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
             conResult.operation = ember.MatrixOperation.absolute;
         }
     }
-    if (client !== undefined) {
+    if (client != null) {
         client.sendBERNode(root);
     }
 
@@ -304,19 +319,19 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
 }
 
 const validateMatrixOperation = function(matrix, target, sources) {
-    if (matrix === undefined) {
+    if (matrix == null) {
         throw new Error(`matrix not found with path ${path}`);
     }
-    if (matrix.contents === undefined) {
+    if (matrix.contents == null) {
         throw new Error(`invalid matrix at ${path} : no contents`);
     }
-    if (matrix.contents.targetCount === undefined) {
+    if (matrix.contents.targetCount == null) {
         throw new Error(`invalid matrix at ${path} : no targetCount`);
     }
     if ((target < 0) || (target >= matrix.contents.targetCount)) {
         throw new Error(`target id ${target} out of range 0 - ${matrix.contents.targetCount}`);
     }
-    if (sources.length === undefined) {
+    if (sources.length == null) {
         throw new Error("invalid sources format");
     }
 }
@@ -468,7 +483,7 @@ TreeServer.prototype.handleUnSubscribe = function(client, element) {
 
 TreeServer.prototype.subscribe = function(client, element) {
     const path = element.getPath();
-    if (this.subscribers[path] === undefined) {
+    if (this.subscribers[path] == null) {
         this.subscribers[path] = new Set();
     }
     this.subscribers[path].add(client);
@@ -476,7 +491,7 @@ TreeServer.prototype.subscribe = function(client, element) {
 
 TreeServer.prototype.unsubscribe = function(client, element) {
     const path = element.getPath();
-    if (this.subscribers[path] === undefined) {
+    if (this.subscribers[path] == null) {
         return;
     }
     this.subscribers[path].delete(client);
@@ -506,7 +521,7 @@ TreeServer.prototype.setValue = function(element, value, origin, key) {
 TreeServer.prototype.replaceElement = function(element) {
     let path = element.getPath();
     let parent = this.tree.getElementByPath(path);
-    if ((parent === undefined)||(parent._parent === undefined)) {
+    if ((parent == null)||(parent._parent == null)) {
         throw new Error(`Could not find element at path ${path}`);
     }
     parent = parent._parent;
@@ -525,7 +540,7 @@ TreeServer.prototype.replaceElement = function(element) {
 
 
 TreeServer.prototype.updateSubscribers = function(path, response, origin) {
-    if (this.subscribers[path] === undefined) {
+    if (this.subscribers[path] == null) {
         return;
     }
 
@@ -640,10 +655,8 @@ const parseObj = function(parent, obj) {
                     if (! content.connections.hasOwnProperty(c)) {
                         continue;
                     }
-                    let t = content.connections[c].target !== undefined ? content.connections[c].target : 0;
-                    let connection = new ember.MatrixConnection(t);
-                    connection.setSources(content.connections[c].sources);
-                    emberElement.connections[t] = connection;
+                    const t = content.connections[c].target != null ? content.connections[c].target : 0;                    
+                    emberElement.setSources(t, content.connections[c].sources);
                 }
                 delete content.connections;
             }
