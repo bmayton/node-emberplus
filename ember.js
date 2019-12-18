@@ -852,8 +852,13 @@ function canConnect(matrixNode, targetID, sources, operation) {
     const oldSources = connection == null || connection.sources == null ? [] : connection.sources.slice();
     const newSources = operation === MatrixOperation.absolute ? sources : oldSources.concat(sources);
     const sMap = new Set(newSources.map(i => Number(i)));
-    if (type === MatrixType.oneToN) { 
+    if (type === MatrixType.oneToN &&
+        matrixNode.contents.maximumConnectsPerTarget == null &&
+        matrixNode.contents.maximumConnectsPerTarget == null) { 
         return sMap.size < 2;
+    }
+    else if (type === MatrixType.oneToN && sMap.size >= 2) {
+        return false;
     }
     else if (type === MatrixType.oneToOne) {
         if (sMap.size > 1) {
