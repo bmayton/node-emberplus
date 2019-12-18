@@ -587,7 +587,11 @@ const parseMatrixContent = function(matrixContent, content) {
             matrixContent.type = ember.MatrixType.oneToOne;
         }
         else if (content.type == "nToN") {
-            matrixContent.type = ember.MatrixType.nToN;
+            matrixContent.type = ember.MatrixType.nToN;  
+            matrixContent.maximumTotalConnects = content.maximumTotalConnects == null ? 
+                Number(content.targetCount) * Number(content.sourceCount) : Number(content.maximumTotalConnects);                
+            matrixContent.maximumConnectsPerTarget = content.maximumConnectsPerTarget == null ?
+                Number(content.sourceCount) : Number(content.maximumConnectsPerTarget);
         }
         else {
             throw new Error(`Invalid matrix type ${content.type}`);
