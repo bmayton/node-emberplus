@@ -126,6 +126,15 @@ server.on("error", e => {
 server.on("clientError", info => {
    console.log("clientError", info);
 });
+server.on("matrix-disconnect", info => {
+   console.log(`Client ${info.client} disconnected ${info.target} and ${info.sources}`);
+}
+server.on("matrix-connect", info => {
+   console.log(`Client ${info.client} connected ${info.target} and ${info.sources}`);
+}
+server.on("matrix-change", info => {
+   console.log(`Client ${info.client} changed ${info.target} and ${info.sources}`);
+}
 server.listen().then(() => { console.log("listening"); }).catch((e) => { console.log(e.stack); });
 ```
 
