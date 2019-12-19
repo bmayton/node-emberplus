@@ -266,15 +266,21 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
             }
             // if the target is connected already, disconnect it
             if (matrix.connections[connection.target].sources != null && 
-                matrix.connections[connection.target].sources.length === 1 &&
-                matrix.connections[connection.target].sources[0] !== connection.sources[0]) {
-                const source = matrix.connections[connection.target].sources[0];
-                matrix.setSources(connection.target, []);
-                this.emit("matrix-disconnect", {
-                    target: connection.target,
-                    sources: [source],
-                    client: client == null ? null : client.remoteAddress()
-                });
+                matrix.connections[connection.target].sources.length === 1) {
+                if (matrix.connections[connection.target].sources[0] !== connection.sources[0]) {
+                    const source = matrix.connections[connection.target].sources[0];
+                    matrix.setSources(connection.target, []);
+                    this.emit("matrix-disconnect", {
+                        target: connection.target,
+                        sources: [source],
+                        client: client == null ? null : client.remoteAddress()
+                    });
+                }
+                else {
+                    // let's change the request into a disconnect
+                    connection.operation = ember.MatrixOperation.disconnect;
+                }
+                
             }
         }
         if (connection.operation !== ember.MatrixOperation.disconnect &&
