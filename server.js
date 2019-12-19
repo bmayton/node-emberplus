@@ -257,11 +257,13 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
                     disconnect.disposition = ember.MatrixDisposition.modified;
                     res.connections[targets[0]] = disconnect;
                     matrix.setSources(targets[0], []);
-                    this.emit("matrix-disconnect", {
-                        target: targets[0],
-                        sources: connection.sources,
-                        client: client == null ? null : client.remoteAddress()
-                    });
+                    if (response) {
+                        this.emit("matrix-disconnect", {
+                            target: targets[0],
+                            sources: connection.sources,
+                            client: client == null ? null : client.remoteAddress()
+                        });
+                    }
                 }
             }
             // if the target is connected already, disconnect it
@@ -270,11 +272,13 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
                 if (matrix.connections[connection.target].sources[0] !== connection.sources[0]) {
                     const source = matrix.connections[connection.target].sources[0];
                     matrix.setSources(connection.target, []);
-                    this.emit("matrix-disconnect", {
-                        target: connection.target,
-                        sources: [source],
-                        client: client == null ? null : client.remoteAddress()
-                    });
+                    if (response) {
+                        this.emit("matrix-disconnect", {
+                            target: connection.target,
+                            sources: [source],
+                            client: client == null ? null : client.remoteAddress()
+                        });
+                    }
                 }
                 else {
                     // let's change the request into a disconnect
@@ -297,7 +301,8 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
             }
             conResult.disposition = ember.MatrixDisposition.modified;
         }            
-        else if (connection.operarion === ember.MatrixOperation.disconnect) { // Disconnect
+        else if (connection.operation === ember.MatrixOperation.disconnect) { 
+            // Disconnect
             matrix.disconnectSources(connection.target, connection.sources);
             conResult.disposition = ember.MatrixDisposition.modified;
             emitType = "matrix-disconnect";
@@ -307,7 +312,6 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
                 console.log(`Invalid Matrix operation ${connection.operarion} on target ${connection.target} with sources ${JSON.stringify(connection.sources)}`);
             }
             conResult.disposition = ember.MatrixDisposition.tally;
-            return;
         }
 
         // Send response or update subscribers.
@@ -317,14 +321,9 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
             this.emit(emitType, {
                 target: connection.target,
                 sources: connection.sources,
-                client: client.remoteAddress()
+                client: client == null ? null : client.remoteAddress()
             });
-        }
-        else {
-            // the action has been applied.  So we should either send the current state (absolute)
-            // or send the action itself (connection.sources)
-            conResult.operation = ember.MatrixOperation.absolute;
-        }
+        }       
     }
     if (client != null) {
         client.sendBERNode(root);

@@ -256,12 +256,12 @@ describe("server", function() {
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeTruthy();
             // We can't connect.  But server will disconnect existing source and connect new one.
-            server.handleMatrixConnections(null, matrix, {0: connection}, false);
+            server.handleMatrixConnections(null, matrix, {0: connection});
             expect(matrix.connections[0].sources[0]).toBe(1);
             expect(disconnectCount).toBe(1);
-            // But if connecting same source and dest.  Don't disconnect and reconnect.
-            server.handleMatrixConnections(null, matrix, {0: connection}, false);
-            expect(disconnectCount).toBe(1);
+            // But if connecting same source and dest.  just disconnect and don't reconnect.
+            server.handleMatrixConnections(null, matrix, {0: connection});
+            expect(disconnectCount).toBe(2);
             matrix.setSources(0, [0]);
             connection = new ember.MatrixConnection(1);
             connection.operation = ember.MatrixOperation.absolute;
@@ -286,12 +286,12 @@ describe("server", function() {
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeFalsy();
             // We can't connect but in 1-on-1 server should disconnect existing source and connect new one.
-            server.handleMatrixConnections(null, matrix, {0: connection}, false);
+            server.handleMatrixConnections(null, matrix, {0: connection});
             expect(matrix.connections[0].sources[0]).toBe(1);
             expect(disconnectCount).toBe(1);
-            // But if connecting same source and dest.  Don't disconnect and reconnect.
-            server.handleMatrixConnections(null, matrix, {0: connection}, false);
-            expect(disconnectCount).toBe(1);
+            // But if connecting same source and dest.  just disconnect and do not reconnect.
+            server.handleMatrixConnections(null, matrix, {0: connection});
+            expect(disconnectCount).toBe(2);
             connection.operation = ember.MatrixOperation.absolute;
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeTruthy();
@@ -300,6 +300,22 @@ describe("server", function() {
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeFalsy();
             server.off("matrix-disconnect", handleDisconnect);
+        });
+        it("should disconnect if trying to connect same source and target in 1-to-1", function() {
+            const matrix = server.tree.elements[0].children[1].children[0];
+            let disconnectCount = 0;
+            const handleDisconnect = info => {
+                disconnectCount++;
+            }
+            server.on("matrix-disconnect", handleDisconnect.bind(this));
+            matrix.contents.type = ember.MatrixType.oneToOne;
+            matrix.setSources(0, [1]);
+            const connection = new ember.MatrixConnection(0);
+            connection.setSources([1]);
+            connection.operation = ember.MatrixOperation.connect;
+            server.handleMatrixConnections(null, matrix, {0: connection});
+            expect(matrix.connections[0].sources.length).toBe(0);
+            expect(disconnectCount).toBe(1);
         });
         it("should verify if connection allowed in N-to-N", function() {
             const matrix = server.tree.elements[0].children[1].children[0];
