@@ -238,6 +238,11 @@ describe("server", function() {
             server = new TreeServer(LOCALHOST, PORT, root);
         });
         it("should verify if connection allowed in 1-to-N", function() {
+            let disconnectCount = 0;
+            const handleDisconnect = info => {
+                disconnectCount++;
+            }
+            server.on("matrix-disconnect", handleDisconnect.bind(this));
             const matrix = server.tree.elements[0].children[1].children[0];
             let connection = new ember.MatrixConnection(0);
             connection.setSources([1]);
@@ -253,6 +258,10 @@ describe("server", function() {
             // We can't connect.  But server will disconnect existing source and connect new one.
             server.handleMatrixConnections(null, matrix, {0: connection}, false);
             expect(matrix.connections[0].sources[0]).toBe(1);
+            expect(disconnectCount).toBe(1);
+            // But if connecting same source and dest.  Don't disconnect and reconnect.
+            server.handleMatrixConnections(null, matrix, {0: connection}, false);
+            expect(disconnectCount).toBe(1);
             matrix.setSources(0, [0]);
             connection = new ember.MatrixConnection(1);
             connection.operation = ember.MatrixOperation.absolute;
@@ -262,6 +271,11 @@ describe("server", function() {
         });
         it("should verify if connection allowed in 1-to-1", function() {
             const matrix = server.tree.elements[0].children[1].children[0];
+            let disconnectCount = 0;
+            const handleDisconnect = info => {
+                disconnectCount++;
+            }
+            server.on("matrix-disconnect", handleDisconnect.bind(this));
             matrix.contents.type = ember.MatrixType.oneToOne;
             const connection = new ember.MatrixConnection(0);
             connection.setSources([1]);
@@ -274,7 +288,10 @@ describe("server", function() {
             // We can't connect but in 1-on-1 server should disconnect existing source and connect new one.
             server.handleMatrixConnections(null, matrix, {0: connection}, false);
             expect(matrix.connections[0].sources[0]).toBe(1);
-
+            expect(disconnectCount).toBe(1);
+            // But if connecting same source and dest.  Don't disconnect and reconnect.
+            server.handleMatrixConnections(null, matrix, {0: connection}, false);
+            expect(disconnectCount).toBe(1);
             connection.operation = ember.MatrixOperation.absolute;
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeTruthy();
@@ -282,6 +299,7 @@ describe("server", function() {
             matrix.setSources(1, [1]);
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeFalsy();
+            server.off("matrix-disconnect", handleDisconnect);
         });
         it("should verify if connection allowed in N-to-N", function() {
             const matrix = server.tree.elements[0].children[1].children[0];
