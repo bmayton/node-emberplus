@@ -244,12 +244,16 @@ describe("server", function() {
             connection.operation = ember.MatrixOperation.connect;
             let res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeTruthy();
-            matrix.connections[0].sources = [0];
+            matrix.setSources(0, [0]);
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeFalsy();
             connection.operation = ember.MatrixOperation.absolute;
             res = matrix.canConnect(connection.target,connection.sources,connection.operation);
             expect(res).toBeTruthy();
+            // We can't connect.  But server will disconnect existing source and connect new one.
+            server.handleMatrixConnections(null, matrix, {0: connection}, false);
+            expect(matrix.connections[0].sources[0]).toBe(1);
+            matrix.setSources(0, [0]);
             connection = new ember.MatrixConnection(1);
             connection.operation = ember.MatrixOperation.absolute;
             connection.setSources([1]);

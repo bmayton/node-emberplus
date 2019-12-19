@@ -245,17 +245,19 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
         let emitType;
         res.connections[connection.target] = conResult;
         
-        if (matrix.contents.type === ember.MatrixType.oneToOne && 
+        if (matrix.contents.type !== ember.MatrixType.nToN && 
             connection.operation !== ember.MatrixOperation.disconnect &&
             connection.sources != null && connection.sources.length === 1) {
-            // if the source is being used already, disconnect it.
-            const targets = matrix.getSourceConnections(connection.sources[0]);
-            if (targets.length === 1) {
-                const disconnect = new ember.MatrixConnection(targets[0]);
-                disconnect.setSources([]);
-                disconnect.disposition = ember.MatrixDisposition.modified;
-                res.connections[targets[0]] = disconnect;
-                matrix.setSources(targets[0], []);
+            if (matrix.contents.type === ember.MatrixType.oneToOne) {
+                // if the source is being used already, disconnect it.
+                const targets = matrix.getSourceConnections(connection.sources[0]);
+                if (targets.length === 1) {
+                    const disconnect = new ember.MatrixConnection(targets[0]);
+                    disconnect.setSources([]);
+                    disconnect.disposition = ember.MatrixDisposition.modified;
+                    res.connections[targets[0]] = disconnect;
+                    matrix.setSources(targets[0], []);
+                }
             }
             // if the target is connected already, disconnect it
             if (matrix.connections[connection.target].sources != null && 
