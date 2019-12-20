@@ -259,9 +259,12 @@ describe("server", function() {
             server.handleMatrixConnections(null, matrix, {0: connection});
             expect(matrix.connections[0].sources[0]).toBe(1);
             expect(disconnectCount).toBe(1);
-            // But if connecting same source and dest.  just disconnect and don't reconnect.
+            // But if connecting same source and dest this is a disconnect.  But not possible in 1toN.
+            // instead connect with defaultSource or do nothing
+            matrix.defaultSources[0] = 222;
             server.handleMatrixConnections(null, matrix, {0: connection});
-            expect(disconnectCount).toBe(2);
+            expect(disconnectCount).toBe(1);
+            expect(matrix.connections[0].sources[0]).toBe(222);
             matrix.setSources(0, [0]);
             connection = new ember.MatrixConnection(1);
             connection.operation = ember.MatrixOperation.absolute;

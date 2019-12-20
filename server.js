@@ -280,14 +280,19 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
                         });
                     }
                 }
-                else {
+                else if (matrix.contents.type === ember.MatrixType.oneToOne) {
                     // let's change the request into a disconnect
                     connection.operation = ember.MatrixOperation.disconnect;
                 }
-                
+                else if (matrix.contents.type === ember.MatrixType.oneToN &&
+                    (matrix.defaultSources != null)) {
+                    connection.sources = [matrix.defaultSources[connection.target]]
+                }
             }
         }
+        
         if (connection.operation !== ember.MatrixOperation.disconnect &&
+            connection.sources != null && connection.sources.length > 0 &&
             matrix.canConnect(connection.target,connection.sources,connection.operation)) {
             // Apply changes
             if ((connection.operation == null) ||
@@ -300,7 +305,22 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
                 emitType = "matrix-connect";
             }
             conResult.disposition = ember.MatrixDisposition.modified;
-        }            
+        }
+        else if (connection.operation !== ember.MatrixOperation.disconnect &&
+            connection.sources != null && connection.sources.length === 0 &&
+            matrix.connections[connection.target].sources != null && 
+            matrix.connections[connection.target].sources.length > 0) {
+            // let's disconnect
+            if (response) {
+                this.emit("matrix-disconnect", {
+                    target: connection.target,
+                    sources: matrix.connections[connection.target].sources,
+                    client: client == null ? null : client.remoteAddress()
+                });
+            }
+            matrix.setSources(connection.target, []);
+            conResult.disposition = ember.MatrixDisposition.modified;
+        }
         else if (connection.operation === ember.MatrixOperation.disconnect) { 
             // Disconnect
             matrix.disconnectSources(connection.target, connection.sources);
@@ -671,6 +691,7 @@ const parseObj = function(parent, obj) {
         else if (content.targetCount != null) {
             emberElement = new ember.MatrixNode(number);
             emberElement.contents = new ember.MatrixContents();
+            emberElement.defaultSources = content.defaultSources;
             parseMatrixContent(emberElement.contents, content);
             if (content.connections) {
                 emberElement.connections = {};

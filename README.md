@@ -145,6 +145,7 @@ const {ParameterType, FunctionArgument} = require("emberplus").Ember;
 
 const targets = _tgt === undefined ? [ "tgt1", "tgt2", "tgt3" ] : _tgt;
 const sources = _src === undefined ? [ "src1", "src2", "src3" ] : _src;
+const defaultSources = [0, 0, 0];
 const labels = function(endpoints, type) {
    let labels = [];
    for (let i = 0; i < endpoints.length; i++) {
@@ -191,6 +192,7 @@ const jsonTree = [
                         mode: "linear",
                         targetCount: targets.length,
                         sourceCount: sources.length,
+                        defaultSources: defaultSources,
                         connections: buildConnections(sources, targets),
                         labels: [{basePath: "0.1.1000", description: "primary"}]
                   },
