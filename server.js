@@ -241,6 +241,7 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
             continue;
         }
         let connection = connections[id];
+        console.log(connection);
         conResult = new ember.MatrixConnection(connection.target);
         let emitType;
         res.connections[connection.target] = conResult;
@@ -335,9 +336,32 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
         }
         else if (connection.operation === ember.MatrixOperation.disconnect) { 
             // Disconnect
-            matrix.disconnectSources(connection.target, connection.sources);
-            conResult.disposition = ember.MatrixDisposition.modified;
-            emitType = "matrix-disconnect";
+            if (matrix.contents.type === ember.MatrixType.oneToN) {
+                const disconnectSource = this.getDisconnectSource(matrix, connection.target);
+                if (matrix.connections[connection.target].sources[0] == connection.sources[0]) {
+                    if (disconnectSource != null &&
+                        disconnectSource != connection.sources[0]) {
+                        if (response) {
+                            this.emit("matrix-disconnect", {
+                                target: connection.target,
+                                sources: matrix.connections[connection.target].sources,
+                                client: client == null ? null : client.remoteAddress()
+                            });
+                        }
+                        matrix.setSources(connection.target, [disconnectSource]);
+                        connection.operarion = ember.MatrixOperation.modified;
+                    }
+                    else {
+                        // do nothing
+                        connection.operarion = ember.MatrixOperation.tally;
+                    }
+                }
+            }
+            else {
+                matrix.disconnectSources(connection.target, connection.sources);
+                conResult.disposition = ember.MatrixDisposition.modified;
+                emitType = "matrix-disconnect";
+            }
         }
         else if (conResult.disposition !== ember.MatrixDisposition.locked){
             if (this._debug) {
