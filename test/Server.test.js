@@ -261,9 +261,10 @@ describe("server", function() {
             expect(disconnectCount).toBe(1);
             // But if connecting same source and dest this is a disconnect.  But not possible in 1toN.
             // instead connect with defaultSource or do nothing
-            matrix.defaultSources[0] = 222;
+            server.getDisconnectSource(matrix, 0);
+            matrix.defaultSources[0].contents.value = 222;
             server.handleMatrixConnections(null, matrix, {0: connection});
-            expect(disconnectCount).toBe(1);
+            expect(disconnectCount).toBe(2);
             expect(matrix.connections[0].sources[0]).toBe(222);
             matrix.setSources(0, [0]);
             connection = new ember.MatrixConnection(1);
@@ -319,6 +320,24 @@ describe("server", function() {
             server.handleMatrixConnections(null, matrix, {0: connection});
             expect(matrix.connections[0].sources.length).toBe(0);
             expect(disconnectCount).toBe(1);
+        });
+        it("should be able to lock a connection", function() {
+            const matrix = server.tree.elements[0].children[1].children[0];
+            let disconnectCount = 0;
+            const handleDisconnect = info => {
+                disconnectCount++;
+            }
+            server.on("matrix-disconnect", handleDisconnect.bind(this));
+            matrix.contents.type = ember.MatrixType.oneToOne;
+            matrix.setSources(0, [1]);
+            matrix.connections[0].lock();
+            const connection = new ember.MatrixConnection(0);
+            connection.setSources([0]);
+            connection.operation = ember.MatrixOperation.connect;
+            server.handleMatrixConnections(null, matrix, {0: connection});
+            expect(matrix.connections[0].sources.length).toBe(1);
+            expect(matrix.connections[0].sources[0]).toBe(1);
+            expect(disconnectCount).toBe(0);
         });
         it("should verify if connection allowed in N-to-N", function() {
             const matrix = server.tree.elements[0].children[1].children[0];

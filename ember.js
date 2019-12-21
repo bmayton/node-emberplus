@@ -393,6 +393,10 @@ TreeNode.prototype.toJSON = function() {
     return res;
 };
 
+TreeNode.prototype.getParent = function() {
+    return this._parent;
+}
+
 TreeNode.prototype.getElementByPath = function(path) {
     var children = this.getChildren();
     if ((children === null)||(children === undefined))  {
@@ -852,6 +856,10 @@ function canConnect(matrixNode, targetID, sources, operation) {
     const oldSources = connection == null || connection.sources == null ? [] : connection.sources.slice();
     const newSources = operation === MatrixOperation.absolute ? sources : oldSources.concat(sources);
     const sMap = new Set(newSources.map(i => Number(i)));
+    
+    if (matrixNode.connections[targetID].isLocked()) {
+        return false;
+    }
     if (type === MatrixType.oneToN &&
         matrixNode.contents.maximumConnectsPerTarget == null &&
         matrixNode.contents.maximumConnectsPerTarget == null) { 
@@ -1348,6 +1356,7 @@ function MatrixConnection(target) {
     else {
         this.target = 0;
     }
+    this._locked = false;
 }
 
 // ConnectionOperation ::=
@@ -1399,6 +1408,16 @@ MatrixConnection.prototype.connectSources = function(sources) {
         s.add(item);
     }
     this.sources = [...s].sort();
+}
+
+MatrixConnection.prototype.lock = function() {
+    this._locked = true;
+}
+MatrixConnection.prototype.unlock = function() {
+    this._locked = false;
+}
+MatrixConnection.prototype.isLocked = function() {
+    return this._locked;
 }
 
 MatrixConnection.prototype.disconnectSources = function(sources) {

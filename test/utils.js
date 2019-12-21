@@ -4,7 +4,7 @@ const {ParameterType, FunctionArgument} = require("../ember");
 const init = function(_src,_tgt) {
     const targets = _tgt === undefined ? [ "tgt1", "tgt2", "tgt3" ] : _tgt;
     const sources = _src === undefined ? [ "src1", "src2", "src3" ] : _src;
-    const defaultSources = [0, 0, 0];
+    const defaultSources = [{identifier: "t-0", value: 0}, {identifier: "t-1", value: 0}, {identifier: "t-2", value: 0}];
     const labels = function(endpoints, type) {
         let labels = [];
         for (let i = 0; i < endpoints.length; i++) {
@@ -53,8 +53,7 @@ const init = function(_src,_tgt) {
                             targetCount: targets.length,
                             sourceCount: sources.length,
                             connections: buildConnections(sources, targets),
-                            labels: [{basePath: "0.1.1000", description: "primary"}],
-                            defaultSources: defaultSources
+                            labels: [{basePath: "0.1.1000", description: "primary"}],                            
                         },
                         {
                             identifier: "labels",
@@ -78,6 +77,11 @@ const init = function(_src,_tgt) {
                                     children: [ {identifier: "sdp A", value: "A"}, {identifier: "sdp B", value: "B"}]
 				                }
                             ]
+                        },
+                        {
+                            identifier: "disconnect sources",
+                            number: 1001,
+                            children: defaultSources
                         }
                     ]
                 },

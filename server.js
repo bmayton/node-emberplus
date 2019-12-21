@@ -245,7 +245,10 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
         let emitType;
         res.connections[connection.target] = conResult;
         
-        if (matrix.contents.type !== ember.MatrixType.nToN && 
+        if (matrix.connections[connection.target].isLocked()) {
+            conResult.disposition = ember.MatrixDisposition.locked;
+        }
+        else if (matrix.contents.type !== ember.MatrixType.nToN && 
             connection.operation !== ember.MatrixOperation.disconnect &&
             connection.sources != null && connection.sources.length === 1) {
             if (matrix.contents.type === ember.MatrixType.oneToOne) {
@@ -269,6 +272,19 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
             // if the target is connected already, disconnect it
             if (matrix.connections[connection.target].sources != null && 
                 matrix.connections[connection.target].sources.length === 1) {
+                if (matrix.contents.type === ember.MatrixType.oneToN) {
+                    const disconnectSource = this.getDisconnectSource(matrix, connection.target);
+                    if (matrix.connections[connection.target].sources[0] == connection.sources[0]) {
+                        if (disconnectSource != null &&
+                            disconnectSource != connection.sources[0]) {
+                            connection.sources = [disconnectSource];
+                        }
+                        else {
+                            // do nothing
+                            connection.operarion = ember.MatrixOperation.tally;
+                        }
+                    }
+                }
                 if (matrix.connections[connection.target].sources[0] !== connection.sources[0]) {
                     const source = matrix.connections[connection.target].sources[0];
                     matrix.setSources(connection.target, []);
@@ -283,10 +299,6 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
                 else if (matrix.contents.type === ember.MatrixType.oneToOne) {
                     // let's change the request into a disconnect
                     connection.operation = ember.MatrixOperation.disconnect;
-                }
-                else if (matrix.contents.type === ember.MatrixType.oneToN &&
-                    (matrix.defaultSources != null)) {
-                    connection.sources = [matrix.defaultSources[connection.target]]
                 }
             }
         }
@@ -327,7 +339,7 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
             conResult.disposition = ember.MatrixDisposition.modified;
             emitType = "matrix-disconnect";
         }
-        else {
+        else if (conResult.disposition !== ember.MatrixDisposition.locked){
             if (this._debug) {
                 console.log(`Invalid Matrix operation ${connection.operarion} on target ${connection.target} with sources ${JSON.stringify(connection.sources)}`);
             }
@@ -577,6 +589,26 @@ TreeServer.prototype.replaceElement = function(element) {
     }
 }
 
+TreeServer.prototype.getDisconnectSource = function(matrix, targetID) {
+    if (matrix.defaultSources) {
+        return matrix.defaultSources[targetID].contents.value;
+    }
+    if (matrix.contents.labels == null || matrix.contents.labels.length == 0) {
+        return null;
+    }
+    const basePath = matrix.contents.labels[0].basePath;
+    const labels = this.tree.getElementByPath(basePath);
+    const number = labels.getNumber() + 1;
+    const parent = labels.getParent();
+    const children = parent.getChildren();
+    for(let child of children) {
+        if (child.getNumber() === number) {
+            matrix.defaultSources = child.getChildren();
+            return matrix.defaultSources[targetID].contents.value;
+        }
+    }
+    return null;
+}
 
 TreeServer.prototype.updateSubscribers = function(path, response, origin) {
     if (this.subscribers[path] == null) {
@@ -690,9 +722,8 @@ const parseObj = function(parent, obj) {
         }
         else if (content.targetCount != null) {
             emberElement = new ember.MatrixNode(number);
-            emberElement.contents = new ember.MatrixContents();
-            emberElement.defaultSources = content.defaultSources;
-            parseMatrixContent(emberElement.contents, content);
+            emberElement.contents = new ember.MatrixContents();            
+            parseMatrixContent(emberElement.contents, content);            
             if (content.connections) {
                 emberElement.connections = {};
                 for (let c in content.connections) {
