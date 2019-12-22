@@ -333,12 +333,14 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
             matrix.setSources(connection.target, []);
             conResult.disposition = ember.MatrixDisposition.modified;
         }
-        else if (connection.operation === ember.MatrixOperation.disconnect) { 
-            // Disconnect
+        else if (connection.operation === ember.MatrixOperation.disconnect &&
+            matrix.connections[connection.target].sources != null &&
+            matrix.connections[connection.target].sources.length > 0) { 
+            // Disconnect            
             if (matrix.contents.type === ember.MatrixType.oneToN) {
                 const disconnectSource = this.getDisconnectSource(matrix, connection.target);
                 if (matrix.connections[connection.target].sources[0] == connection.sources[0]) {
-                    if (disconnectSource != null &&
+                    if (disconnectSource != null && disconnectSource != -1 &&
                         disconnectSource != connection.sources[0]) {
                         if (response) {
                             this.emit("matrix-disconnect", {
