@@ -183,7 +183,7 @@ TreeServer.prototype.handleNode = function(client, node) {
     }
 
     if (cmd instanceof ember.Command) {
-        this.handleCommand(client, element, cmd.number);
+        this.handleCommand(client, element, cmd);
     }
     else if ((cmd instanceof ember.MatrixNode) && (cmd.connections !== undefined)) {
         this.handleMatrixConnections(client, element, cmd.connections);
@@ -455,7 +455,7 @@ TreeServer.prototype.handleCommand = function(client, element, cmd) {
             this.handleInvoke(client, cmd.invocation, element);
             break;
         default:
-            this.emit("error", new Error(`invalid command ${cmd}`));
+            this.emit("error", new Error(`invalid command ${cmd.number}`));
             break;
     }
 }
