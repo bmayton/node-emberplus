@@ -241,7 +241,6 @@ TreeServer.prototype.handleMatrixConnections = function(client, matrix, connecti
             continue;
         }
         let connection = connections[id];
-        console.log(connection);
         conResult = new ember.MatrixConnection(connection.target);
         let emitType;
         res.connections[connection.target] = conResult;
@@ -743,6 +742,16 @@ const parseObj = function(parent, obj) {
                     ));
                 }
             }
+            if (content.result != null) {
+                for(let argument of content.result) {
+                    emberElement.contents.result.push(new ember.FunctionArgument(
+                        argument.type,
+                        argument.value,
+                        argument.name
+                    ));
+                }
+            }
+            delete content.result;
         }
         else if (content.targetCount != null) {
             emberElement = new ember.MatrixNode(number);

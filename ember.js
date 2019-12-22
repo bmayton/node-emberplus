@@ -1985,7 +1985,7 @@ FunctionContent.prototype.encode = function(ber) {
     if(this.result != null) {
         ber.startSequence(BER.CONTEXT(3));
         ber.startSequence(BER.EMBER_SEQUENCE);
-        for(var i =0; i < this.result; i++) {
+        for(var i = 0; i < this.result.length; i++) {
             ber.startSequence(BER.CONTEXT(0));
             this.result[i].encode(ber);
             ber.endSequence();

@@ -105,6 +105,13 @@ const init = function(_src,_tgt) {
                             value: null,
                             name: "arg2"
                         }
+                    ],
+                    result: [
+                        {
+                            type: ParameterType.integer,
+                            value: null,
+                            name: "changeCount"
+                        }
                     ]
                 }
             ]
