@@ -4,7 +4,11 @@ const {ParameterType, FunctionArgument} = require("../ember");
 const init = function(_src,_tgt) {
     const targets = _tgt === undefined ? [ "tgt1", "tgt2", "tgt3" ] : _tgt;
     const sources = _src === undefined ? [ "src1", "src2", "src3" ] : _src;
-    const defaultSources = [{identifier: "t-0", value: 0}, {identifier: "t-1", value: 0}, {identifier: "t-2", value: 0}];
+    const defaultSources = [
+        {identifier: "t-0", value: -1, access: "readWrite" }, 
+        {identifier: "t-1", value: 0, access: "readWrite"}, 
+        {identifier: "t-2", value: 0, access: "readWrite"}
+     ];
     const labels = function(endpoints, type) {
         let labels = [];
         for (let i = 0; i < endpoints.length; i++) {
