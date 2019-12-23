@@ -79,6 +79,7 @@ Root.decode = function(ber) {
         else if (tag === BER.CONTEXT(0)) {
             // continuation of previous message
             try {
+                var rootReader = ber.getSequence(BER.CONTEXT(0));
                 return RootElement.decode(rootReader)
             }
             catch (e) {
