@@ -93,10 +93,9 @@ TreeServer.prototype.close = function () {
 
 TreeServer.prototype.handleRoot = function(client, root) {
     if ((root == null) || (root.elements == null) || (root.elements < 1)) {
-        this.emit("error", new Error("invalid request"));
+        // ignore empty requests.
         return;
     }
-
 
     const node = root.elements[0];
     client.request = node;

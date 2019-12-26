@@ -343,7 +343,7 @@ TreeNode.prototype.toJSON = function() {
     let res = {};
     const node = this;
     if (node.number) {
-        res.number = node.number
+        res.number = node.number;
     }
     if (node.path) {
         res.path = node.path;
@@ -2356,6 +2356,14 @@ Command.decode = function(ber) {
     }
 
     return c;
+}
+
+Command.prototype.toJSON = function() {
+    return {
+        number: this.number,
+        fieldFlags: this.fieldFlags,
+        invocation: this.invocation == null ? null : this.invocation.toJSON()
+    };
 }
 
 Command.prototype.encode = function(ber) {
