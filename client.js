@@ -177,8 +177,7 @@ S101Socket.prototype.connect = function (timeout = 2) {
             timeout: 1000 * timeout
         },
         () => {
-            winston.debug('socket connected');
-
+            winston.debug('socket connected');             
             // Disable connect timeout to hand-over to keepalive mechanism
             self.socket.removeListener("timeout", connectTimeoutListener);
             self.socket.setTimeout(0);
@@ -220,13 +219,16 @@ S101Socket.prototype.connect = function (timeout = 2) {
                 self.codec.dataIn(data);
             }
         })
-        .on('close', () => {
-            clearInterval(self.keepaliveIntervalTimer);
-            self.emit('disconnected');
-            self.status = "disconnected";
-            self.socket = null;
-        });
+        .on('close', self.handleClose)
+        .on("end", self.handleClose);
 }
+
+S101Socket.prototype.handleClose = function() {
+    this.socket = null;
+    clearInterval(this.keepaliveIntervalTimer);
+    this.status = "disconnected";
+    this.emit('disconnected');            
+};
 
 S101Socket.prototype.isConnected = function () {
     return ((this.socket !== null) && (this.socket !== undefined));
@@ -255,15 +257,25 @@ S101Socket.prototype.disconnect = function () {
 S101Socket.prototype.sendKeepaliveRequest = function () {
     var self = this;
     if (self.isConnected()) {
-        self.socket.write(self.codec.keepAliveRequest());
-        winston.debug('sent keepalive request');
+        try {
+            self.socket.write(self.codec.keepAliveRequest());
+            winston.debug('sent keepalive request');
+        }
+        catch(e){
+            self.handleClose();
+        }
     }
 }
 
 S101Socket.prototype.sendKeepaliveResponse = function () {
     var self = this;
     if (self.isConnected()) {
-        self.socket.write(self.codec.keepAliveResponse());
+        try {
+            self.socket.write(self.codec.keepAliveResponse());
+        }
+        catch(e){
+            self.handleClose();
+        }
         winston.debug('sent keepalive response');
     }
 }
@@ -271,9 +283,14 @@ S101Socket.prototype.sendKeepaliveResponse = function () {
 S101Socket.prototype.sendBER = function (data) {
     var self = this;
     if (self.isConnected()) {
-        var frames = self.codec.encodeBER(data);
-        for (var i = 0; i < frames.length; i++) {
-            self.socket.write(frames[i]);
+        try {
+            var frames = self.codec.encodeBER(data);
+            for (var i = 0; i < frames.length; i++) {
+                self.socket.write(frames[i]);
+            }
+        }
+        catch(e){
+            self.handleClose();
         }
     }
 }
