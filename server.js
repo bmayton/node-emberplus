@@ -575,21 +575,27 @@ TreeServer.prototype.unsubscribe = function(client, element) {
 TreeServer.prototype.setValue = function(element, value, origin, key) {
     return new Promise((resolve, reject) => {
         // Change the element value if write access permitted.
-        if (element.contents !== undefined) {
-            if (element.isParameter()) {
-                if ((element.contents.access !== undefined) &&
-                    (element.contents.access.value > 1)) {
-                    element.contents.value = value;
-                    this.emit("value-change", element);
-                }
-            }
-            else if (element.isMatrix()) {
-                if ((key !== undefined) && (element.contents.hasOwnProperty(key))) {
-                    element.contents[key] = value;
-                    this.emit("value-change", element);
-                }
+        if (element.contents == null) {
+            return resolve();
+        }
+        if (element.isParameter()) {
+            if ((element.contents.access !== undefined) &&
+                (element.contents.access.value > 1)) {
+                element.contents.value = value;
+                const res = this.getResponse(element);
+                this.updateSubscribers(element.getPath(),res, origin);
+                this.emit("value-change", element);
             }
         }
+        else if (element.isMatrix()) {
+            if ((key !== undefined) && (element.contents.hasOwnProperty(key))) {
+                element.contents[key] = value;
+                const res = this.getResponse(element);
+                this.updateSubscribers(element.getPath(),res, origin);
+                this.emit("value-change", element);
+            }
+        }
+        return resolve();
     });
 }
 

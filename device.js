@@ -103,7 +103,7 @@ DeviceTree.prototype.connect = function (timeout = 2) {
     });
 };
 
-DeviceTree.prototype.expand = function (node) {
+DeviceTree.prototype.expand = function (node, callback = null) {
     let self = this;
     if (node == null) {
         return Promise.reject(new Error("Invalid null node"));
@@ -111,7 +111,7 @@ DeviceTree.prototype.expand = function (node) {
     if (node.isParameter() || node.isMatrix() || node.isFunction()) {
         return self.getDirectory(node);
     }    
-    return self.getDirectory(node).then((res) => {
+    return self.getDirectory(node, callback).then((res) => {
         let children = node.getChildren();
         if ((res === undefined) || (children === undefined) || (children === null)) {
             if (self._debug) {
@@ -144,7 +144,7 @@ function isDirectSubPathOf(path, parent) {
     return path === parent || (path.lastIndexOf('.') === parent.length && path.startsWith(parent));
 }
 
-DeviceTree.prototype.getDirectory = function (qnode) {
+DeviceTree.prototype.getDirectory = function (qnode, callback = null) {
     var self = this;
     if (qnode == null) {
         self.root.clear();
@@ -219,7 +219,7 @@ DeviceTree.prototype.getDirectory = function (qnode) {
             if (self._debug) {
                 console.log("Sending getDirectory", qnode);
             }
-            self.client.sendBERNode(qnode.getDirectory());
+            self.client.sendBERNode(qnode.getDirectory(callback));
         }});
     });
 };
@@ -339,24 +339,18 @@ DeviceTree.prototype.disconnect = function () {
 };
 
 DeviceTree.prototype.makeRequest = function () {
-    var self = this;
+    const self = this;
     if (self.activeRequest === null && self.pendingRequests.length > 0) {
         self.activeRequest = self.pendingRequests.shift();
-
-        const t = function (id) {
-            var path = self.activeRequest.path == null ?
-                self.activeRequest.node.getPath() :
-                self.activeRequest.path;
-            var req = `${id} - ${path}`;
-            if (self._debug) {                
-                console.log(`Making request ${req}`, Date.now());
-            }
-            self.timeout = setTimeout(() => {
-                self.timeoutRequest(req);
-            }, self.timeoutValue);
-        };
-
-        t(self.requestID++);
+        const req = `${ self.requestID++} - ${self.activeRequest.node.getPath()}`;
+        self.activeRequest.timeoutError = new errors.EmberTimeoutError(`Request ${req} timed out`)
+       
+        if (self._debug) {                
+            console.log(`Making request ${req}`, Date.now());
+        }
+        self.timeout = setTimeout(() => {
+            self.timeoutRequest();
+        }, self.timeoutValue);
         self.activeRequest.func();
     }
 };
@@ -376,7 +370,6 @@ DeviceTree.prototype.clearTimeout = function () {
 
 DeviceTree.prototype.finishRequest = function () {
     var self = this;
-    self.callback = undefined;
     self.clearTimeout();
     self.activeRequest = null;
     try {
@@ -391,9 +384,7 @@ DeviceTree.prototype.finishRequest = function () {
 };
 
 DeviceTree.prototype.timeoutRequest = function (id) {
-    var self = this;
-    self.root.cancelCallbacks();
-    self.activeRequest.func(new errors.EmberTimeoutError(`Request ${id !== undefined ? id : ""} timed out`));
+    this.activeRequest.func(this.activeRequest.timeoutError);
 };
 
 DeviceTree.prototype.handleRoot = function (root) {
@@ -402,32 +393,28 @@ DeviceTree.prototype.handleRoot = function (root) {
     if (self._debug) {
         console.log("handling root", JSON.stringify(root));
     }
-    var callbacks = self.root.update(root);
+    self.root.update(root);
     if (root.elements !== undefined) {
         for (var i = 0; i < root.elements.length; i++) {
             if (root.elements[i].isQualified()) {
-                callbacks = callbacks.concat(this.handleQualifiedNode(this.root, root.elements[i]));
+                this.handleQualifiedNode(this.root, root.elements[i]);
             }
             else {
-                callbacks = callbacks.concat(this.handleNode(this.root, root.elements[i]));
+                this.handleNode(this.root, root.elements[i]);
             }
         }
-
-        // Fire callbacks once entire tree has been updated
-        for (var j = 0; j < callbacks.length; j++) {
-            //console.log('hr cb');
-            callbacks[j]();
-        }
+    }
+    if (self.callback) {
+        self.callback(null, root);
     }
 };
 
 DeviceTree.prototype.handleQualifiedNode = function (parent, node) {
     var self = this;
-    var callbacks = [];
     var element = parent.getElementByPath(node.path);
     if (element !== null) {
         self.emit("value-change", node);
-        callbacks = element.update(node);
+        element.update(node);
     }
     else {
         var path = node.path.split(".");
@@ -439,10 +426,10 @@ DeviceTree.prototype.handleQualifiedNode = function (parent, node) {
             path.pop();
             parent = this.root.getElementByPath(path.join("."));
             if (parent === null) {
-                return callbacks;
+                return;
             }
             parent.addChild(node);
-	    callbacks = parent.update(parent);
+	        parent.update(parent);
         }
         element = node;
     }
@@ -451,43 +438,40 @@ DeviceTree.prototype.handleQualifiedNode = function (parent, node) {
     if (children !== null) {
         for (var i = 0; i < children.length; i++) {
             if (children[i].isQualified()) {
-                callbacks = callbacks.concat(this.handleQualifiedNode(element, children[i]));
+                this.handleQualifiedNode(element, children[i]);
             }
             else {
-                callbacks = callbacks.concat(this.handleNode(element, children[i]));
+                this.handleNode(element, children[i]);
             }
         }
     }
 
-    return callbacks;
+    return;
 };
 
 DeviceTree.prototype.handleNode = function (parent, node) {
     var self = this;
-    var callbacks = [];
-
     var n = parent.getElementByNumber(node.getNumber());
     if (n === null) {
         parent.addChild(node);
         n = node;
     } else {
-        callbacks = n.update(node);
+        n.update(node);
     }
 
     var children = node.getChildren();
     if (children !== null) {
         for (var i = 0; i < children.length; i++) {
-            callbacks = callbacks.concat(this.handleNode(n, children[i]));
+            this.handleNode(n, children[i]);
         }
     }
     else {
         self.emit("value-change", node);
     }
-
-    return callbacks;
+    return;
 };
 
-DeviceTree.prototype.getNodeByPathnum = function (path) {
+DeviceTree.prototype.getNodeByPathnum = function (path, callback = null) {
     var self = this;
     if (typeof path === 'string') {
         path = path.split('.');
@@ -520,13 +504,13 @@ DeviceTree.prototype.getNodeByPathnum = function (path) {
                 throw pathnumError;
             }
             lastMissingPos = pos;
-            return this.getDirectory(currentNode).then(() => getNext());
+            return this.getDirectory(currentNode, callback).then(() => getNext());
         });
     }
     return getNext();
 };
 
-DeviceTree.prototype.getNodeByPath = function (path) {
+DeviceTree.prototype.getNodeByPath = function (path, callback = null) {
     var self = this;
     if (typeof path === 'string') {
         path = path.split('/');
@@ -559,14 +543,14 @@ DeviceTree.prototype.getNodeByPath = function (path) {
                 throw pathError;
             }
             lastMissingPos = pos;
-            return this.getDirectory(currentNode).then(() => getNext());
+            return this.getDirectory(currentNode, callback).then(() => getNext());
         });
     }
     return getNext();
 };
 
 DeviceTree.prototype.subscribe = function (qnode, callback) {
-    if (qnode.isParameter() && qnode.isStream()) {
+    if ((qnode.isParameter() || qnode.isMatrix()) && qnode.isStream()) {
         var self = this;
         if (qnode == null) {
             self.root.clear();

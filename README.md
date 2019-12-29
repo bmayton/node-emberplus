@@ -42,7 +42,7 @@ tree.connect()
    });
 ```
 
-Get Specific Branch:
+Get Specific Node:
 ```javascript
 const DeviceTree = require('emberplus').DeviceTree;
 const ember = require("emberplus").Ember;
@@ -53,9 +53,38 @@ client.connect())
    .then(() => {console.log(JSON.stringify(client.root.toJSON(), null, 4));})
    .then(() => client.getNodeByPath("scoreMaster/router/labels/group 1"))
    .then(() => client.getNodeByPathnum("0.2"))
-   .then(() => {
-      console.log(JSON.stringify(client.root.elements[0].toJSON(), null, 4));    
+   .then(node => {
+      console.log(JSON.stringify(node.toJSON(), null, 4));    
    });
+```
+
+Subsribe to changes
+```javascript
+const DeviceTree = require('emberplus').DeviceTree;
+const ember = require("emberplus").Ember;
+
+const client = new DeviceTree(HOST, PORT);
+client.connect())
+   .then(() => client.getDirectory())
+   .then(() => {console.log(JSON.stringify(client.root.toJSON(), null, 4));})
+   .then(() => client.getNodeByPath("scoreMaster/router/labels/group 1"))
+   .then(node => {
+      // For streams, use subscribe
+      return client.subscribe(node, update => {
+         console.log(udpate);      
+      });      
+   })
+   .then(() => client.getNodeByPathnum("0.2"))
+   .then(node => {
+      // For non-streams a getDirectory will automatically subscribe for update
+      return client.getDirectory(node, update => {
+         console.log(udpate);      
+      });
+   })
+   // You can also provide a callback to the getNodeNyPath
+   // Be carefull that subscription will be done for all elements in the path
+   .then(() => client.getNodeByPathnum("0.3", update => {console.log(update);}))
+   ;
 ```
 
 ### Invoking Function

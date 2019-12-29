@@ -124,45 +124,6 @@ describe("server", function() {
                 });
         });
         
-        it("should be able to get child with getNodeByPath", function() {
-            //server._debug = true;
-            client = new DeviceTree(LOCALHOST, PORT);
-            //client._debug = true;
-            //client._debug = true;
-            return Promise.resolve()
-                .then(() => client.connect())
-                .then(() => {
-                    console.log("client connected");
-                    return client.getDirectory();
-                })
-                .then(() => {
-                    return new Promise((resolve, reject) => {
-                        client.root.getNodeByPath(client.client, ["scoreMaster", "identity", "product"], (err, child) => {
-                            if (err) { reject(err) }
-                            else {
-                                resolve(child);
-                            }
-                        });
-                    });
-                })
-                .then(child => {
-                console.log(child);
-            })
-            .then(() => {
-                return new Promise((resolve, reject) => {
-                    client.root.getNodeByPath(client.client, ["scoreMaster", "router", "labels"], (err, child) => {
-                            if (err) { reject(err) }
-                            else {
-                                resolve(child);
-                            }
-                    });
-                });
-            })
-            .then(child => {
-                console.log(child);
-                return client.disconnect();
-            });
-        });
 	    it("should be able to get child with tree.getNodeByPath", function() {
             //server._debug = true;
             client = new DeviceTree(LOCALHOST, PORT);
@@ -464,8 +425,8 @@ describe("server", function() {
                 .then(parameter => {
                     console.log(parameter);
                     expect(server.subscribers["0.0.2"]).not.toBeDefined();
-                    expect(parameter.contents.subscribers).toBeDefined();
-                    expect(parameter.contents.subscribers.size).toBe(0);
+                    expect(parameter.contents._subscribers).toBeDefined();
+                    expect(parameter.contents._subscribers.size).toBe(0);
                     server._subscribe = server.subscribe;
                     let _resolve;
                     const p = new Promise((resolve, reject) => {
@@ -483,8 +444,8 @@ describe("server", function() {
                     return client.getNodeByPathnum("0.0.2");
                 })
                 .then(parameter => {                    
-                    expect(parameter.contents.subscribers).toBeDefined();
-                    expect(parameter.contents.subscribers.size).toBe(1);
+                    expect(parameter.contents._subscribers).toBeDefined();
+                    expect(parameter.contents._subscribers.size).toBe(1);
                     server._unsubscribe = server.unsubscribe;
                     let _resolve;
                     const p = new Promise((resolve, reject) => {
@@ -507,8 +468,8 @@ describe("server", function() {
                     console.log(parameter);
                     expect(server.subscribers["0.0.2"]).toBeDefined();
                     expect(server.subscribers["0.0.2"].size).toBe(0);
-                    expect(parameter.contents.subscribers).toBeDefined();
-                    expect(parameter.contents.subscribers.size).toBe(0);
+                    expect(parameter.contents._subscribers).toBeDefined();
+                    expect(parameter.contents._subscribers.size).toBe(0);
                 })
                 .then(() => client.disconnect());
         });

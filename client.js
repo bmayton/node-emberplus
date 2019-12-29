@@ -287,7 +287,7 @@ S101Socket.prototype.sendBER = function (data) {
             var frames = self.codec.encodeBER(data);
             for (var i = 0; i < frames.length; i++) {
                 self.socket.write(frames[i]);
-            }
+            }   
         }
         catch(e){
             self.handleClose();

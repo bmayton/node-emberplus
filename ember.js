@@ -145,9 +145,7 @@ module.exports.Root = Root;
  ***************************************************************************/
 
 function TreeNode() {
-    Object.defineProperty(this, '_parent', {value: null, enumerable: false, writable: true});
-    Object.defineProperty(this, '_directoryCallbacks', {value: [], enumerable: false, writable: true});
-    Object.defineProperty(this, '_callbacks', {value: [], enumerable: false, writable: true});
+    Object.defineProperty(this, '_parent', {value: null, enumerable: false, writable: true});    
 }
 
 TreeNode.prototype.addChild = function(child) {
@@ -188,23 +186,6 @@ TreeNode.prototype.isQualified = function() {
 TreeNode.prototype.isStream = function() {
     return this.contents != null &&
         this.contents.streamIdentifier != null;
-}
-
-TreeNode.prototype.addCallback = function(callback) {
-    if(this._callbacks.indexOf(callback) < 0) {
-        this._callbacks.push(callback);
-    }
-}
-
-TreeNode.prototype.cancelCallbacks = function() {
-    var self=this;
-    self._directoryCallbacks = [];
-    var children = self.getChildren();
-    if(children !== null) {
-        for(var i=0; i<children.length; i++) {
-            children[i].cancelCallbacks();
-        }
-    }
 }
 
 TreeNode.prototype.getMinimalContent = function() {
@@ -264,28 +245,22 @@ TreeNode.prototype.getRoot = function() {
 }
 
 TreeNode.prototype.getDirectory = function(callback) {
-    if(callback !== undefined) {
-        this._directoryCallbacks.push((error, node) => { callback(error, node) });
+    if (callback != null && this.contents != null && !this.isStream()) {
+        this.contents._subscribers.add(callback);
     }
     return this.getTreeBranch(new Command(COMMAND_GETDIRECTORY));
 }
 
 TreeNode.prototype.subscribe = function(callback) {
-    if(callback !== undefined) {
-        this._directoryCallbacks.push((error, node) => { callback(error, node) });
-    }
-    if (this.isParameter() && this.isStream()) {
-        this.contents.subscribers.add(callback);
+    if (callback != null && this.isParameter() && this.isStream()) {
+        this.contents._subscribers.add(callback);
     }
     return this.getTreeBranch(new Command(COMMAND_SUBSCRIBE));
 }
 
 TreeNode.prototype.unsubscribe = function(callback) {
-    if(callback !== undefined) {
-        this._directoryCallbacks.push((error, node) => { callback(error, node) });
-    }
-    if (this.isParameter() && this.isStream()) {
-        this.contents.subscribers.delete(callback);
+    if (callback != null && this.isParameter() && this.isStream()) {
+        this.contents._subscribers.delete(callback);
     }
     return this.getTreeBranch(new Command(COMMAND_UNSUBSCRIBE));
 }
@@ -342,12 +317,8 @@ _getElementByPath = function(children, pathArray, path) {
 TreeNode.prototype.toJSON = function() {
     let res = {};
     const node = this;
-    if (node.number) {
-        res.number = node.number;
-    }
-    if (node.path) {
-        res.path = node.path;
-    }
+    res.number = node.getNumber();
+    res.path = node.getPath();
     if (node.contents) {
         for(let prop in node.contents) {
             if (node.contents.hasOwnProperty(prop)) {
@@ -460,26 +431,7 @@ TreeNode.prototype.getElement = function(id) {
 }
 
 TreeNode.prototype.update = function(other) {
-    var self=this;
-    var callbacks = [];
-
-    while(self._directoryCallbacks.length > 0) {
-        (function(cb) {
-            callbacks.push(() => {
-                cb(null, self)
-            });
-        })(self._directoryCallbacks.shift());
-    }
-
-    for(var i=0; i<self._callbacks.length; i++) {
-        (function(cb) {
-            callbacks.push(() => {
-                cb(self)
-            });
-        })(self._callbacks[i]);
-    }
-
-    return callbacks;
+    return;
 }
 
 TreeNode.prototype.getNodeByPath = function(client, path, callback) {
@@ -489,7 +441,6 @@ TreeNode.prototype.getNodeByPath = function(client, path, callback) {
         callback(null, self);
         return;
     }
-
 
     var child = self.getElement(path[0]);
     if(child !== null) {
@@ -649,7 +600,7 @@ QualifiedNode.prototype.getMinimal = function(complete = false) {
 }
 
 QualifiedNode.prototype.update = function(other) {
-    callbacks = QualifiedNode.super_.prototype.update.apply(this);
+    QualifiedNode.super_.prototype.update.apply(this);
     if((other !== undefined) && (other.contents !== undefined)) {
         if (this.contents == null) {
             this.contents = other.contents;
@@ -662,49 +613,46 @@ QualifiedNode.prototype.update = function(other) {
             }
         }
     }
-    return callbacks;
+    return;
 }
 
-function QualifiedNodeCommand(self, cmd, callback) {
+function QualifiedNodeCommand(self, cmd) {
     var r = new Root();
     var qn = new QualifiedNode();
     qn.path = self.path;
     r.addElement(qn);
     qn.addChild(new Command(cmd));
-    if(callback !== undefined) {
-        self._directoryCallbacks.push((error, node) => { callback(error, node) });
-    }
     return r;
 }
 
 QualifiedNode.prototype.getDirectory = function(callback) {
-    if(callback !== undefined) {
-        this._directoryCallbacks.push((error, node) => { callback(error, node) });
-    }
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
-    return QualifiedNodeCommand(this, COMMAND_GETDIRECTORY, callback)
+    if (callback != null && this.contents != null && !this.isStream()) {
+        this.contents._subscribers.add(callback);
+    }
+    return QualifiedNodeCommand(this, COMMAND_GETDIRECTORY)
 }
 
 QualifiedNode.prototype.subscribe = function(callback) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
-    if (this.isStream()) {
-        this.contents.subscribers.add(callback);
+    if (callback != null && this.isStream()) {
+        this.contents._subscribers.add(callback);
     }
-    return QualifiedNodeCommand(this, COMMAND_SUBSCRIBE, callback)
+    return QualifiedNodeCommand(this, COMMAND_SUBSCRIBE)
 }
 
 QualifiedNode.prototype.unsubscribe = function(callback) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
-    if (this.isStream()) {
-        this.contents.subscribers.delete(callback);
+    if (callback != null && this.isStream()) {
+        this.contents._subscribers.delete(callback);
     }
-    return QualifiedNodeCommand(this, COMMAND_UNSUBSCRIBE, callback)
+    return QualifiedNodeCommand(this, COMMAND_UNSUBSCRIBE)
 }
 
 QualifiedNode.prototype.encode = function(ber) {
@@ -810,7 +758,7 @@ Node.prototype.toQualified = function() {
 }
 
 Node.prototype.update = function(other) {
-    callbacks = Node.super_.prototype.update.apply(this);
+    Node.super_.prototype.update.apply(this);
     if ((other !== undefined) && (other.contents !== undefined)) {
         if (this.contents == null) {
             this.contents = other.contents;
@@ -823,15 +771,12 @@ Node.prototype.update = function(other) {
             }
         }
     }
-    return callbacks;
+    return;
 }
 
 Node.prototype.subscribe = function(callback) {
-    if(this._callbacks.indexOf(callback) < 0) {
-        this._callbacks.push(callback);
-    }
-    if (this.isStream()) {
-        this.contents.subscribers.add(callback);
+    if (callback != null && this.isStream()) {
+        this.contents._subscribers.add(callback);
     }
 }
 
@@ -1136,9 +1081,9 @@ MatrixNode.disconnectSources = function(matrix, targetID, sources) {
 }
 
 MatrixNode.prototype.update = function(other) {
-    callbacks = MatrixNode.super_.prototype.update.apply(this);
+    MatrixNode.super_.prototype.update.apply(this);
     MatrixUpdate(this, other);
-    return callbacks;
+    return;
 }
 
 MatrixNode.prototype.toQualified = function() {
@@ -1706,51 +1651,48 @@ function MatrixUpdate(matrix, newMatrix) {
 }
 
 QualifiedMatrix.prototype.update = function(other) {
-    callbacks = QualifiedMatrix.super_.prototype.update.apply(this);
+    QualifiedMatrix.super_.prototype.update.apply(this);
     MatrixUpdate(this, other);
-    return callbacks;
+    return;
 }
 
-function QualifiedMatrixCommand(self, cmd, callback) {
+function QualifiedMatrixCommand(self, cmd) {
     var r = new Root();
     var qn = new QualifiedMatrix();
     qn.path = self.path;
     r.addElement(qn);
     qn.addChild(new Command(cmd));
-    if(callback !== undefined) {
-        self._directoryCallbacks.push((error, node) => { callback(error, node) });
-    }
     return r;
 }
 
 QualifiedMatrix.prototype.getDirectory = function(callback) {
-    if(callback !== undefined) {
-        this._directoryCallbacks.push((error, node) => { callback(error, node) });
-    }
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
-    return QualifiedMatrixCommand(this, COMMAND_GETDIRECTORY, callback);
+    if (callback != null && !this.isStream()) {
+        this.contents._subscribers.add(callback);
+    }
+    return QualifiedMatrixCommand(this, COMMAND_GETDIRECTORY);
 }
 
 QualifiedMatrix.prototype.subscribe = function(callback) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
-    if (this.isStream()) {
-        this.contents.subscribers.add(callback);
+    if (callback != null && this.isStream()) {
+        this.contents._subscribers.add(callback);
     }
-    return QualifiedMatrixCommand(this, COMMAND_SUBSCRIBE, callback);
+    return QualifiedMatrixCommand(this, COMMAND_SUBSCRIBE);
 }
 
 QualifiedMatrix.prototype.unsubscribe = function(callback) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
-    if (this.isStream()) {
-        this.contents.subscribers.delete(callback);
+    if (callback != null && this.isStream()) {
+        this.contents._subscribers.delete(callback);
     }
-    return QualifiedMatrixCommand(this, COMMAND_UNSUBSCRIBE, callback);
+    return QualifiedMatrixCommand(this, COMMAND_UNSUBSCRIBE);
 }
 
 QualifiedMatrix.prototype.connect = function(connections) {
@@ -2042,7 +1984,7 @@ QualifiedFunction.decode = function(ber) {
 }
 
 QualifiedFunction.prototype.update = function(other) {
-    callbacks = QualifiedFunction.super_.prototype.update.apply(this);
+    QualifiedFunction.super_.prototype.update.apply(this);
     if ((other !== undefined) && (other.contents !== undefined)) {
         if (this.contents == null) {
             this.contents = other.contents;
@@ -2055,54 +1997,48 @@ QualifiedFunction.prototype.update = function(other) {
             }
         }
     }
-    return callbacks;
+    return;
 }
 
-function QualifiedFunctionCommand(self, cmd, callback) {
+function QualifiedFunctionCommand(self, cmd) {
     var r = new Root();
     var qf = new QualifiedFunction();
     qf.path = self.path;
     r.addElement(qf);
     qf.addChild(new Command(cmd));
-    if(callback !== undefined) {
-        self._directoryCallbacks.push((error, node) => { callback(error, node) });
-    }
     return r;
 }
 
-QualifiedFunction.prototype.invoke = function(params, callback) {
+QualifiedFunction.prototype.invoke = function(params) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
-    var QualifiedFunctionNode = QualifiedFunctionCommand(this, COMMAND_INVOKE, callback);
+    var QualifiedFunctionNode = QualifiedFunctionCommand(this, COMMAND_INVOKE);
     var invocation = new Invocation()
     invocation.arguments = params
     QualifiedFunctionNode.elements[0].children[0].invocation = invocation
     return QualifiedFunctionNode
 }
 
-QualifiedFunction.prototype.getDirectory = function(callback) {
-    if(callback !== undefined) {
-        this._directoryCallbacks.push((error, node) => { callback(error, node) });
-    }
+QualifiedFunction.prototype.getDirectory = function() {
     if (this.path === undefined) {
         throw new Error("Invalid path");
-    }
-    return QualifiedFunctionCommand(this, COMMAND_GETDIRECTORY, callback);
+    }    
+    return QualifiedFunctionCommand(this, COMMAND_GETDIRECTORY);
 }
 
 QualifiedFunction.prototype.subscribe = function(callback) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
-    return QualifiedFunctionCommand(this, COMMAND_SUBSCRIBE, callback);
+    return QualifiedFunctionCommand(this, COMMAND_SUBSCRIBE);
 }
 
 QualifiedFunction.prototype.unsubscribe = function(callback) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
-    return QualifiedFunctionCommand(this, COMMAND_UNSUBSCRIBE, callback);
+    return QualifiedFunctionCommand(this, COMMAND_UNSUBSCRIBE);
 }
 
 QualifiedFunction.prototype.encode = function(ber) {
@@ -2208,18 +2144,14 @@ Function.prototype.toQualified = function() {
     return qf;
 }
 
-Function.prototype.invoke = function(callback) {
-    if(callback !== undefined) {
-        this._directoryCallbacks.push((error, node) => { callback(error, node) });
-    }
-
+Function.prototype.invoke = function() {
     return this.getTreeBranch(undefined, (m) => {
         m.addChild(new Command(COMMAND_INVOKE))
     });
 }
 
 Function.prototype.update = function(other) {
-    callbacks = Function.super_.prototype.update.apply(this);
+    Function.super_.prototype.update.apply(this);
     if ((other !== undefined) && (other.contents !== undefined)) {
         if (this.contents == null) {
             this.contents = other.contents;
@@ -2232,7 +2164,7 @@ Function.prototype.update = function(other) {
             }
         }
     }
-    return callbacks;
+    return;
 }
 
 module.exports.Function = Function;
@@ -2244,6 +2176,7 @@ module.exports.Function = Function;
 
 function NodeContents() {
     this.isOnline = true;
+    this._subscribers = new Set();
 };
 
 
@@ -2635,72 +2568,68 @@ QualifiedParameter.prototype.encode = function(ber) {
 }
 
 QualifiedParameter.prototype.update = function(other) {
-    callbacks = QualifiedParameter.super_.prototype.update.apply(this);
+    QualifiedParameter.super_.prototype.update.apply(this);
     if ((other !== undefined) && (other.contents !== undefined)) {
         if (this.contents == null) {
             this.contents = other.contents;
         }
         else {
             for (var key in other.contents) {
+                if (key[0] === "_") {
+                    continue;
+                }
                 if (other.contents.hasOwnProperty(key)) {
                     this.contents[key] = other.contents[key];
                 }
             }
-            for(let cb of this.contents.subscribers) {
-                cb();
+            for(let cb of this.contents._subscribers) {
+                cb(this);
             } 
         }
     }
-    return callbacks;
+    return;
 }
 
-function QualifiedParameterCommand(self, cmd, callback) {
+function QualifiedParameterCommand(self, cmd) {
     let r = new Root();
     let qp = new QualifiedParameter();
     qp.path = self.path;
     r.addElement(qp);
     qp.addChild(new Command(cmd));
-    if(callback !== undefined) {
-        self._directoryCallbacks.push((error, node) => { callback(error, node) });
-    }
     return r;
 }
 
 QualifiedParameter.prototype.getDirectory = function(callback) {
-    if(callback !== undefined) {
-        this._directoryCallbacks.push((error, node) => { callback(error, node) });
-    }
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
-    return QualifiedParameterCommand(this, COMMAND_GETDIRECTORY, callback);
+    if (callback != null && !this.isStream()) {
+        this.contents._subscribers.add(callback);
+    }
+    return QualifiedParameterCommand(this, COMMAND_GETDIRECTORY);
 }
 
 QualifiedParameter.prototype.subscribe = function(callback) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
-    if (this.isStream()) {
-        this.contents.subscribers.add(callback);
+    if (callback != null && this.isStream()) {
+        this.contents._subscribers.add(callback);
     }
-    return QualifiedParameterCommand(this, COMMAND_SUBSCRIBE, callback);
+    return QualifiedParameterCommand(this, COMMAND_SUBSCRIBE);
 }
 
 QualifiedParameter.prototype.unsubscribe = function(callback) {
     if (this.path === undefined) {
         throw new Error("Invalid path");
     }
-    if (this.isStream()) {
-        this.contents.subscribers.delete(callback);
+    if (callback != null && this.isStream()) {
+        this.contents._subscribers.delete(callback);
     }
-    return QualifiedParameterCommand(this, COMMAND_UNSUBSCRIBE, callback);
+    return QualifiedParameterCommand(this, COMMAND_UNSUBSCRIBE);
 }
 
-QualifiedParameter.prototype.setValue = function(value, callback) {
-    if(callback !== undefined) {
-        this._directoryCallbacks.push(callback);
-    }
-
+QualifiedParameter.prototype.setValue = function(value) {
     let r = new Root();
     let qp = new QualifiedParameter(this.path);
     r.addElement(qp);
@@ -2774,11 +2703,7 @@ Parameter.prototype.encode = function(ber) {
     ber.endSequence();
 }
 
-Parameter.prototype.setValue = function(value, callback) {
-    if(callback !== undefined) {
-        this._directoryCallbacks.push(callback);
-    }
-
+Parameter.prototype.setValue = function(value) {
     return this.getTreeBranch(undefined, (m) => {
         m.contents = (value instanceof ParameterContents) ? value : new ParameterContents(value);
     });
@@ -2791,23 +2716,24 @@ Parameter.prototype.toQualified = function() {
 }
 
 Parameter.prototype.update = function(other) {
-    callbacks = Parameter.super_.prototype.update.apply(this);
+    Parameter.super_.prototype.update.apply(this);
     if ((other !== undefined) && (other.contents !== undefined)) {
         if (this.contents == null) {
             this.contents = other.contents;
         }
         else {
             for (var key in other.contents) {
+                if (key[0] === "_") { continue; }
                 if (other.contents.hasOwnProperty(key)) {
                     this.contents[key] = other.contents[key];
                 }
             }            
-            for(let cb of this.contents.subscribers) {
-                cb();
+            for(let cb of this.contents._subscribers) {
+                cb(this);
             }
         }
     }
-    return callbacks;
+    return;
 }
 
 
@@ -2869,7 +2795,7 @@ module.exports.ParameterAccess = ParameterAccess;
 module.exports.ParameterType = ParameterType;
 
 function ParameterContents(value, type) {
-    this.subscribers = new Set();
+    this._subscribers = new Set();
     if(value !== undefined) {
         this.value = value;
     }
