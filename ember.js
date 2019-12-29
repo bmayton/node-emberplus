@@ -317,8 +317,10 @@ _getElementByPath = function(children, pathArray, path) {
 TreeNode.prototype.toJSON = function() {
     let res = {};
     const node = this;
-    res.number = node.getNumber();
-    res.path = node.getPath();
+    if (!this.isRoot()) {
+        res.number = node.getNumber();
+        res.path = node.getPath();
+    }
     if (node.contents) {
         for(let prop in node.contents) {
             if (node.contents.hasOwnProperty(prop)) {
