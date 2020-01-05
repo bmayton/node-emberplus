@@ -28,5 +28,6 @@ describe("Ember", () => {
     it("should handle errors in message", () => {
         var ber = new BER.Reader(errorBuffer);
         expect(() => ember.Root.decode(ber)).toThrow(errors.UnimplementedEmberTypeError);
-    })
+    });
+    
 });

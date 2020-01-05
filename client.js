@@ -3,7 +3,7 @@ const util = require('util');
 const winston = require('winston');
 const net = require('net');
 const BER = require('./ber.js');
-const ember = require('./ember.js');
+const ember = require('./EmberLib');
 
 const S101Codec = require('./s101.js');
 
@@ -46,7 +46,7 @@ function S101Client(socket, server) {
         self.emit('emberPacket', packet);
         var ber = new BER.Reader(packet);
         try {
-            var root = ember.Root.decode(ber);
+            var root = ember.rootDecode(ber);
             if (root !== undefined) {
                 self.emit('emberTree', root);
             }
@@ -199,7 +199,7 @@ S101Socket.prototype.connect = function (timeout = 2) {
 
                 var ber = new BER.Reader(packet);
                 try {
-                    var root = ember.Root.decode(ber);
+                    var root = ember.rootDecode(ber);
                     if (root !== undefined) {
                         self.emit('emberTree', root);
                     }

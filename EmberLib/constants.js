@@ -1,0 +1,15 @@
+const COMMAND_SUBSCRIBE     = 30;
+const COMMAND_UNSUBSCRIBE   = 31;
+const COMMAND_GETDIRECTORY  = 32;
+const COMMAND_INVOKE        = 33;
+
+module.exports = {
+    COMMAND_SUBSCRIBE,
+    COMMAND_UNSUBSCRIBE,
+    COMMAND_GETDIRECTORY,
+    COMMAND_INVOKE,
+    Subscribe:      COMMAND_SUBSCRIBE,
+    Unsubscribe:    COMMAND_UNSUBSCRIBE,
+    GetDirectory:   COMMAND_GETDIRECTORY,
+    Invoke:         COMMAND_INVOKE
+};

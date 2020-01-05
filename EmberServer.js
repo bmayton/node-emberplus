@@ -1,7 +1,7 @@
 const EventEmitter = require('events').EventEmitter;
 const util = require('util');
 const S101Server = require('./client.js').S101Server;
-const ember = require('./ember.js');
+const ember = require('./EmberLib');
 
 function TreeServer(host, port, tree) {
     TreeServer.super_.call(this);
@@ -103,7 +103,7 @@ TreeServer.prototype.handleRoot = function(client, root) {
     if (node.path !== undefined) {
         return this.handleQualifiedNode(client, node);
     }
-    else if (node instanceof ember.Command) {
+    else if (node.isCommand()) {
         // Command on root element
         this.handleCommand(client, this.tree, node);
         return "root";
@@ -115,7 +115,7 @@ TreeServer.prototype.handleRoot = function(client, root) {
 
 TreeServer.prototype.handleError = function(client, node) {
     if (client !== undefined) {
-        let res = node == null ? this.tree._root.getMinimal() : node;
+        const res = node == null ? this.tree.getMinimal() : node;
         client.sendBERNode(res);
     }
 }
@@ -130,16 +130,20 @@ TreeServer.prototype.handleQualifiedNode = function(client, node) {
         this.emit("error", new Error(`unknown element at path ${path}`));
         return this.handleError(client);
     }
-
-    if ((node.children != null) && (node.children.length === 1) &&
-        (node.children[0] instanceof ember.Command)) {
-        this.handleCommand(client, element, node.children[0]);
+    
+    if (node.hasChildren()) {
+        for(child of node.children) {
+            if (child.isCommand()) {
+                this.handleCommand(client, element, child);
+            }
+            break;
+        }
     }
     else {
-        if (node instanceof ember.QualifiedMatrix) {
+        if (node.isMatrix()) {
             this.handleQualifiedMatrix(client, element, node);
         }
-        else if (node instanceof ember.QualifiedParameter) {
+        else if (node.isParameter()) {
             this.handleQualifiedParameter(client, element, node);
         }        
     }
@@ -156,7 +160,7 @@ TreeServer.prototype.handleNode = function(client, node) {
             this.emit("error", "invalid request");
             return;
         }
-        if (element instanceof ember.Command) {
+        if (element.isCommand()) {
             break;
         }
         path.push(element.number);
@@ -181,13 +185,13 @@ TreeServer.prototype.handleNode = function(client, node) {
         return this.handleError(client);
     }
 
-    if (cmd instanceof ember.Command) {
+    if (cmd.isCommand()) {
         this.handleCommand(client, element, cmd);
     }
-    else if ((cmd instanceof ember.MatrixNode) && (cmd.connections !== undefined)) {
+    else if ((cmd.isCommand()) && (cmd.connections !== undefined)) {
         this.handleMatrixConnections(client, element, cmd.connections);
     }
-    else if ((cmd instanceof ember.Parameter) &&
+    else if ((cmd.isParameter()) &&
         (cmd.contents !== undefined) && (cmd.contents.value !== undefined)) {
         if (this._debug) { console.log(`setValue for element at path ${path} with value ${cmd.contents.value}`); }
         this.setValue(element, cmd.contents.value, client);
@@ -442,16 +446,16 @@ TreeServer.prototype.handleQualifiedFunction = function(client, element, node) {
 
 TreeServer.prototype.handleCommand = function(client, element, cmd) {
     switch(cmd.number) {
-        case ember.GetDirectory:
+        case ember.COMMAND_GETDIRECTORY:
             this.handleGetDirectory(client, element);
             break;
-        case ember.Subscribe:
+        case ember.COMMAND_SUBSCRIBE:
             this.handleSubscribe(client, element);
             break;
-        case ember.Unsubscribe:
+        case ember.COMMAND_UNSUBSCRIBE:
             this.handleUnSubscribe(client, element);
             break;
-        case ember.Invoke:
+        case ember.COMMAND_INVOKE:
             this.handleInvoke(client, cmd.invocation, element);
             break;
         default:
@@ -805,7 +809,7 @@ const parseObj = function(parent, obj) {
 }
 
 TreeServer.JSONtoTree = function(obj) {
-    let tree = new ember.Root();
+    const tree = new ember.Root();
     parseObj(tree, obj);
     return tree;
 }

@@ -1,7 +1,7 @@
 const EventEmitter = require('events').EventEmitter;
 const util = require('util');
 const S101Client = require('./client.js').S101Socket;
-const ember = require('./ember.js');
+const ember = require('./EmberLib');
 const BER = require('./ber.js');
 const errors = require('./errors.js');
 
@@ -175,15 +175,16 @@ DeviceTree.prototype.getDirectory = function (qnode, callback = null) {
                     reject(error);
                     return;
                 }
-                if (qnode instanceof ember.Root) {
-                    if (qnode.elements == null || qnode.elements.length === 0) {
+                if (qnode.isRoot()) {
+                    const elements = qnode.getChildren();
+                    if (elements == null || elements.length === 0) {
                         if (self._debug) {
                             console.log("getDirectory response", node);
                         }
                         return self.callback(new Error("Invalid qnode for getDirectory"));
                     }
 
-                    const nodeElements = node == null ? null : node.elements;
+                    const nodeElements = node == null ? null : node.getChildren();
 
                     if (nodeElements != null
                         && nodeElements.every(el => el._parent instanceof ember.Root)) {
@@ -197,8 +198,14 @@ DeviceTree.prototype.getDirectory = function (qnode, callback = null) {
                     else {
                         return self.callback(new Error(`Invalid response for getDirectory ${requestedPath}`));
                     }
-                } else {                    
-                    const nodeElements = node == null ? null : node.elements;
+                }
+                else if (node.getElementByPath(requestedPath) != null) {
+                    self.clearTimeout(); // clear the timeout now. The resolve below may take a while.
+                    self.finishRequest();
+                    return resolve(node); // make sure the info is treated before going to next request.
+                }
+                else {
+                    const nodeElements = node == null ? null : node.getChildren();
                     if (nodeElements != null &&
                         ((qnode.isMatrix() && nodeElements.length === 1 && nodeElements[0].getPath() === requestedPath) ||
                          (!qnode.isMatrix() && nodeElements.every(el => isDirectSubPathOf(el.getPath(), requestedPath))))) {
@@ -207,7 +214,7 @@ DeviceTree.prototype.getDirectory = function (qnode, callback = null) {
                         }
                         self.clearTimeout(); // clear the timeout now. The resolve below may take a while.
                         self.finishRequest();
-                        resolve(node); // make sure the info is treated before going to next request.
+                        return resolve(node); // make sure the info is treated before going to next request.
                     }
                     else if (self._debug) {
                         console.log(node);
@@ -395,12 +402,13 @@ DeviceTree.prototype.handleRoot = function (root) {
     }
     self.root.update(root);
     if (root.elements !== undefined) {
-        for (var i = 0; i < root.elements.length; i++) {
-            if (root.elements[i].isQualified()) {
-                this.handleQualifiedNode(this.root, root.elements[i]);
+        const elements = root.getChildren();
+        for (var i = 0; i < elements.length; i++) {
+            if (elements[i].isQualified()) {
+                this.handleQualifiedNode(this.root, elements[i]);
             }
             else {
-                this.handleNode(this.root, root.elements[i]);
+                this.handleNode(this.root, elements[i]);
             }
         }
     }

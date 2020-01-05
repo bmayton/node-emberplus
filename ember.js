@@ -19,13 +19,19 @@ module.exports.DEBUG = function(d) {
 };
 
 /****************************************************************************
+ * Elements
+ */
+
+ function Elements() {
+     Elements.super_.call(this);
+ }
+
+/****************************************************************************
  * Root
  ***************************************************************************/
 
 function Root() {
     Root.super_.call(this);
-
-    //Object.defineProperty(this, '_parent', {value: null, enumerable: false});
 };
 
 util.inherits(Root, TreeNode);
@@ -49,8 +55,7 @@ Root.decode = function(ber) {
                 if (DEBUG) {
                     console.log("Application 11 start");
                 }
-                var seq = ber.getSequence(BER.APPLICATION(11));
-                r.elements = [];
+                var seq = ber.getSequence(BER.APPLICATION(11));                
                 while (seq.remain > 0) {
                     try {
                         var rootReader = seq.getSequence(BER.CONTEXT(0));
@@ -94,12 +99,16 @@ Root.decode = function(ber) {
     return r;
 }
 
-Root.prototype.addElement = function(ele) {
-    ele._parent = this;
-    if(this.elements === undefined) {
-        this.elements = [];
+function addElement(parent, element) {
+    element._parent = parent;
+    if(parent.elements == null) {
+        parent.elements = new Map();
     }
-    this.elements.push(ele);
+    parent.elements.set(element.getNumber(), element);
+}
+
+Root.prototype.addElement = function(ele) {
+    addElement(this, ele);
 }
 
 Root.prototype.addResult = function(result) {
@@ -113,10 +122,11 @@ Root.prototype.addChild = function(child) {
 Root.prototype.encode = function(ber) {
     ber.startSequence(BER.APPLICATION(0));
     if(this.elements != null) {
+        const elements = this.getChildren();
         ber.startSequence(BER.APPLICATION(11));
-        for(var i=0; i<this.elements.length; i++) {
+        for(var i=0; i < elements.length; i++) {
             ber.startSequence(BER.CONTEXT(0));
-            this.elements[i].encode(ber);
+            elements[i].encode(ber);
             ber.endSequence(); // BER.CONTEXT(0)
         }
         ber.endSequence();
@@ -131,9 +141,13 @@ Root.prototype.clear = function() {
     this.elements = undefined;
 }
 
+Root.prototype.getPath = function() {
+    throw new Error("old lib");
+}
+
 Root.prototype.getChildren = function() {
-    if(this.elements !== undefined) {
-        return this.elements;
+    if(this.elements != null) {
+        return [...this.elements.values()];
     }
     return null;
 }
@@ -149,11 +163,11 @@ function TreeNode() {
 }
 
 TreeNode.prototype.addChild = function(child) {
-    child._parent = this;
-    if(this.children === undefined) {
-        this.children = [];
-    }
-    this.children.push(child);
+    addElement(this, child);
+}
+
+TreeNode.prototype.isCommand = function() {
+    return this instanceof Command;
 }
 
 TreeNode.prototype.isNode = function() {
@@ -297,18 +311,14 @@ _getElementByPath = function(children, pathArray, path) {
     if ((children === null)||(children === undefined)||(pathArray.length < 1))  {
         return null;
     }
-    var currPath = pathArray.join(".");
     var number = pathArray[pathArray.length - 1];
 
-    for (var i = 0; i < children.length; i++) {
-        if ((children[i].path == currPath)||
-            (children[i].number == number)) {
-            if (path.length === 0) {
-                return children[i];
-            }
-            pathArray.push(path.splice(0,1));
-            return _getElementByPath(children[i].getChildren(), pathArray, path);
+    if (children[i].getNumber() == number) {
+        if (path.length === 0) {
+            return children[i];
         }
+        pathArray.push(path.splice(0,1));
+        return _getElementByPath(children[i].getChildren(), pathArray, path);
     }
 
     return null;
@@ -373,7 +383,7 @@ TreeNode.prototype.getParent = function() {
 
 TreeNode.prototype.getElementByPath = function(path) {
     var children = this.getChildren();
-    if ((children === null)||(children === undefined))  {
+    if (children == null)  {
         return null;
     }
 
@@ -401,21 +411,17 @@ TreeNode.prototype.getElementByPath = function(path) {
     return _getElementByPath(children, pathArray, path);
 }
 
-TreeNode.prototype.getElementByNumber = function(index) {
-    var children = this.getChildren();
-    if(children === null) return null;
-    for(var i=0; i<children.length; i++) {
-        if(children[i].getNumber() === index) {
-            return children[i];
-        }
+TreeNode.prototype.getElementByNumber = function(number) {
+    if (this.elements != null) {
+        return this.elements.get(number);
     }
     return null;
 }
 
 TreeNode.prototype.getElementByIdentifier = function(identifier) {
     var children = this.getChildren();
-    if(children === null) return null;
-    for(var i=0; i<children.length; i++) {
+    if (children == null) return null;
+    for(var i = 0; i < children.length; i++) {
         if(children[i].contents !== undefined &&
           children[i].contents.identifier == identifier) {
             return children[i];
@@ -473,7 +479,7 @@ TreeNode.prototype.getPath = function() {
     if (this.path !== undefined) {
         return this.path;
     }
-    if(this._parent === null) {
+    if(this._parent == null) {
         if(this.number === undefined) {
             return "";
         } else {
@@ -2017,8 +2023,8 @@ QualifiedFunction.prototype.invoke = function(params) {
     }
     var QualifiedFunctionNode = QualifiedFunctionCommand(this, COMMAND_INVOKE);
     var invocation = new Invocation()
-    invocation.arguments = params
-    QualifiedFunctionNode.elements[0].children[0].invocation = invocation
+    invocation.arguments = params;
+    QualifiedFunctionNode.getElementByPath(this.getPath()).getNumber(COMMAND_INVOKE).invocation = invocation
     return QualifiedFunctionNode
 }
 
@@ -2299,6 +2305,14 @@ Command.prototype.toJSON = function() {
         fieldFlags: this.fieldFlags,
         invocation: this.invocation == null ? null : this.invocation.toJSON()
     };
+}
+
+Command.prototype.isCommand = function() {
+    throw new Error("old ember lib");
+}
+
+Command.prototype.getNumber = function() {
+    return this.number;
 }
 
 Command.prototype.encode = function(ber) {
