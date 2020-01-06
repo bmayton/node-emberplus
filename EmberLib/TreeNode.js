@@ -99,43 +99,72 @@ class TreeNode {
         }
     }
 
+    /**
+     * @returns {TreeNode}
+     */
+    getNewTree() {
+        return new TreeNode();
+    }
+
+    /**
+     * @returns {boolean}
+     */
     hasChildren() {
         return this.elements != null && this.elements.size > 0;
     }
 
+    /**
+     * @returns {boolean}
+     */
     isCommand() {
         return false;
     }
-    
+    /**
+     * @returns {boolean}
+     */
     isNode() {
         return false;
     }
-    
+    /**
+     * @returns {boolean}
+     */
     isMatrix() {
         return false;
     }
-    
+    /**
+     * @returns {boolean}
+     */
     isParameter() {
         return false;
     }
-    
+    /**
+     * @returns {boolean}
+     */
     isFunction() {
         return false;
     }
-    
+    /**
+     * @returns {boolean}
+     */
     isRoot() {
         return this._parent == null;
     }
-    
+    /**
+     * @returns {boolean}
+     */
     isQualified() {
         return false;
     }
-    
+    /**
+     * @returns {boolean}
+     */
     isStream() {
         return this.contents != null &&
             this.contents.streamIdentifier != null;
     }
-    
+    /**
+     * @returns {TreeNode}
+     */
     getMinimalContent() {
         let obj;
         if (this.isQualified()) {
@@ -149,7 +178,9 @@ class TreeNode {
         }
         return obj;
     };
-    
+    /**
+     * @returns {TreeNode}
+     */
     getDuplicate() {
         const obj = this.getMinimal();
         obj.update(this);
@@ -388,7 +419,7 @@ class TreeNode {
      * 
      */
     toJSON() {
-        const res = {};
+        const res = {nodeType: this.constructor.name};
         const node = this;
         if (this.isRoot()) {
             const elements = this.getChildren();
@@ -400,6 +431,9 @@ class TreeNode {
         res.path = node.getPath();        
         if (node.contents) {
             for(let prop in node.contents) {
+                if (prop[0] == "_") {
+                    continue;
+                }
                 if (node.contents.hasOwnProperty(prop)) {
                     const type = typeof node.contents[prop];
                     if ((type === "string") || (type === "number")) {

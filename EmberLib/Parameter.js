@@ -1,11 +1,11 @@
 "use strict";
 
-const TreeNode = require("./TreeNode");
+const Element = require("./Element");
 const QualifiedParameter = require("./QualifiedParameter");
 const BER = require('../ber.js');
 const ParameterContents = require("./ParameterContents");
 
-class Parameter extends TreeNode {
+class Parameter extends Element {
     /**
      * 
      * @param {number} number 
@@ -13,30 +13,14 @@ class Parameter extends TreeNode {
     constructor(number) {
         super();
         this.number = number;
-    }
-
-    isParameter() {
-        return true;
+        this._seqID = BER.APPLICATION(1);
     }
 
     /**
-     * 
-     * @param {BER} ber 
+     * @returns {boolean}
      */
-    encode(ber) {
-        ber.startSequence(BER.APPLICATION(1));
-    
-        ber.writeIfDefined(this.number, ber.writeInt, 0);
-    
-        if(this.contents != null) {
-            ber.startSequence(BER.CONTEXT(1));
-            this.contents.encode(ber);
-            ber.endSequence();
-        }
-    
-        this.encodeChildren(ber);
-    
-        ber.endSequence();
+    isParameter() {
+        return true;
     }
 
     /**
@@ -106,7 +90,6 @@ class Parameter extends TreeNode {
                 throw new errors.UnimplementedEmberTypeError(tag);
             }
         }
-        if (DEBUG) { console.log("Parameter", p); }
         return p;
     }
     

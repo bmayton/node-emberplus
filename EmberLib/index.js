@@ -1,7 +1,7 @@
 const {Subscribe,COMMAND_SUBSCRIBE,Unsubscribe,COMMAND_UNSUBSCRIBE,
     GetDirectory,COMMAND_GETDIRECTORY,Invoke,COMMAND_INVOKE} = require("./constants");
 const BER = require('../ber.js');
-
+const errors = require("../errors");
 const TreeNode = require("./TreeNode");    
 const Command = require("./Command");
 const Function =  require("./Function");
@@ -31,19 +31,12 @@ const rootDecode = function(ber) {
     const r = new TreeNode();
     let tag = undefined;
     while(ber.remain > 0) {
-        if (DEBUG) { console.log("Reading root"); }
         tag = ber.peek();
         if (tag === BER.APPLICATION(0)) {
             ber = ber.getSequence(BER.APPLICATION(0));
             tag = ber.peek();
-            if (DEBUG) {
-                console.log("Application 0 start");
-            }
 
             if (tag === BER.APPLICATION(11)) {
-                if (DEBUG) {
-                    console.log("Application 11 start");
-                }
                 const seq = ber.getSequence(BER.APPLICATION(11));                
                 while (seq.remain > 0) {
                     try {
@@ -53,10 +46,6 @@ const rootDecode = function(ber) {
                         }
                     }
                     catch (e) {
-                        if (DEBUG) {
-                            console.log("Decode ERROR", e.stack);
-                            return r;
-                        }
                         throw e;
                     }
                 }
@@ -77,7 +66,6 @@ const rootDecode = function(ber) {
                 return Element.decode(rootReader)
             }
             catch (e) {
-                console.log(e.stack);
                 return r;
             }
         }          
@@ -91,36 +79,24 @@ const rootDecode = function(ber) {
 const childDecode = function(ber) {
     const tag = ber.peek();
     if (tag == BER.APPLICATION(1)) {
-        if (DEBUG) { console.log("Parameter decode");}
         return Parameter.decode(ber);
     } else if(tag == BER.APPLICATION(3)) {
-        if (DEBUG) { console.log("Node decode");}
         return Node.decode(ber);
     } else if(tag == BER.APPLICATION(2)) {
-        if (DEBUG) { console.log("Command decode");}
         return Command.decode(ber);
     } else if(tag == BER.APPLICATION(9)) {
-        if (DEBUG) { console.log("QualifiedParameter decode");}
         return QualifiedParameter.decode(ber);
     } else if(tag == BER.APPLICATION(10)) {
-        if (DEBUG) { console.log("QualifiedNode decode");}
         return QualifiedNode.decode(ber);
     } else if(tag == BER.APPLICATION(13)) {
-        if (DEBUG) { console.log("MatrixNode decode");}
         return MatrixNode.decode(ber);
-    }
-    else if(tag == BER.APPLICATION(17)) {
-        if (DEBUG) { console.log("QualifiedMatrix decode");}
+    } else if(tag == BER.APPLICATION(17)) {
         return QualifiedMatrix.decode(ber);
-    }
-    else if(tag == BER.APPLICATION(19)) {
-        if (DEBUG) { console.log("Function decode");}
+    } else if(tag == BER.APPLICATION(19)) {
         return Function.decode(ber);
     } else if (tag == BER.APPLICATION(20)) {
-        if (DEBUG) { console.log("QualifiedFunction decode");}
         return QualifiedFunction.decode(ber);
-    }
-    else if(tag == BER.APPLICATION(24)) {
+    } else if(tag == BER.APPLICATION(24)) {
         // Template
         throw new errors.UnimplementedEmberTypeError(tag);
     } else {
@@ -130,10 +106,16 @@ const childDecode = function(ber) {
 
 TreeNode.decode = childDecode;
 
+const DecodeBuffer = function (packet) {
+    const ber = new BER.Reader(packet);
+    return TreeNode.decode(ber);
+};
+
 module.exports = {
     Command,
     childDecode: childDecode,
     rootDecode: rootDecode,
+    DecodeBuffer,
     Root: TreeNode,
     Function,
     FunctionArgument,

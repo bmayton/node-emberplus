@@ -15,14 +15,20 @@ const FieldFlags = new Enum({
 });
 
 class Command {
+    /**
+     * 
+     * @param {number} number 
+     */
     constructor(number) {
-        if(number !== undefined)
-            this.number = number;
+        this.number = number;
         if(number == COMMAND_GETDIRECTORY) {
-        this.fieldFlags = FieldFlags.all;
+            this.fieldFlags = FieldFlags.all;
         }
     }
 
+    /**
+     * @returns {boolean}
+     */
     isCommand() {
         return true;
     }

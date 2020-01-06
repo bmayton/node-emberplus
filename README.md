@@ -1,8 +1,8 @@
 # node-emberplus
 
-This is an implementation of [Lawo's
-Ember+](https://github.com/Lawo/ember-plus) control protocol for Node.  One of
-Node's great strengths is the ready availability of frameworks for various
+This is version 2 of emberplus library.
+An implementation of [Lawo's Ember+](https://github.com/Lawo/ember-plus) control protocol for Node.  
+One of Node's great strengths is the ready availability of frameworks for various
 communication protocols and user interfaces; this module allows those to be
 integrated with Ember+ somewhat more easily than the reference libember C++
 implementation.
@@ -22,48 +22,36 @@ Server has been added in version 1.6.0.
 ### Client
 Get Full tree:
 ```javascript
-const DeviceTree = require('emberplus').DeviceTree;
-var root;
-var tree = new DeviceTree("10.9.8.7", 9000);
-tree.on("error", e => {
+const EmberClient = require('node-emberplus').EmberClient;
+const client = new EmberClient("10.9.8.7", 9000);
+client.on("error", e => {
    console.log(e);
 });
-tree.connect()
-   .then(() => tree.getDirectory())
-   .then((r) => { 
-      root = r ;
-      return tree.expand(r.elements[0]);
+client.connect()
+   // Get Root info
+   .then(() => client.getDirectory())
+   // Get a Specific Node
+   .then(() => client.getNodeByPathnum("0.0.2"))
+   .then(node => {
+      console.log(node); 
    })
-   .then(() => {
-      console.log("done"); 
+   // Get a node by its path identifiers
+   .then(() => client.getNodeByPath("path/to/node"))
+   .then(node => {
+      console.log(node); 
    })
+   // Expand entire tree under node 0
+   .then(() => client.expand(client.root.getElementByNumber(0)))
    .catch((e) => {
       console.log(e.stack);
    });
 ```
 
-Get Specific Node:
-```javascript
-const DeviceTree = require('emberplus').DeviceTree;
-const ember = require("emberplus").Ember;
-
-const client = new DeviceTree(HOST, PORT);
-client.connect())
-   .then(() => client.getDirectory())
-   .then(() => {console.log(JSON.stringify(client.root.toJSON(), null, 4));})
-   .then(() => client.getNodeByPath("scoreMaster/router/labels/group 1"))
-   .then(() => client.getNodeByPathnum("0.2"))
-   .then(node => {
-      console.log(JSON.stringify(node.toJSON(), null, 4));    
-   });
-```
-
 Subsribe to changes
 ```javascript
-const DeviceTree = require('emberplus').DeviceTree;
-const ember = require("emberplus").Ember;
+const {EmberClient, EmberLib} = require('node-emberplus');
 
-const client = new DeviceTree(HOST, PORT);
+const client = new EmberClient(HOST, PORT);
 client.connect())
    .then(() => client.getDirectory())
    .then(() => {console.log(JSON.stringify(client.root.toJSON(), null, 4));})
@@ -89,36 +77,29 @@ client.connect())
 
 ### Invoking Function
 ```javascript
-const DeviceTree = require('emberplus').DeviceTree;
-const ember = require("emberplus").Ember;
+const {EmberClient, EmberLib} = require('node-emberplus');
 
-const client = new DeviceTree(HOST, PORT);
+const client = new EmberClient(HOST, PORT);
 client.connect())
    .then(() => client.getDirectory())
    .then(() => {console.log(JSON.stringify(client.root.toJSON(), null, 4));})
-   .then(() => client.expand(client.root.elements[0]))
+   .then(() => client.expand(client.root.getElementByNumber(0)))
    .then(() => {
-      console.log(JSON.stringify(client.root.elements[0].toJSON(), null, 4));
-      let func;
-      if (TINYEMBER) {
-         func = client.root.elements[0].children[4].children[0];
-      }
-      else {
-         func = client.root.elements[0].children[2];
-      }
-      return client.invokeFunction(func, [
-         new ember.FunctionArgument(ember.ParameterType.integer, 1),
-         new ember.FunctionArgument(ember.ParameterType.integer, 7)
+      console.log(JSON.stringify(client.root.getElementByNumber(0).toJSON(), null, 4));
+      const funcNode = client.root.getElementByNumber(0).getElementByNumber(5).getElementByNumber(0);
+      return client.invokeFunction(funcNode, [
+         new ember.FunctionArgument(EmberLib.ParameterType.integer, 1),
+         new ember.FunctionArgument(EmberLib.ParameterType.integer, 7)
       ]);
    });
 ```
 
 ### Matrix Connection
 ```javascript
-const DeviceTree = require('emberplus').DeviceTree;
-const ember = require("emberplus").Ember;
+const {EmberClient, EmberLib} = require('node-emberplus');
 
-const client = new DeviceTree(HOST, PORT);
+
+const client = new EmberClient(HOST, PORT);
 client.connect()
    .then(() => client.getDirectory())
    .then(() => client.getNodeByPathnum("0.1.0"))
@@ -136,7 +117,7 @@ client.connect()
 ### Packet decoder
 ```javascript
 // Simple packet decoder
-const Decoder = require('emberplus').Decoder;
+const Decoder = require('node-emberplus').Decoder;
 const fs = require("fs");
 
 fs.readFile("tree.ember", (e,data) => {
@@ -147,8 +128,8 @@ fs.readFile("tree.ember", (e,data) => {
 
 ```javascript
 // Server
-const TreeServer = require("emberplus").TreeServer;
-const server = new TreeServer("127.0.0.1", 9000, root);
+const EmberServer = require("node-emberplus").EmberServer;
+const server = new EmberServer("127.0.0.1", 9000, root);
 server.on("error", e => {
    console.log("Server Error", e);
 });
@@ -169,8 +150,8 @@ server.listen().then(() => { console.log("listening"); }).catch((e) => { console
 
 ### Construct Tree
 ```javascript
-const TreeServer = require("emberplus").TreeServer;
-const {ParameterType, FunctionArgument} = require("emberplus").Ember;
+const EmberServer = require("node-emberplus").EmberServer;
+const {ParameterType, FunctionArgument} = require("node-emberplus").EmberLib;
 
 const targets = [ "tgt1", "tgt2", "tgt3" ];
 const sources = [ "src1", "src2", "src3" ];
@@ -291,6 +272,6 @@ const jsonTree = [
       ]
    }
 ];
-const root = TreeServer.JSONtoTree(jsonTree);
+const root = EmberServer.JSONtoTree(jsonTree);
 ```
 

@@ -1,4 +1,4 @@
-const {ParameterType, FunctionArgument} = require("../ember");
+const {ParameterType, FunctionArgument} = require("../EmberLib");
 
 
 const init = function(_src,_tgt) {

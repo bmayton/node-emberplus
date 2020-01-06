@@ -153,7 +153,6 @@ class QualifiedMatrix extends Matrix {
                 throw new errors.UnimplementedEmberTypeError(tag);
             }
         }
-        if (DEBUG) { console.log("QualifiedMatrix", qm); }
         return qm;
     }
 }

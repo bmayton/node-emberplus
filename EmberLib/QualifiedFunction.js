@@ -1,74 +1,38 @@
 "use strict";
 
-const TreeNode = require("./TreeNode");
+const QualifiedElement = require("./QualifiedElement");
 const FunctionContent = require("./FunctionContent");
 const {COMMAND_GETDIRECTORY, COMMAND_SUBSCRIBE, COMMAND_UNSUBSCRIBE} = require("./constants");
 const BER = require('../ber.js');
 const Command = require("./Command");
 
-class QualifiedFunction extends TreeNode {
+class QualifiedFunction extends QualifiedElement {
     /**
      * 
      * @param {string} path 
      * @param {function} func 
      */
     constructor(path, func) {
-        super();
-        this.path = path;
+        super(path);
         this.func = func;
+        this._seqID = BER.APPLICATION(20);
     }
 
+    /**
+     * 
+     * @returns {TreeNode}
+     */
+    getDirectory(callback) {
+        return this.getCommand(COMMAND_GETDIRECTORY);
+    }
+
+    /**
+     * @returns {boolean}
+     */
     isFunction() {
         return true;
     }
-    isQualified() {
-        return true;
-    }
 
-    /**
-     * 
-     * @param {BER} ber 
-     */
-    encode(ber) {
-        ber.startSequence(BER.APPLICATION(20));
-    
-        ber.startSequence(BER.CONTEXT(0));
-        ber.writeRelativeOID(this.path, BER.EMBER_RELATIVE_OID);
-        ber.endSequence(); // BER.CONTEXT(0)
-    
-        if(this.contents != null) {
-            ber.startSequence(BER.CONTEXT(1));
-            this.contents.encode(ber);
-            ber.endSequence(); // BER.CONTEXT(1)
-        }
-    
-        this.encodeChildren(ber);
-    
-        ber.endSequence(); // BER.APPLICATION(3)
-    }
-
-    /**
-     * 
-     * @param {number} cmd
-     * @returns {TreeNode}
-     */
-    getCommand(cmd) {
-        const r = new TreeNode();
-        const qf = new QualifiedFunction();
-        qf.path = this.getPath();
-        r.addElement(qf);
-        qf.addChild(new Command(cmd));
-        return r;
-    }
-
-    /**
-     * 
-     * @returns {TreeNode}
-     */
-    getDirectory() {
-        return this.getCommand(COMMAND_GETDIRECTORY);
-    }
-    
     /**
      * 
      * @param {*} params 
@@ -83,25 +47,7 @@ class QualifiedFunction extends TreeNode {
         QualifiedFunctionNode.getElementByPath(this.getPath()).getNumber(COMMAND_INVOKE).invocation = invocation
         return QualifiedFunctionNode;
     }
-
-    /**
-     * 
-     * @param {function} callback 
-     * @returns {TreeNode}
-     */
-    subscribe(callback) {
-        return this.getCommand(COMMAND_SUBSCRIBE);
-    }
-    
-    /**
-     * 
-     * @param {function} callback 
-     * @returns {TreeNode}
-     */
-    unsubscribe(callback) {
-        return QualifiedFunctionCommand(COMMAND_UNSUBSCRIBE);
-    }
-
+ 
 
     /**
      * 

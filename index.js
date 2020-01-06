@@ -1,7 +1,7 @@
-const DeviceTree = require('./device.js').DeviceTree;
-const Decoder = require('./device.js').DecodeBuffer;
-const Ember = require("./ember.js");
+const EmberClient = require('./EmberClient');
+const EmberLib = require("./EmberLib");
+const Decoder = EmberLib.DecodeBuffer;
 const S101 = require("./s101");
-const TreeServer = require("./server");
-const {S101Client} = require("./client");
-module.exports =  {DeviceTree, Decoder, Ember, TreeServer, S101, S101Client};
+const EmberServer = require("./EmberServer");
+const {S101Client} = require("./EmberSocket");
+module.exports =  {EmberClient, Decoder, EmberLib, EmberServer, S101, S101Client};

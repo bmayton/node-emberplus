@@ -1,45 +1,26 @@
 "use strict";
 
-const TreeNode = require("./TreeNode");
+const Element = require("./Element");
 const QualifiedNode = require("./QualifiedNode");
 const NodeContents = require("./NodeContents");
 const BER = require('../ber.js');
 
-class Node extends TreeNode {
+class Node extends Element {
     /**
      * 
      * @param {number} number 
      */
     constructor(number) {
-        super();
-        this.number = number;
-    }
-
-    isNode() {
-        return true;
+        super(number);
+        this._seqID = BER.APPLICATION(3);
     }
 
     /**
-     * 
-     * @param {BER} ber 
+     * @returns {boolean}
      */
-    encode(ber) {
-        ber.startSequence(BER.APPLICATION(3));
-    
-        ber.startSequence(BER.CONTEXT(0));
-        ber.writeInt(this.number);
-        ber.endSequence(); // BER.CONTEXT(0)
-    
-        if(this.contents != null) {
-            ber.startSequence(BER.CONTEXT(1));
-            this.contents.encode(ber);
-            ber.endSequence(); // BER.CONTEXT(1)
-        }
-    
-        this.encodeChildren(ber);
-    
-        ber.endSequence(); // BER.APPLICATION(3)
-    }
+    isNode() {
+        return true;
+    }    
 
     /**
      * 
@@ -82,7 +63,6 @@ class Node extends TreeNode {
                 throw new errors.UnimplementedEmberTypeError(tag);
             }
         }
-        if (DEBUG) { console.log("Node", n); }
         return n;
     }
 };

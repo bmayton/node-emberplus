@@ -102,7 +102,6 @@ class MatrixNode extends Matrix {
                 throw new errors.UnimplementedEmberTypeError(tag);
             }
         }
-        if (DEBUG) { console.log("MatrixNode", m); }
         return m;
     }
 }

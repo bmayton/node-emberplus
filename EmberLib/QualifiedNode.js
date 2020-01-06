@@ -1,73 +1,21 @@
 "user strict";
-const TreeNode = require("./TreeNode");
+const QualifiedElement = require("./QualifiedElement");
 const BER = require('../ber.js');
 const NodeContents = require("./NodeContents");
 const {COMMAND_GETDIRECTORY, COMMAND_SUBSCRIBE, COMMAND_UNSUBSCRIBE} = require("./constants");
 const Command = require("./Command");
 
-class QualifiedNode extends TreeNode {
+class QualifiedNode extends QualifiedElement {
     constructor (path) {  
-        super();  
-        if (path != undefined) {
-            this.path = path;
-        }
+        super(path);  
+        this._seqID = BER.APPLICATION(10);
     }
 
+    /**
+     * @returns {boolean}
+     */
     isNode() {
         return true;
-    }
-    isQualified() {
-        return true;
-    }
-    /**
-     * 
-     * @param {BER} ber 
-     */
-    encode(ber) {
-        ber.startSequence(BER.APPLICATION(10));
-    
-        ber.startSequence(BER.CONTEXT(0));
-        ber.writeRelativeOID(this.path, BER.EMBER_RELATIVE_OID);
-        ber.endSequence(); // BER.CONTEXT(0)
-    
-        if(this.contents != null) {
-            ber.startSequence(BER.CONTEXT(1));
-            this.contents.encode(ber);
-            ber.endSequence(); // BER.CONTEXT(1)
-        }
-    
-        this.encodeChildren(ber);
-    
-        ber.endSequence(); // BER.APPLICATION(3)
-    }
-
-    /**
-     * 
-     * @param {number} cmd 
-     * @returns {TreeNode}
-     */
-    getCommand(cmd) {
-        const r = new TreeNode();
-        const qn = new QualifiedNode();
-        qn.path = this.getPath();        
-        r.addElement(qn);
-        qn.addChild(new Command(cmd));
-        return r;
-    }
-
-    /**
-     * 
-     * @param {function} callback 
-     * @returns {TreeNode}
-     */
-    getDirectory(callback) {
-        if (this.path === undefined) {
-            throw new Error("Invalid path");
-        }
-        if (callback != null && this.contents != null && !this.isStream()) {
-            this.contents._subscribers.add(callback);
-        }
-        return this.getCommand(COMMAND_GETDIRECTORY);
     }
 
     /**
@@ -82,36 +30,6 @@ class QualifiedNode extends TreeNode {
             n.contents = this.contents;
         }
         return n;
-    }
-
-    /**
-     * 
-     * @param {function} callback 
-     * @returns {TreeNode}
-     */
-    subscribe(callback) {
-        if (this.path == null) {
-            throw new Error("Invalid path");
-        }
-        if (callback != null && this.isStream()) {
-            this.contents._subscribers.add(callback);
-        }
-        return this.getCommand(COMMAND_SUBSCRIBE);
-    }
-
-    /**
-     * 
-     * @param {function} callback
-     * @returns {TreeNode}
-     */
-    unsubscribe(callback) {
-        if (this.path == null) {
-            throw new Error("Invalid path");
-        }
-        if (callback != null && this.isStream()) {
-            this.contents._subscribers.delete(callback);
-        }
-        return this.getCommand(COMMAND_UNSUBSCRIBE);
     }
 
     /**
@@ -136,7 +54,6 @@ class QualifiedNode extends TreeNode {
                 throw new errors.UnimplementedEmberTypeError(tag);
             }
         }
-        if (DEBUG) { console.log("QualifiedNode", qn); }
         return qn;
     }
 }
