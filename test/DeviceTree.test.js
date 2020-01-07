@@ -1,16 +1,16 @@
 const fs = require("fs");
 const sinon = require("sinon");
-const Decoder = require('../').Decoder;
-const DeviceTree = require("../").DeviceTree;
-const TreeServer = require("../").TreeServer;
+const Decoder = require('../EmberLib').DecodeBuffer;
+const EmberClient = require("../EmberClient");
+const EmberServer = require("../EmberServer");
 
 const LOCALHOST = "127.0.0.1";
 const UNKNOWN_HOST = "192.168.99.99";
 const PORT = 9008;
 
-describe("DeviceTree", () => {
+describe("EmberClient", () => {
     describe("With server", () => {
-        /** @type {TreeServer} */
+        /** @type {EmberServer} */
         let server;
         beforeAll(() => {
             return Promise.resolve()
@@ -23,7 +23,7 @@ describe("DeviceTree", () => {
                     });
                 }))
                 .then(root => {
-                    server = new TreeServer(LOCALHOST, PORT, root);
+                    server = new EmberServer(LOCALHOST, PORT, root);
                     return server.listen();
                 });
         });
@@ -31,7 +31,7 @@ describe("DeviceTree", () => {
         it("should gracefully connect and disconnect", () => {
             return Promise.resolve()
                 .then(() => {
-                    let tree = new DeviceTree(LOCALHOST, PORT);
+                    let tree = new EmberClient(LOCALHOST, PORT);
                     return Promise.resolve()
                         .then(() => tree.connect())
                         .then(() => tree.getDirectory())
@@ -45,7 +45,7 @@ describe("DeviceTree", () => {
         it("should not disconnect after 5 seconds of inactivity", () => {
             return Promise.resolve()
                 .then(() => {
-                    let tree = new DeviceTree(LOCALHOST, PORT);
+                    let tree = new EmberClient(LOCALHOST, PORT);
     
                     tree.on("error", error => {
                         throw error;
@@ -59,7 +59,7 @@ describe("DeviceTree", () => {
         }, 7000);
     
         it("timeout should be taken into account when connecting to unknown host", () => {
-            let tree = new DeviceTree(UNKNOWN_HOST, PORT);
+            let tree = new EmberClient(UNKNOWN_HOST, PORT);
             tree.on("error", () => {
             });
             const expectedTimeoutInSec = 2;
@@ -78,11 +78,11 @@ describe("DeviceTree", () => {
         
         
         it("should gracefully connect and getDirectory", () => {
-            let tree = new DeviceTree(LOCALHOST, PORT);
+            let tree = new EmberClient(LOCALHOST, PORT);
             tree.on("error", e => {
                 console.log(e);
             })
-            let stub = sinon.stub(tree.client, "sendBER");
+            let stub = sinon.stub(tree._client, "sendBER");
             tree._debug = true;
             server._debug = true;
             stub.onFirstCall().returns();

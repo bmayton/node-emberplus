@@ -46,15 +46,21 @@ class QualifiedElement extends TreeNode {
 
     /**
      * 
-     * @param {number} cmd 
+     * @param {number} cmd
+     * @param {string} key
+     * @param {string} value
      * @returns {TreeNode}
      */
-    getCommand(cmd) {
+    getCommand(cmd, key, value) {
         const r = this.getNewTree();
         const qn = new this.constructor();
         qn.path = this.getPath();        
         r.addElement(qn);
-        qn.addChild(new Command(cmd));
+        const command = new Command(cmd);
+        if (key != null) {
+            command[key] = value;
+        }
+        qn.addChild(command);
         return r;
     }
 

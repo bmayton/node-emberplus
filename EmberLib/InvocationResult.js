@@ -1,6 +1,8 @@
 "use strict";
 
 const BER = require('../ber.js');
+const {ParameterTypefromBERTAG, ParameterTypetoBERTAG} = require("./ParameterType");
+const FunctionArgument = require("./FunctionArgument");
 
 
 class InvocationResult {
@@ -80,8 +82,8 @@ class InvocationResult {
         const invocationResult = new InvocationResult();
         ber = ber.getSequence(BER.APPLICATION(23));
         while(ber.remain > 0) {
-            tag = ber.peek();
-            var seq = ber.getSequence(tag);
+            let tag = ber.peek();
+            let seq = ber.getSequence(tag);
             if(tag == BER.CONTEXT(0)) { // invocationId
                 invocationResult.invocationId = seq.readInt();
             } else if(tag == BER.CONTEXT(1)) {  // success

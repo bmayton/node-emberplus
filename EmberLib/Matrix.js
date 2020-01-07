@@ -2,6 +2,10 @@
 const MatrixConnection = require("./MatrixConnection");
 const TreeNode = require("./TreeNode");
 const BER = require('../ber.js');
+const MatrixMode = require("./MatrixMode");
+const MatrixOperation = require("./MatrixOperation");
+const MatrixType = require("./MatrixType");
+const MatrixNode = require("./MatrixNode");
 
 class Matrix extends TreeNode 
 {
@@ -373,7 +377,7 @@ class Matrix extends TreeNode
         const currentSource = matrix.connections[targetID] == null || matrix.connections[targetID].sources == null ? 
         [] : matrix.connections[targetID].sources;
         if (currentSource.length > 0) {
-            MatrixNode.disconnectSources(matrix, targetID, currentSource)
+            this.disconnectSources(matrix, targetID, currentSource)
         }
         Matrix.connectSources(matrix, targetID, sources);
     }

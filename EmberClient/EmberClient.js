@@ -570,7 +570,7 @@ class EmberClient extends EventEmitter {
                     }
                     let matrix = null;
                     if (node != null) {
-                        matrix = node.elements[0];
+                        matrix = node.getElementByPath(requestedPath);
                     }
                     if (matrix != null && matrix.isMatrix() && matrix.getPath() === requestedPath) {
                         this._clearTimeout(); // clear the timeout now. The resolve below may take a while.
@@ -580,7 +580,7 @@ class EmberClient extends EventEmitter {
                     else {
                         if (this._debug) {
                             console.log(`unexpected node response during matrix connect ${requestedPath}`, 
-                            JSON.stringify(matrix.toJSON(), null, 4));
+                            matrix == null ? null : JSON.stringify(matrix.toJSON(), null, 4));
                         }
                     }
                 }

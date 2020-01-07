@@ -313,7 +313,10 @@ class TreeNode {
             node = node.getElementByNumber(number);
             if (node == null) {
                 return null;
-            }            
+            }
+            if (node.isQualified() && node.path == path) {
+                return node;
+            }
             myPathArray.push(number);                
         }
         return node;

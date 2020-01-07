@@ -46,7 +46,7 @@ class QualifiedParameter extends QualifiedElement {
      * @returns {TreeNode}
      */
     setValue(value) {
-        let r = new TreeNode();
+        let r = this.getNewTree();
         let qp = new QualifiedParameter(this.path);
         r.addElement(qp);
         qp.contents = (value instanceof ParameterContents) ? value : new ParameterContents(value);

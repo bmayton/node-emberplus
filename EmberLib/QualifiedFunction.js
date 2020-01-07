@@ -2,9 +2,9 @@
 
 const QualifiedElement = require("./QualifiedElement");
 const FunctionContent = require("./FunctionContent");
-const {COMMAND_GETDIRECTORY, COMMAND_SUBSCRIBE, COMMAND_UNSUBSCRIBE} = require("./constants");
+const {COMMAND_GETDIRECTORY, COMMAND_INVOKE} = require("./constants");
 const BER = require('../ber.js');
-const Command = require("./Command");
+const Invocation = require("./Invocation");
 
 class QualifiedFunction extends QualifiedElement {
     /**
@@ -37,15 +37,12 @@ class QualifiedFunction extends QualifiedElement {
      * 
      * @param {*} params 
      */
-    invoke(params) {
-        if (this.path == null) {
-            throw new Error("Invalid path");
-        }
-        var QualifiedFunctionNode = this.getCommand(COMMAND_INVOKE);
-        var invocation = new Invocation()
+    invoke(params) {        
+        const invocation = new Invocation()
         invocation.arguments = params;
-        QualifiedFunctionNode.getElementByPath(this.getPath()).getNumber(COMMAND_INVOKE).invocation = invocation
-        return QualifiedFunctionNode;
+        const qualifiedFunctionNode = this.getCommand(COMMAND_INVOKE, "invocation", invocation);
+        //qualifiedFunctionNode.getElementByNumber(this.getNumber()).getElementByNumber(COMMAND_INVOKE).invocation = invocation
+        return qualifiedFunctionNode;
     }
  
 

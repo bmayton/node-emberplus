@@ -1,4 +1,7 @@
 "use strict";
+const BER = require('../ber.js');
+const MatrixOperation = require("./MatrixOperation");
+const MatrixDisposition = require("./MatrixDisposition");
 
 class MatrixConnection {
     /**

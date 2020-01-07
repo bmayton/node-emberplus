@@ -1,6 +1,7 @@
 "use strict";
 const {ParameterTypefromBERTAG, ParameterTypetoBERTAG} = require("./ParameterType");
 const BER = require('../ber.js');
+const FunctionArgument = require("./FunctionArgument");
 
 let _id = 1;
 class Invocation {
@@ -43,19 +44,17 @@ class Invocation {
      * @returns {Invocation}
      */
     static decode(ber) {
-        const invocation = null;
+        let invocation = null;
         ber = ber.getSequence(BER.APPLICATION(22));
         while(ber.remain > 0) {
-            var tag = ber.peek();
-            var seq = ber.getSequence(tag);
+            let tag = ber.peek();
+            let seq = ber.getSequence(tag);
             if(tag == BER.CONTEXT(0)) {
-                const invocationId = seq.readInt();
-                invocation = new Invocation(invocationId);
+                // Create the invocation with the id received otherwise we will 
+                // increment the internal id counter.
+                invocation = new Invocation(seq.readInt());
             }
             else if(tag == BER.CONTEXT(1)) {
-                if (invocation == null) {
-                    throw new Error("Missing invocationID");
-                }
                 invocation.arguments = [];
                 seq = seq.getSequence(BER.EMBER_SEQUENCE);
                 while(seq.remain > 0) {

@@ -1,4 +1,5 @@
 "use strict";
+const BER = require('../ber.js');
 
 class Label {
     constructor(path, description) {

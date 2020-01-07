@@ -15,7 +15,8 @@ const MatrixMode = require("./MatrixMode");
 const MatrixType = require("./MatrixType");
 const MatrixContents = require("./MatrixContents");
 const MatrixConnection = require("./MatrixConnection");
-const Matrixoperation = require("./MatrixOperation");
+const MatrixOperation = require("./MatrixOperation");
+const MatrixDisposition = require("./MatrixDisposition");
 const Node = require("./Node");
 const NodeContents = require("./NodeContents");
 const Parameter = require("./Parameter");
@@ -26,6 +27,7 @@ const QualifiedFunction = require("./QualifiedFunction");
 const QualifiedMatrix = require("./QualifiedMatrix");
 const QualifiedNode = require("./QualifiedNode");
 const QualifiedParameter = require("./QualifiedParameter");
+const StringIntegerCollection = require("./StringIntegerCollection");
 
 const rootDecode = function(ber) {
     const r = new TreeNode();
@@ -108,7 +110,7 @@ TreeNode.decode = childDecode;
 
 const DecodeBuffer = function (packet) {
     const ber = new BER.Reader(packet);
-    return TreeNode.decode(ber);
+    return rootDecode(ber);
 };
 
 module.exports = {
@@ -128,7 +130,8 @@ module.exports = {
     MatrixType,
     MatrixContents,
     MatrixConnection,
-    Matrixoperation,
+    MatrixDisposition,
+    MatrixOperation,
     Node,
     NodeContents,
     Parameter,
@@ -139,6 +142,7 @@ module.exports = {
     QualifiedMatrix,
     QualifiedNode,
     QualifiedParameter,
+    StringIntegerCollection,
     Subscribe,COMMAND_SUBSCRIBE,
     Unsubscribe,COMMAND_UNSUBSCRIBE,
     GetDirectory,COMMAND_GETDIRECTORY,

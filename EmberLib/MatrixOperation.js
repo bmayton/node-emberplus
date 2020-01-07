@@ -7,6 +7,7 @@ const Enum = require('enum');
 //     disconnect (2) -- nToN only. sources contains sources to remove from
 //     connection
 // }
+
 const MatrixOperation = new Enum({
     absolute: 0,
     connect: 1,

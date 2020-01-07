@@ -2,6 +2,7 @@
 const Enum = require('enum');
 const {COMMAND_GETDIRECTORY, COMMAND_INVOKE} = require("./constants");
 const BER = require('../ber.js');
+const Invocation = require("./Invocation");
 
 const FieldFlags = new Enum({
     sparse: -2,
@@ -84,12 +85,12 @@ class Command {
      * @returns {Command}
      */
     static decode(ber) {
-        var c = new Command();
+        const c = new Command();
         ber = ber.getSequence(BER.APPLICATION(2));
     
         while(ber.remain > 0) {
-            var tag = ber.peek();
-            var seq = ber.getSequence(tag);
+            let tag = ber.peek();
+            let seq = ber.getSequence(tag);
             if(tag == BER.CONTEXT(0)) {
                 c.number = seq.readInt();
             }

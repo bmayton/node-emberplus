@@ -2,6 +2,7 @@
 
 const {ParameterType} = require("./ParameterType");
 const ParameterAccess = require("./ParameterAccess");
+const StringIntegerCollection = require("./StringIntegerCollection");
 
 const BER = require('../ber.js');
 
@@ -41,10 +42,8 @@ class ParameterContents {
         ber.writeIfDefinedEnum(this.type, ParameterType, ber.writeInt, 13);
         ber.writeIfDefined(this.streamIdentifier, ber.writeInt, 14);
     
-        if(this.emumMap !== undefined) {
-            ber.startSequence(BER.CONTEXT(15));
-            StringIntegerCollection.encode(ber, this.enumMap);
-            ber.endSequence();
+        if(this.stringIntegerCollection !== undefined) {            
+            this.stringIntegerCollection.encode(ber);
         }
     
         if(this.streamDescriptor !== undefined) {
@@ -101,7 +100,7 @@ class ParameterContents {
             } else if(tag == BER.CONTEXT(14)) {
                 pc.streamIdentifier = seq.readInt();
             } else if(tag == BER.CONTEXT(15)) {
-                pc.enumMap = StringIntegerCollection.decode(seq);
+                pc.stringIntegerCollection = StringIntegerCollection.decode(seq);
             } else if(tag == BER.CONTEXT(16)) {
                 pc.streamDescriptor = StreamDescription.decode(seq);
             } else if(tag == BER.CONTEXT(17)) {

@@ -2,6 +2,8 @@
 
 const MatrixType = require("./MatrixType");
 const MatrixMode = require("./MatrixMode");
+const BER = require('../ber.js');
+const Label = require("./Label");
 
 class MatrixContents {
     constructor(type = MatrixType.oneToN, mode = MatrixMode.linear) {

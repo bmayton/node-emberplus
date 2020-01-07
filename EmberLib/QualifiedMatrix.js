@@ -4,6 +4,8 @@ const Matrix = require("./Matrix");
 const {COMMAND_GETDIRECTORY, COMMAND_SUBSCRIBE, COMMAND_UNSUBSCRIBE} = require("./constants");
 const BER = require('../ber.js');
 const Command = require("./Command");
+const MatrixContents = require("./MatrixContents");
+const MatrixConnection = require("./MatrixConnection");
 
 class QualifiedMatrix extends Matrix {
     /**
@@ -24,7 +26,7 @@ class QualifiedMatrix extends Matrix {
      * @returns {Root}
      */
     connect(connections) {
-        const r = new Root();
+        const r = this.getNewTree();
         const qn = new QualifiedMatrix();
         qn.path = this.path;
         r.addElement(qn);
@@ -63,7 +65,7 @@ class QualifiedMatrix extends Matrix {
      * @returns {TreeNode}
      */
     getCommand(cmd) {
-        const r = new TreeNode();
+        const r = this.getNewTree();
         const qn = new QualifiedMatrix();
         qn.path = this.getPath();
         r.addElement(qn);
