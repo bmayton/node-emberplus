@@ -260,8 +260,9 @@ class TreeServer extends EventEmitter{
                     const res = this.getResponse(element);
                     this.updateSubscribers(element.getPath(),res, origin);
                 }
+                const src = origin == null ? "local" : `${origin.socket.remoteAddress}:${origin.socket.remotePort}`;
                 this.emit("value-change", element);
-                this.emit("event", `set value for ${element.contents.identifier}(${element.getPath()})` );
+                this.emit("event", `set value for ${element.contents.identifier}(${element.getPath()}) from ${src}` );
             }
             return resolve();
         });

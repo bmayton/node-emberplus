@@ -40,7 +40,8 @@ class ElementHandlers extends QualifiedHandlers{
             const node = this.server.tree.getElementByPath(element.getPath());
             identifier = node == null || node.contents == null || node.contents.identifier == null ? "unknown" : node.contents.identifier;
         }
-        this.server.emit("event", `${EmberLib.COMMAND_STRINGS[cmd.number]} to ${identifier}(path: ${element.getPath()})`);
+        const src = client == null ? "local" : `${client.socket.remoteAddress}:${client.socket.remotePort}`;
+        this.server.emit("event", `${EmberLib.COMMAND_STRINGS[cmd.number]} to ${identifier}(path: ${element.getPath()}) from ${src}`);
     }
 
     /**
