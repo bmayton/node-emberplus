@@ -1,6 +1,6 @@
 "use strict";
 const QualifiedHandlers = require("./QualifiedHandlers");
-const ember = require('../EmberLib');
+const EmberLib = require('../EmberLib');
 
 class ElementHandlers extends QualifiedHandlers{
     /**
@@ -17,23 +17,30 @@ class ElementHandlers extends QualifiedHandlers{
      * @param {Command} cmd
      */
     handleCommand(client, element, cmd) {
+        
         switch(cmd.number) {
-            case ember.COMMAND_GETDIRECTORY:
+            case EmberLib.COMMAND_GETDIRECTORY:
                 this.handleGetDirectory(client, element);
                 break;
-            case ember.COMMAND_SUBSCRIBE:
+            case EmberLib.COMMAND_SUBSCRIBE:
                 this.handleSubscribe(client, element);
                 break;
-            case ember.COMMAND_UNSUBSCRIBE:
+            case EmberLib.COMMAND_UNSUBSCRIBE:
                 this.handleUnSubscribe(client, element);
                 break;
-            case ember.COMMAND_INVOKE:
+            case EmberLib.COMMAND_INVOKE:
                 this.handleInvoke(client, cmd.invocation, element);
                 break;
             default:
                 this.server.emit("error", new Error(`invalid command ${cmd.number}`));
-                break;
+                return;
         }
+        let identifier = "root"
+        if (!element.isRoot()) {
+            const node = this.server.tree.getElementByPath(element.getPath());
+            identifier = node == null || node.contents == null || node.contents.identifier == null ? "unknown" : node.contents.identifier;
+        }
+        this.server.emit("event", `${EmberLib.COMMAND_STRINGS[cmd.number]} to ${identifier}(path: ${element.getPath()})`);
     }
 
     /**
@@ -77,7 +84,7 @@ class ElementHandlers extends QualifiedHandlers{
      * @param {TreeNode} element 
      */
     handleInvoke(client, invocation, element) {
-        const result = new ember.InvocationResult();
+        const result = new EmberLib.InvocationResult();
         result.invocationId = invocation.id;
         if (element == null || !element.isFunction()) {
             result.setFailure();        
@@ -91,7 +98,7 @@ class ElementHandlers extends QualifiedHandlers{
                 result.setFailure();
             }
         }
-        const res = new ember.Root();
+        const res = new EmberLib.Root();
         res.addResult(result);
         client.sendBERNode(res);
     }
@@ -145,8 +152,8 @@ class ElementHandlers extends QualifiedHandlers{
         else if ((cmd.isParameter()) &&
             (cmd.contents !== undefined) && (cmd.contents.value !== undefined)) {
             if (this.server._debug) { console.log(`setValue for element at path ${path} with value ${cmd.contents.value}`); }
-            this.setValue(element, cmd.contents.value, client);
-            let res = this.server.getResponse(element);
+            this.server.setValue(element, cmd.contents.value, client);
+            const res = this.server.getResponse(element);
             client.sendBERNode(res)
             this.server.updateSubscribers(element.getPath(), res, client);
         }

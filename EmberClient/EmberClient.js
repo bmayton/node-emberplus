@@ -388,7 +388,22 @@ class EmberClient extends EventEmitter {
     }
 
     /**
-     * 
+     * @deprecated
+     * @param {string} path ie: "path/to/destination"
+     * @param {function} callback=null
+     * @returns {Promise<TreeNode>}
+     */
+    getElementByPath(path, callback=null) {
+        if (path.indexOf("/") >= 0) {
+            return this.getNodeByPath(path, callback);
+        }
+        else {
+            return this.getNodeByPathnum(path, callback);
+        }
+    }
+
+    /**
+     * @deprecated
      * @param {string} path ie: "path/to/destination"
      * @param {function} callback=null
      * @returns {Promise<TreeNode>}
@@ -432,7 +447,7 @@ class EmberClient extends EventEmitter {
     }
 
     /**
-     * 
+     * @deprecated
      * @param {string|number[]} path ie: 1.0.2
      * @param {function} callback=null
      * @returns {Promise<TreeNode>}

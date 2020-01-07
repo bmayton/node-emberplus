@@ -247,22 +247,21 @@ class TreeServer extends EventEmitter{
             if (element.contents == null) {
                 return resolve();
             }
-            if (element.isParameter()) {
-                if ((element.contents.access !== undefined) &&
+            if (element.isParameter() || element.isMatrix()) {
+                if (element.isParameter() &&
+                    (element.contents.access !== undefined) &&
                     (element.contents.access.value > 1)) {
                     element.contents.value = value;
                     const res = this.getResponse(element);
-                    this.updateSubscribers(element.getPath(),res, origin);
-                    this.emit("value-change", element);
+                    this.updateSubscribers(element.getPath(),res, origin);                    
                 }
-            }
-            else if (element.isMatrix()) {
-                if ((key !== undefined) && (element.contents.hasOwnProperty(key))) {
+                else if ((key !== undefined) && (element.contents.hasOwnProperty(key))) {
                     element.contents[key] = value;
                     const res = this.getResponse(element);
                     this.updateSubscribers(element.getPath(),res, origin);
-                    this.emit("value-change", element);
                 }
+                this.emit("value-change", element);
+                this.emit("event", `set value for ${element.contents.identifier}(${element.getPath()})` );
             }
             return resolve();
         });

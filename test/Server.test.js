@@ -69,11 +69,11 @@ describe("server", function() {
                 })
                 .then(() => {
                     expect(client.root.getElementByNumber(0).elements.size).toBe(jsonTree[0].children.length);
-                    return client.getDirectory(client.root.getElementByNumber(0).getElementByNumber(0));
+                    return client.getDirectory(client.root.getElementByPath("0.0"));
                 })
                 .then(() => {
-                    expect(client.root.getElementByNumber(0).getElementByNumber(0).elements.size).toBe(4);
-                    expect(client.root.getElementByNumber(0).getElementByNumber(0).getElementByNumber(3).contents.identifier).toBe("author");
+                    expect(client.root.getElementByPath("0.0").elements.size).toBe(4);
+                    expect(client.root.getElementByPath("0.0.3").contents.identifier).toBe("author");
                     // Issue #33 EmberServer.handleGetDirectory does not subscribe to child parameters
                     expect(server.subscribers["0.0.0"]).toBeDefined();
                     // Keepalive
@@ -90,11 +90,11 @@ describe("server", function() {
                 })
                 .then(() => client.expand(client.root.getElementByNumber(0)))
                 .then(() => {
-                    expect(server.tree.getElementByNumber(0).getElementByNumber(0).getElementByNumber(1).contents.value).not.toBe("gdnet");
-                    return client.setValue(client.root.getElementByNumber(0).getElementByNumber(0).getElementByNumber(1), "gdnet");
+                    expect(server.tree.getElementByPath("0.0.1").contents.value).not.toBe("gdnet");
+                    return client.setValue(client.root.getElementByPath("0.0.1"), "gdnet");
                 })
                 .then(() => {
-                    expect(server.tree.getElementByNumber(0).getElementByNumber(0).getElementByNumber(1).contents.value).toBe("gdnet");          
+                    expect(server.tree.getElementByPath("0.0.1").contents.value).toBe("gdnet");          
                     return client.disconnect();
                 });
         });
@@ -109,7 +109,7 @@ describe("server", function() {
                 })
                 .then(() => client.expand(client.root.getElementByNumber(0)))
                 .then(() => {
-                    const func = client.root.getElementByNumber(0).getElementByNumber(2);
+                    const func = client.root.getElementByPath("0.2");
                     return client.invokeFunction(func, [
                         new ember.FunctionArgument(ember.ParameterType.integer, 1),
                         new ember.FunctionArgument(ember.ParameterType.integer, 7)
@@ -146,6 +146,27 @@ describe("server", function() {
 			        return client.disconnect();
                 });
         });
+        it("should be able to get child with getElementByPath", function() {
+            //server._debug = true;
+            client = new EmberClient(LOCALHOST, PORT);
+            //client._debug = true;
+            //client._debug = true;
+            return Promise.resolve()
+                .then(() => client.connect())
+                .then(() => {
+                    console.log("client connected");
+                    return client.getDirectory();
+                })
+                .then(() =>  client.getElementByPath("scoreMaster/identity/product"))
+                .then(child => {
+                    console.log(child);
+                    return client.getElementByPath("scoreMaster/router/labels/group 1");
+                })
+                .then(child => {
+                    console.log("router/labels", child);
+			        return client.disconnect();
+                });
+        });
         it("should throw an error if getNodeByPath for unknown path", function() {
             //server._debug = true;
             client = new EmberClient(LOCALHOST, PORT);
@@ -168,27 +189,86 @@ describe("server", function() {
         });
         it("should be able to make a matrix connection", () => {
             client = new EmberClient(LOCALHOST, PORT);
-            //client._debug = true;
             return Promise.resolve()
                 .then(() => client.connect())
                 .then(() => {
                     return client.getDirectory();
                 })
-                .then(() => client.getNodeByPathnum("0.1.0"))
-                .then(matrix => {
-                    console.log(matrix);
-                    client._debug = true;
-                    server._debug = true;  
-                    return client.matrixConnect(matrix, 0, [1]);
+                .then(() => client.getElementByPath("0.1.0"))
+                .then(matrix => client.matrixConnect(matrix, 0, [1]))
+                .then(matrix => {                    
+                    return client.getElementByPath(matrix.getPath());
                 })
-                .then(matrix => client.getNodeByPathnum(matrix.getPath()))
                 .then(matrix => {
                     console.log(matrix);
                     expect(matrix.connections['0'].sources).toBeDefined();
                     expect(matrix.connections['0'].sources.length).toBe(1);
-                    expect(matrix.connections['0'].sources[0]).toBe(1);
-                    return client.disconnect();
-                });
+                    expect(matrix.connections['0'].sources[0]).toBe(1);                    
+                })
+                .then(() => client.disconnect());
+        });
+        it("should generate events on command and matrix connection", () => {
+            client = new EmberClient(LOCALHOST, PORT);
+            let count = 0;
+            let receivedEvent = null;
+            const eventHandler = event => {
+                count++;
+                receivedEvent = event;
+            }
+            return Promise.resolve()
+                .then(() => client.connect())
+                .then(() => {
+                    count = 0;
+                    server.on("event", eventHandler);
+                    return client.getDirectory();
+                })
+                .then(() => {
+                    expect(count).toBe(1);
+                    expect(receivedEvent).toMatch(/getdirectory to root/);
+                    return client.getElementByPath("0.1.0");
+                })
+                .then(matrix => {
+                    count = 0;                    
+                    return client.matrixConnect(matrix, 0, [1]);
+                })
+                .then(() => {
+                    expect(count).toBe(1);
+                    expect(receivedEvent).toMatch(/Matrix connection to matrix/);
+                })
+                .then(() => {
+                    count = 0;
+                    const func = client.root.getElementByPath("0.2");
+                    return client.invokeFunction(func, [
+                        new ember.FunctionArgument(ember.ParameterType.integer, 1),
+                        new ember.FunctionArgument(ember.ParameterType.integer, 7)
+                    ]);
+                })
+                .then(() => {
+                    expect(count).toBe(1);
+                    expect(receivedEvent).toMatch(/invoke to /);
+                })
+                .then(() => client.getNodeByPathnum("0.0.2"))
+                .then(parameter => {
+                    server._subscribe = server.subscribe;
+                    let _resolve;
+                    const p = new Promise((resolve, reject) => {
+                        _resolve = resolve;
+                    });
+                    server.subscribe = (c,e) => {
+                        server._subscribe(c,e);
+                        _resolve();
+                    };
+                    count = 0;
+                    return client.subscribe(parameter).then(() => (p))
+                })
+                .then(() => {
+                    expect(count).toBe(1);
+                    expect(receivedEvent).toMatch(/subscribe to version/);
+                })
+                .then(() => {
+                    server.off("event", eventHandler);
+                })
+                .then(() => client.disconnect());
         });
     });    
     describe("Matrix Connect", function() {
@@ -205,7 +285,7 @@ describe("server", function() {
                 disconnectCount++;
             }
             server.on("matrix-disconnect", handleDisconnect.bind(this));
-            const matrix = server.tree.getElementByNumber(0).getElementByNumber(1).getElementByNumber(0);
+            const matrix = server.tree.getElementByPath("0.1.0");
             let connection = new ember.MatrixConnection(0);
             connection.setSources([1]);
             connection.operation = ember.MatrixOperation.connect;
@@ -237,7 +317,7 @@ describe("server", function() {
             expect(res).toBeTruthy();
         });
         it("should verify if connection allowed in 1-to-1", function() {
-            const matrix = server.tree.getElementByNumber(0).getElementByNumber(1).getElementByNumber(0);
+            const matrix = server.tree.getElementByPath("0.1.0");
             let disconnectCount = 0;
             const handleDisconnect = info => {
                 disconnectCount++;
@@ -269,7 +349,7 @@ describe("server", function() {
             server.off("matrix-disconnect", handleDisconnect);
         });
         it("should disconnect if trying to connect same source and target in 1-to-1", function() {
-            const matrix = server.tree.getElementByNumber(0).getElementByNumber(1).getElementByNumber(0);
+            const matrix = server.tree.getElementByPath("0.1.0");
             let disconnectCount = 0;
             const handleDisconnect = info => {
                 disconnectCount++;
@@ -285,7 +365,7 @@ describe("server", function() {
             expect(disconnectCount).toBe(1);
         });
         it("should be able to lock a connection", function() {
-            const matrix = server.tree.getElementByNumber(0).getElementByNumber(1).getElementByNumber(0);
+            const matrix = server.tree.getElementByPath("0.1.0");
             let disconnectCount = 0;
             const handleDisconnect = info => {
                 disconnectCount++;
@@ -303,7 +383,7 @@ describe("server", function() {
             expect(disconnectCount).toBe(0);
         });
         it("should verify if connection allowed in N-to-N", function() {
-            const matrix = server.tree.getElementByNumber(0).getElementByNumber(1).getElementByNumber(0);
+            const matrix = server.tree.getElementByPath("0.1.0");
             matrix.contents.type = ember.MatrixType.nToN;
             matrix.contents.maximumTotalConnects = 2;
             matrix.setSources(0, [0,1]);
@@ -407,7 +487,7 @@ describe("server", function() {
             return server.close();
         });
         it("should not auto subscribe stream parameter", function() {
-            const parameter = server.tree.getElementByNumber(0).getElementByNumber(0).getElementByNumber(2);
+            const parameter = server.tree.getElementByPath("0.0.2");
             console.log(parameter);
             expect(parameter.isStream()).toBeTruthy();
             expect(server.subscribers["0.0.2"]).not.toBeDefined();

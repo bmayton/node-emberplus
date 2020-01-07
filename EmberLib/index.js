@@ -1,5 +1,5 @@
 const {Subscribe,COMMAND_SUBSCRIBE,Unsubscribe,COMMAND_UNSUBSCRIBE,
-    GetDirectory,COMMAND_GETDIRECTORY,Invoke,COMMAND_INVOKE} = require("./constants");
+    GetDirectory,COMMAND_GETDIRECTORY,Invoke,COMMAND_INVOKE, COMMAND_STRINGS} = require("./constants");
 const BER = require('../ber.js');
 const errors = require("../errors");
 const TreeNode = require("./TreeNode");    
@@ -115,6 +115,7 @@ const DecodeBuffer = function (packet) {
 
 module.exports = {
     Command,
+    COMMAND_STRINGS,
     childDecode: childDecode,
     rootDecode: rootDecode,
     DecodeBuffer,

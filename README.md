@@ -31,12 +31,12 @@ client.connect()
    // Get Root info
    .then(() => client.getDirectory())
    // Get a Specific Node
-   .then(() => client.getNodeByPathnum("0.0.2"))
+   .then(() => client.getElementByPath("0.0.2"))
    .then(node => {
       console.log(node); 
    })
    // Get a node by its path identifiers
-   .then(() => client.getNodeByPath("path/to/node"))
+   .then(() => client.getElementByPath("path/to/node"))
    .then(node => {
       console.log(node); 
    })
@@ -55,23 +55,23 @@ const client = new EmberClient(HOST, PORT);
 client.connect())
    .then(() => client.getDirectory())
    .then(() => {console.log(JSON.stringify(client.root.toJSON(), null, 4));})
-   .then(() => client.getNodeByPath("scoreMaster/router/labels/group 1"))
+   .then(() => client.getElementByPath("scoreMaster/router/labels/group 1"))
    .then(node => {
       // For streams, use subscribe
       return client.subscribe(node, update => {
          console.log(udpate);      
       });      
    })
-   .then(() => client.getNodeByPathnum("0.2"))
+   .then(() => client.getElementByPath("0.2"))
    .then(node => {
       // For non-streams a getDirectory will automatically subscribe for update
       return client.getDirectory(node, update => {
          console.log(udpate);      
       });
    })
-   // You can also provide a callback to the getNodeNyPath
+   // You can also provide a callback to the getElementByPath
    // Be carefull that subscription will be done for all elements in the path
-   .then(() => client.getNodeByPathnum("0.3", update => {console.log(update);}))
+   .then(() => client.getElementByPath("0.3", update => {console.log(update);}))
    ;
 ```
 
@@ -102,14 +102,14 @@ const {EmberClient, EmberLib} = require('node-emberplus');
 const client = new EmberClient(HOST, PORT);
 client.connect()
    .then(() => client.getDirectory())
-   .then(() => client.getNodeByPathnum("0.1.0"))
+   .then(() => client.getElementByPath("0.1.0"))
    .then(matrix => {
       console.log("Connecting source 1 to target 0); 
       return client.matrixConnect(matrix, 0, [1]);
    })
    .then(() => client.matrixDisconnect(matrix, 0, [1]))
    .then(() => client.matrixSetConnection(matrix, 0, [0,1]))
-   .then(matrix => client.getNodeByPathnum(matrix.getPath()))
+   .then(matrix => client.getElementByPath(matrix.getPath()))
    .then(() => client.disconnect());
 
 ```
@@ -145,6 +145,9 @@ server.on("matrix-connect", info => {
 server.on("matrix-change", info => {
    console.log(`Client ${info.client} changed ${info.target} and ${info.sources}`);
 }
+server.on("event", txt => {
+   console.log("event: " + txt);
+})
 server.listen().then(() => { console.log("listening"); }).catch((e) => { console.log(e.stack); });
 ```
 

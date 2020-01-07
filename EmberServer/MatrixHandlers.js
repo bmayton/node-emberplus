@@ -65,6 +65,7 @@ class MatrixHandlers {
                 continue;
             }
             let connection = connections[id];
+            this.server.emit("event", `Matrix connection to ${matrix.contents.identifier}(path: ${matrix.getPath()}) target ${id} connections: ${connection.sources.toString()}`);
             conResult = new ember.MatrixConnection(connection.target);
             let emitType;
             res.connections[connection.target] = conResult;
