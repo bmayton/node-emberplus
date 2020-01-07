@@ -262,7 +262,7 @@ class TreeServer extends EventEmitter{
                 }
                 const src = origin == null ? "local" : `${origin.socket.remoteAddress}:${origin.socket.remotePort}`;
                 this.emit("value-change", element);
-                this.emit("event", `set value for ${element.contents.identifier}(${element.getPath()}) from ${src}` );
+                this.emit("event", `set value for ${element.contents.identifier}(path: ${element.getPath()}) from ${src}` );
             }
             return resolve();
         });
