@@ -3,6 +3,7 @@ const Enum = require('enum');
 const {COMMAND_GETDIRECTORY, COMMAND_INVOKE} = require("./constants");
 const BER = require('../ber.js');
 const Invocation = require("./Invocation");
+const errors = require("../errors");
 
 const FieldFlags = new Enum({
     sparse: -2,

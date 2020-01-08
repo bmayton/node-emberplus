@@ -1,11 +1,9 @@
 "use strict";
 
 const QualifiedElement = require("./QualifiedElement");
-const {COMMAND_GETDIRECTORY, COMMAND_SUBSCRIBE, COMMAND_UNSUBSCRIBE} = require("./constants");
 const ParameterContents = require("./ParameterContents");
 const BER = require('../ber.js');
-const Command = require("./Command");
-
+const Parameter = require("./Parameter");
 
 class QualifiedParameter extends QualifiedElement {
     /**
@@ -34,7 +32,7 @@ class QualifiedParameter extends QualifiedElement {
         const p = new Parameter(number);
         if (complete) {
             if (this.contents != null) {
-                p = this.contents;
+                p.contents = this.contents;
             }
         }
         return p;

@@ -1,5 +1,6 @@
 "use strict";
 const BER = require('../ber.js');
+const errors = require("../errors");
 
 class NodeContents{
     constructor() {

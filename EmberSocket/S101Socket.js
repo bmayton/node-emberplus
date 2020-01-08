@@ -106,7 +106,7 @@ class S101Socket extends EventEmitter{
                 this.status = "disconnected";
             }
         );
-    };
+    }
 
     /**
      * 
@@ -116,7 +116,7 @@ class S101Socket extends EventEmitter{
         clearInterval(this.keepaliveIntervalTimer);
         this.status = "disconnected";
         this.emit('disconnected');            
-    };
+    }
 
     /**
      * @returns {boolean}

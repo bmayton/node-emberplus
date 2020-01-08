@@ -5,6 +5,7 @@ const FunctionContent = require("./FunctionContent");
 const {COMMAND_GETDIRECTORY, COMMAND_INVOKE} = require("./constants");
 const BER = require('../ber.js');
 const Invocation = require("./Invocation");
+const errors = require("../errors");
 
 class QualifiedFunction extends QualifiedElement {
     /**
@@ -22,7 +23,7 @@ class QualifiedFunction extends QualifiedElement {
      * 
      * @returns {TreeNode}
      */
-    getDirectory(callback) {
+    getDirectory() {
         return this.getCommand(COMMAND_GETDIRECTORY);
     }
 

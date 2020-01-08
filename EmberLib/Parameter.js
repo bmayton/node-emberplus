@@ -4,6 +4,7 @@ const Element = require("./Element");
 const QualifiedParameter = require("./QualifiedParameter");
 const BER = require('../ber.js');
 const ParameterContents = require("./ParameterContents");
+const errors = require("../errors");
 
 class Parameter extends Element {
     /**

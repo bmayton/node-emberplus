@@ -2,6 +2,10 @@
 const TreeNode = require("./TreeNode");
 const QualifiedFunction = require("./QualifiedFunction");
 const BER = require('../ber.js');
+const Command = require("./Command");
+const {COMMAND_INVOKE} = require("./constants");
+const FunctionContent = require("./FunctionContent");
+const errors = require("../errors");
 
 class Function extends TreeNode {
     constructor(number, func) {

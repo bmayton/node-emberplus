@@ -1,6 +1,7 @@
 "use strict";
 const Element = require("./Element");
 const BER = require('../ber.js');
+const errors = require("../errors");
 
 class StringIntegerCollection extends Element {
     constructor() {

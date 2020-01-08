@@ -177,7 +177,7 @@ class TreeNode {
             obj.contents= this.contents;
         }
         return obj;
-    };
+    }
     /**
      * @returns {TreeNode}
      */
@@ -271,13 +271,6 @@ class TreeNode {
     getParent() {
         return this._parent;
     }
-    
-    /**
-     * @returns {string}
-     */
-    getPath() {
-        return "";
-    }
 
     /**
      * 
@@ -370,11 +363,11 @@ class TreeNode {
             return;
         }
     
-        const child = this.getElement(path[0]);
+        let child = this.getElement(path[0]);
         if(child !== null) {
             child.getNodeByPath(client, path.slice(1), callback);
         } else {
-            var cmd = self.getDirectory((error, node) => {
+            const cmd = this.getDirectory((error, node) => {
                 if(error) {
                     callback(error);
                 }
@@ -479,7 +472,7 @@ class TreeNode {
             }
         }
         return res;
-    };
+    }
 
         /**
      * 
@@ -498,11 +491,7 @@ class TreeNode {
                 }
             }
         }
-        return;    
-    }
-
-    static decode(ber) {
-
+        return;
     }
 
     /**

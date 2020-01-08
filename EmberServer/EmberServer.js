@@ -3,6 +3,7 @@ const S101Server = require('../EmberSocket').S101Server;
 const ember = require('../EmberLib');
 const JSONParser = require("./JSONParser");
 const ElementHandlers = require("./ElementHandlers");
+const {Logger, LogLevel} = require("../Logger");
 
 class TreeServer extends EventEmitter{
     /**
@@ -21,9 +22,17 @@ class TreeServer extends EventEmitter{
         this.clients = new Set();
         this.subscribers = {};
         this._handlers = new ElementHandlers(this);
+        this.logger = new Logger();
+        this.logLevel = LogLevel.INFO;
+        this._loggers = {
+            debug: (...args) => this._log(LogLevel.DEBUG, ...args),
+            error: (...args) => this._log(LogLevel.ERROR, ...args),
+            info: (...args) => this._log(LogLevel.INFO, ...args),
+            warn: (...args) => this._log(LogLevel.WARN, ...args)
+        };
 
         this.server.on('listening', () => {
-            if (this._debug) { console.log("listening"); }
+            this.log.debug("listening");
             this.emit('listening');
             if (this.callback !== undefined) {
                 this.callback();
@@ -32,10 +41,10 @@ class TreeServer extends EventEmitter{
         });
 
         this.server.on('connection', client => {
-            if (this._debug) { console.log("ember new connection from", client.remoteAddress()); }
+            this.log.debug("ember new connection from", client.remoteAddress());
             this.clients.add(client);
             client.on("emberTree", (root) => {
-                if (this._debug) { console.log("ember new request from", client.remoteAddress(), root); }
+                this.log.debug("ember new request from", client.remoteAddress(), root);
                 // Queue the action to make sure responses are sent in order.
                 client.addRequest(() => {
                     try {
@@ -43,7 +52,7 @@ class TreeServer extends EventEmitter{
                         this.emit("request", {client: client.remoteAddress(), root: root, path: path});
                     }
                     catch(e) {
-                        if (this._debug) { console.log(e.stack); }
+                        this.log.debug(e.stack)
                         this.emit("error", e);
                     }
                 });
@@ -59,7 +68,7 @@ class TreeServer extends EventEmitter{
         });
 
         this.server.on('disconnected', () => {
-            this.emit('disconnected', client.remoteAddress());
+            this.emit('disconnected');
         });
 
         this.server.on("error", (e) => {
@@ -68,6 +77,26 @@ class TreeServer extends EventEmitter{
                 this.callback(e);
             }
         });
+    }
+
+    /**
+     *
+     * @param {Array<string>} params
+     * @private
+     */
+    _log(...params) {
+        if ((params.length > 1) && (Number(params[0]) <= this.logLevel)) {
+            const msg = params.slice(1);            
+            this.logger[Logger.LogLevel[params[0]]](`[${Logger.LogLevel[params[0]]}]:`, ...msg);
+        }
+    }
+
+    /**
+     *
+     * @returns {{debug: (function(...[*]): void), error: (function(...[*]): void), info: (function(...[*]): void), warn: (function(...[*]): void)}|*}
+     */
+    get log() {
+        return this._loggers;
     }
 
     /**
@@ -83,7 +112,7 @@ class TreeServer extends EventEmitter{
             };
             this.server.server.close();
         });
-    };
+    }
 
     /**
      * 
@@ -98,8 +127,8 @@ class TreeServer extends EventEmitter{
                     node.addChild(children[i].getDuplicate());
                 }
             }
-            else if (this._debug) {
-                console.log("getResponse","no children");
+            else {
+                this.log.debug("getResponse","no children");
             }
         });
     }
@@ -178,7 +207,7 @@ class TreeServer extends EventEmitter{
             };
             this.server.listen();
         });
-    };
+    }
 
     /**
      * 
@@ -221,8 +250,7 @@ class TreeServer extends EventEmitter{
             throw new Error(`Could not find element at path ${path}`);
         }
         parent = parent._parent;
-        let children = parent.getChildren();
-        let newList = [];
+        const children = parent.getChildren();
         for(let i = 0; i <= children.length; i++) {
             if (children[i] && children[i].getPath() == path) {
                 element._parent = parent; // move it to new tree.
@@ -242,7 +270,7 @@ class TreeServer extends EventEmitter{
      * @param {string} key
      */
     setValue(element, value, origin, key) {
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             // Change the element value if write access permitted.
             if (element.contents == null) {
                 return resolve();
@@ -291,7 +319,7 @@ class TreeServer extends EventEmitter{
         const elements = this.tree.getChildren();
     
         return elements.map(element => element.toJSON());
-    };
+    }
 
     /**
      * 
@@ -346,13 +374,13 @@ class TreeServer extends EventEmitter{
 
 const validateMatrixOperation = function(matrix, target, sources) {
     if (matrix == null) {
-        throw new Error(`matrix not found with path ${path}`);
+        throw new Error(`matrix not found`);
     }
     if (matrix.contents == null) {
-        throw new Error(`invalid matrix at ${path} : no contents`);
+        throw new Error(`invalid matrix at ${matrix.getPath()} : no contents`);
     }
     if (matrix.contents.targetCount == null) {
-        throw new Error(`invalid matrix at ${path} : no targetCount`);
+        throw new Error(`invalid matrix at ${matrix.getPath()} : no targetCount`);
     }
     if ((target < 0) || (target >= matrix.contents.targetCount)) {
         throw new Error(`target id ${target} out of range 0 - ${matrix.contents.targetCount}`);

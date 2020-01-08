@@ -16,8 +16,7 @@ class ElementHandlers extends QualifiedHandlers{
      * @param {TreeNode} root 
      * @param {Command} cmd
      */
-    handleCommand(client, element, cmd) {
-        
+    handleCommand(client, element, cmd) {        
         switch(cmd.number) {
             case EmberLib.COMMAND_GETDIRECTORY:
                 this.handleGetDirectory(client, element);
@@ -71,9 +70,7 @@ class ElementHandlers extends QualifiedHandlers{
             }
     
             const res = this.server.getQualifiedResponse(element);
-            if (this.server._debug) {
-                console.log("getDirectory response", res);
-            }
+            this.server.log.debug("getDirectory response", res);
             client.sendBERNode(res);
         }
     }
@@ -152,7 +149,7 @@ class ElementHandlers extends QualifiedHandlers{
         }
         else if ((cmd.isParameter()) &&
             (cmd.contents !== undefined) && (cmd.contents.value !== undefined)) {
-            if (this.server._debug) { console.log(`setValue for element at path ${path} with value ${cmd.contents.value}`); }
+            this.server.log.debug(`setValue for element at path ${path} with value ${cmd.contents.value}`); 
             this.server.setValue(element, cmd.contents.value, client);
             const res = this.server.getResponse(element);
             client.sendBERNode(res)
@@ -160,7 +157,7 @@ class ElementHandlers extends QualifiedHandlers{
         }
         else {
             this.server.emit("error", new Error("invalid request format"));
-            if (this.server._debug) { console.log("invalid request format"); }
+            this.server.log.debug("invalid request format"); 
             return this.server.handleError(client, element.getTreeBranch());
         }
         return path;
@@ -172,9 +169,7 @@ class ElementHandlers extends QualifiedHandlers{
      * @param {TreeNode} root 
      */
     handleSubscribe(client, element) {
-        if (this.server._debug) {
-            console.log("subscribe");
-        }
+        this.server.log.debug("subscribe");
         this.server.subscribe(client, element);
     }
 
@@ -184,9 +179,7 @@ class ElementHandlers extends QualifiedHandlers{
      * @param {TreeNode} root 
      */
     handleUnSubscribe(client, element) {
-        if (this.server._debug) {
-            console.log("unsubscribe");
-        }
+        this.server.log.debug("unsubscribe");
         this.server.unsubscribe(client, element);
     }
 }

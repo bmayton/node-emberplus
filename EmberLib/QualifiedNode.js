@@ -2,8 +2,8 @@
 const QualifiedElement = require("./QualifiedElement");
 const BER = require('../ber.js');
 const NodeContents = require("./NodeContents");
-const {COMMAND_GETDIRECTORY, COMMAND_SUBSCRIBE, COMMAND_UNSUBSCRIBE} = require("./constants");
-const Command = require("./Command");
+const Node = require("./Node");
+const errors = require("../errors");
 
 class QualifiedNode extends QualifiedElement {
     constructor (path) {  

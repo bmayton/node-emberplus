@@ -6,6 +6,7 @@ const BER = require('../ber.js');
 const Command = require("./Command");
 const MatrixContents = require("./MatrixContents");
 const MatrixConnection = require("./MatrixConnection");
+const errors = require("../errors");
 
 class QualifiedMatrix extends Matrix {
     /**
@@ -137,9 +138,9 @@ class QualifiedMatrix extends Matrix {
             } else if(tag == BER.CONTEXT(2)) {
                 qm.decodeChildren(seq);
             } else if (tag == BER.CONTEXT(3)) {
-                qm.targets = decodeTargets(seq);
+                qm.targets = Matrix.decodeTargets(seq);
             } else if (tag == BER.CONTEXT(4)) {
-                qm.sources = decodeSources(seq);
+                qm.sources = Matrix.decodeSources(seq);
             } else if (tag == BER.CONTEXT(5)) {
                 qm.connections = {};
                 seq = seq.getSequence(BER.EMBER_SEQUENCE);

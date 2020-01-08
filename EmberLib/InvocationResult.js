@@ -3,6 +3,7 @@
 const BER = require('../ber.js');
 const {ParameterTypefromBERTAG, ParameterTypetoBERTAG} = require("./ParameterType");
 const FunctionArgument = require("./FunctionArgument");
+const errors = require("../errors");
 
 
 class InvocationResult {

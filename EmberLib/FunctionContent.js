@@ -1,6 +1,7 @@
 "use strict";
 const BER = require('../ber.js');
 const FunctionArgument = require("./FunctionArgument");
+const errors = require("../errors");
 
 class FunctionContent {
     constructor() {
@@ -42,7 +43,7 @@ class FunctionContent {
         if(this.result != null) {
             ber.startSequence(BER.CONTEXT(3));
             ber.startSequence(BER.EMBER_SEQUENCE);
-            for(var i = 0; i < this.result.length; i++) {
+            for(let i = 0; i < this.result.length; i++) {
                 ber.startSequence(BER.CONTEXT(0));
                 this.result[i].encode(ber);
                 ber.endSequence();

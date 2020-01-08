@@ -28,6 +28,8 @@ const QualifiedMatrix = require("./QualifiedMatrix");
 const QualifiedNode = require("./QualifiedNode");
 const QualifiedParameter = require("./QualifiedParameter");
 const StringIntegerCollection = require("./StringIntegerCollection");
+const StreamFormat = require("./StreamFormat");
+const StreamDescription = require("./StreamDescription");
 
 const rootDecode = function(ber) {
     const r = new TreeNode();
@@ -65,7 +67,7 @@ const rootDecode = function(ber) {
             // continuation of previous message
             try {
                 var rootReader = ber.getSequence(BER.CONTEXT(0));
-                return Element.decode(rootReader)
+                return childDecode(rootReader)
             }
             catch (e) {
                 return r;
@@ -143,6 +145,8 @@ module.exports = {
     QualifiedMatrix,
     QualifiedNode,
     QualifiedParameter,
+    StreamFormat,
+    StreamDescription,
     StringIntegerCollection,
     Subscribe,COMMAND_SUBSCRIBE,
     Unsubscribe,COMMAND_UNSUBSCRIBE,

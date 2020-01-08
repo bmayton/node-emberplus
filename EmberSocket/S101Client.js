@@ -63,7 +63,7 @@ class S101Client extends S101Socket {
             this.activeRequest();
             this.activeRequest = null;
         }
-    };
+    }
 
     /**
      * 

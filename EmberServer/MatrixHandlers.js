@@ -44,11 +44,9 @@ class MatrixHandlers {
      * @param {boolean} response=true
      */
     handleMatrixConnections(client, matrix, connections, response = true) {
-        var res,conResult;
-        var root; // ember message root
-        if (this.server._debug) {
-            console.log("Handling Matrix Connection");
-        }
+        let res,conResult;
+        let root; // ember message root
+        this.server.log.debug("Handling Matrix Connection");
         if (client != null && client.request.isQualified()) {
             root = new ember.Root();
             res = new ember.QualifiedMatrix(matrix.getPath());
@@ -191,9 +189,7 @@ class MatrixHandlers {
                 }
             }
             else if (conResult.disposition !== ember.MatrixDisposition.locked){
-                if (this.server._debug) {
-                    console.log(`Invalid Matrix operation ${connection.operarion} on target ${connection.target} with sources ${JSON.stringify(connection.sources)}`);
-                }
+                this.server.log.debug(`Invalid Matrix operation ${connection.operarion} on target ${connection.target} with sources ${JSON.stringify(connection.sources)}`);
                 conResult.disposition = ember.MatrixDisposition.tally;
             }
     
@@ -213,9 +209,7 @@ class MatrixHandlers {
         }
     
         if (conResult != null && conResult.disposition !== ember.MatrixDisposition.tally) {
-            if (this.server._debug) { 
-                console.log("Updating subscribers for matrix change");
-            }
+            this.server.log.debug("Updating subscribers for matrix change");
             this.server.updateSubscribers(matrix.getPath(), root, client);
         }
     }

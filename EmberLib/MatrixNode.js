@@ -4,6 +4,7 @@ const Matrix = require("./Matrix");
 const MatrixContents = require("./MatrixContents");
 const QualifiedMatrix = require("./QualifiedMatrix");
 const BER = require('../ber.js');
+const errors = require("../errors");
 
 class MatrixNode extends Matrix {
     constructor(number = undefined) {

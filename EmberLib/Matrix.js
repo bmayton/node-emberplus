@@ -5,7 +5,6 @@ const BER = require('../ber.js');
 const MatrixMode = require("./MatrixMode");
 const MatrixOperation = require("./MatrixOperation");
 const MatrixType = require("./MatrixType");
-const MatrixNode = require("./MatrixNode");
 
 class Matrix extends TreeNode 
 {
@@ -176,8 +175,7 @@ class Matrix extends TreeNode
      */
     static canConnect(matrixNode, targetID, sources, operation) {
         const type = matrixNode.contents.type == null ? MatrixType.oneToN : matrixNode.contents.type;
-        const mode = matrixNode.contents.mode == null ? MatrixConnection.linear : matrixNode.contents.mode;
-        const connection = matrixNode.connections[targetID];;
+        const connection = matrixNode.connections[targetID];
         const oldSources = connection == null || connection.sources == null ? [] : connection.sources.slice();
         const newSources = operation === MatrixOperation.absolute ? sources : oldSources.concat(sources);
         const sMap = new Set(newSources.map(i => Number(i)));
@@ -278,7 +276,7 @@ class Matrix extends TreeNode
             sources.push(seq.readInt());
         }
         return sources;
-    };
+    }
     
     /**
      * 

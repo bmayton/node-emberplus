@@ -2,6 +2,7 @@
 const BER = require('../ber.js');
 const MatrixOperation = require("./MatrixOperation");
 const MatrixDisposition = require("./MatrixDisposition");
+const errors = require("../errors");
 
 class MatrixConnection {
     /**

@@ -4,6 +4,7 @@ const Element = require("./Element");
 const QualifiedNode = require("./QualifiedNode");
 const NodeContents = require("./NodeContents");
 const BER = require('../ber.js');
+const errors = require("../errors");
 
 class Node extends Element {
     /**
@@ -65,6 +66,6 @@ class Node extends Element {
         }
         return n;
     }
-};
+}
 
 module.exports = Node;
