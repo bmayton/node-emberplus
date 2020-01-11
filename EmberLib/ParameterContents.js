@@ -10,11 +10,11 @@ const errors = require("../errors");
 class ParameterContents {
     constructor(value, type) {
         this._subscribers = new Set();
-        if(value !== undefined) {
+        if(value != null) {
             this.value = value;
         }
-        if(type !== undefined) {
-            if((type = ParameterType.get(type)) !== undefined){
+        if(type != null) {
+            if((type = ParameterType.get(type)) != null){
                 this.type = type
             }
         }
@@ -43,11 +43,11 @@ class ParameterContents {
         ber.writeIfDefinedEnum(this.type, ParameterType, ber.writeInt, 13);
         ber.writeIfDefined(this.streamIdentifier, ber.writeInt, 14);
     
-        if(this.stringIntegerCollection !== undefined) {            
+        if(this.stringIntegerCollection != null) {            
             this.stringIntegerCollection.encode(ber);
         }
     
-        if(this.streamDescriptor !== undefined) {
+        if(this.streamDescriptor != null) {
             ber.startSequence(BER.CONTEXT(16));
             this.streamDescriptor.encode(ber);
             ber.endSequence();

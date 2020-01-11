@@ -1,1 +1,4 @@
-module.exports = require("./EmberServer");
+module.exports = {
+    EmberServer: require("./EmberServer"),
+    ServerEvents: require("./ServerEvents")
+};

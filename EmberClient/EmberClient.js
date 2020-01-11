@@ -1,9 +1,9 @@
 const EventEmitter = require('events').EventEmitter;
-const S101Client = require('../EmberSocket').S101Socket;
+const S101Socket = require('../EmberSocket').S101Socket;
 const ember = require('../EmberLib');
 const BER = require('../ber.js');
 const errors = require('../errors.js');
-const {Logger, LogLevel} = require("../Logger");
+const winston = require("winston");
 
 const DEFAULT_PORT = 9000;
 const DEFAULT_TIMEOUT = 3000;
@@ -28,18 +28,10 @@ class EmberClient extends EventEmitter {
         this._timeout = null;
         this._callback = undefined;
         this._requestID = 0;
-        this._client = new S101Client(host, port);
+        this._client = new S101Socket(host, port);
         this.timeoutValue = DEFAULT_TIMEOUT;
         /** @type {Root} */
         this.root = new ember.Root();
-        this.logger = new Logger();
-        this.logLevel = LogLevel.INFO;
-        this._loggers = {
-            debug: (...args) => this._log(LogLevel.DEBUG, ...args),
-            error: (...args) => this._log(LogLevel.ERROR, ...args),
-            info: (...args) => this._log(LogLevel.INFO, ...args),
-            warn: (...args) => this._log(LogLevel.WARN, ...args)
-        };
 
         this._client.on('connecting', () => {
             this.emit('connecting');
@@ -47,7 +39,7 @@ class EmberClient extends EventEmitter {
 
         this._client.on('connected', () => {
             this.emit('connected');
-            if (this._callback !== undefined) {
+            if (this._callback != null) {
                 this._callback();
             }
         });
@@ -57,7 +49,7 @@ class EmberClient extends EventEmitter {
         });
 
         this._client.on("error", e => {
-            if (this._callback !== undefined) {
+            if (this._callback != null) {
                 this._callback(e);
             }
             this.emit("error", e);
@@ -67,42 +59,22 @@ class EmberClient extends EventEmitter {
             try {
                 if (root instanceof ember.InvocationResult) {
                     this.emit('invocationResult', root);
-                    this.log.debug("Received InvocationResult", root);
+                    winston.debug("Received InvocationResult", root);
                 } else {
                     this._handleRoot(root);
-                    this.log.debug("Received root", root);
+                    winston.debug("Received root", root);
                 }
                 if (this._callback) {
                     this._callback(undefined, root);
                 }
             }
             catch(e) {
-                this.log.debug(e, root);
+                winston.debug(e, root);
                 if (this._callback) {
                     this._callback(e);
                 }
             }
         });
-    }
-
-    /**
-     *
-     * @param {Array<string>} params
-     * @private
-     */
-    _log(...params) {
-        if ((params.length > 1) && (Number(params[0]) <= this.logLevel)) {
-            const msg = params.slice(1);            
-            this.logger[Logger.LogLevel[params[0]]](`[${Logger.LogLevel[params[0]]}]:`, ...msg);
-        }
-    }
-
-    /**
-     *
-     * @returns {{debug: (function(...[*]): void), error: (function(...[*]): void), info: (function(...[*]): void), warn: (function(...[*]): void)}|*}
-     */
-    get log() {
-        return this._loggers;
     }
 
     _finishRequest() {
@@ -111,7 +83,7 @@ class EmberClient extends EventEmitter {
         try {
             this._makeRequest();
         } catch(e) {
-            this.log.debug(e);
+            winston.debug(e);
             if (this._callback != null) {
                 this._callback(e);
             }
@@ -125,7 +97,7 @@ class EmberClient extends EventEmitter {
             const req = `${ this._requestID++} - ${this._activeRequest.node.getPath()}`;
             this._activeRequest.timeoutError = new errors.EmberTimeoutError(`Request ${req} timed out`)
            
-            this.log.debug(`Making request ${req}`, Date.now());
+            winston.debug(`Making request ${req}`, Date.now());
             this._timeout = setTimeout(() => {
                 this._timeoutRequest();
             }, this.timeoutValue);
@@ -228,9 +200,9 @@ class EmberClient extends EventEmitter {
      * @param {TreeNode} root 
      */
     _handleRoot (root) {
-        this.log.debug("handling root", JSON.stringify(root));
+        winston.debug("handling root", JSON.stringify(root));
         this.root.update(root);
-        if (root.elements !== undefined) {
+        if (root.elements != null) {
             const elements = root.getChildren();
             for (var i = 0; i < elements.length; i++) {
                 if (elements[i].isQualified()) {
@@ -259,7 +231,7 @@ class EmberClient extends EventEmitter {
                 }
                 return reject(e);
             };
-            if ((this._client !== undefined) && (this._client.isConnected())) {
+            if ((this._client != null) && (this._client.isConnected())) {
                 this._client.disconnect();
             }
             this._client.connect(timeout);
@@ -283,7 +255,7 @@ class EmberClient extends EventEmitter {
      */
     expand(node, callback = null) {
         if (node == null) {
-            return Promise.reject(new Error("Invalid null node"));
+            return Promise.reject(new errors.InvalidEmberNode("Invalid null node"));
         }
         if (node.isParameter() || node.isMatrix() || node.isFunction()) {
             return this.getDirectory(node);
@@ -291,7 +263,7 @@ class EmberClient extends EventEmitter {
         return this.getDirectory(node, callback).then((res) => {
             let children = node.getChildren();
             if ((res === undefined) || (children === undefined) || (children === null)) {
-                this.log.debug("No more children for ", node);
+                winston.debug("No more children for ", node);
                 return;
             }
             let p = Promise.resolve();
@@ -300,7 +272,7 @@ class EmberClient extends EventEmitter {
                     // Parameter can only have a single child of type Command.
                     continue;
                 }
-                this.log.debug("Expanding child", child);
+                winston.debug("Expanding child", child);
                 p = p.then(() => {
                     return this.expand(child).catch((e) => {
                         // We had an error on some expansion
@@ -335,11 +307,11 @@ class EmberClient extends EventEmitter {
                 this._callback = (error, node) => {
                     const requestedPath = qnode.getPath();
                     if (node == null) { 
-                        this.log.debug(`received null response for ${requestedPath}`);
+                        winston.debug(`received null response for ${requestedPath}`);
                         return; 
                     }
                     if (error) {
-                        this.log.debug("Received getDirectory error", error);
+                        winston.debug("Received getDirectory error", error);
                         this._clearTimeout(); // clear the timeout now. The resolve below may take a while.
                         this._finishRequest();
                         reject(error);
@@ -348,21 +320,21 @@ class EmberClient extends EventEmitter {
                     if (qnode.isRoot()) {
                         const elements = qnode.getChildren();
                         if (elements == null || elements.length === 0) {
-                            this.log.debug("getDirectory response", node);
-                            return this._callback(new Error("Invalid qnode for getDirectory"));
+                            winston.debug("getDirectory response", node);
+                            return this._callback(new errors.InvalidEmberNode());
                         }
     
                         const nodeElements = node == null ? null : node.getChildren();
     
                         if (nodeElements != null
                             && nodeElements.every(el => el._parent instanceof ember.Root)) {
-                            this.log.debug("Received getDirectory response", node);
+                            winston.debug("Received getDirectory response", node);
                             this._clearTimeout(); // clear the timeout now. The resolve below may take a while.
                             this._finishRequest();
                             resolve(node); // make sure the info is treated before going to next request.
                         }
                         else {
-                            return this._callback(new Error(`Invalid response for getDirectory ${requestedPath}`));
+                            return this._callback(new errors.InvalidEmberResponse(`getDirectory ${requestedPath}`));
                         }
                     }
                     else if (node.getElementByPath(requestedPath) != null) {
@@ -375,18 +347,18 @@ class EmberClient extends EventEmitter {
                         if (nodeElements != null &&
                             ((qnode.isMatrix() && nodeElements.length === 1 && nodeElements[0].getPath() === requestedPath) ||
                              (!qnode.isMatrix() && nodeElements.every(el => isDirectSubPathOf(el.getPath(), requestedPath))))) {
-                            this.log.debug("Received getDirectory response", node);
+                            winston.debug("Received getDirectory response", node);
                             this._clearTimeout(); // clear the timeout now. The resolve below may take a while.
                             this._finishRequest();
                             return resolve(node); // make sure the info is treated before going to next request.
                         }
                         else {
-                            this.log.debug(node);
-                            this.log.debug(new Error(requestedPath));
+                            winston.debug(node);
+                            winston.debug(new Error(requestedPath));
                         }
                     }
                 };
-                this.log.debug("Sending getDirectory", qnode);
+                winston.debug("Sending getDirectory", qnode);
                 this._client.sendBERNode(qnode.getDirectory(callback));
             }});
         });
@@ -417,7 +389,7 @@ class EmberClient extends EventEmitter {
         if (typeof path === 'string') {
             path = path.split('/');
         }
-        var pathError = new Error(`Failed path discovery at ${path.slice(0, pos + 1).join("/")}`);
+        var pathError = new errors.PathDiscoveryFailure(path.slice(0, pos + 1).join("/"));
         var pos = 0;
         var lastMissingPos = -1;
         var currentNode = this.root;
@@ -461,7 +433,7 @@ class EmberClient extends EventEmitter {
         if (typeof path === 'string') {
             path = path.split('.');
         }
-        var pathnumError = new Error(`Failed path discovery at ${path.slice(0, pos).join("/")}`);
+        var pathnumError = new errors.PathDiscoveryFailure(path.slice(0, pos).join("/"));
         var pos = 0;
         var lastMissingPos = -1;
         var currentNode = this.root;
@@ -514,13 +486,13 @@ class EmberClient extends EventEmitter {
                         reject(error);
                     }
                     else {
-                        this.log.debug("InvocationResult", result);
+                        winston.debug("InvocationResult", result);
                         resolve(result);
                     }
                     // cleaning callback and making next request.
                     this._finishRequest();
                 };
-                this.log.debug("Invocking function", fnNode);
+                winston.debug("Invocking function", fnNode);
                 this._callback = cb;
                 this._client.sendBERNode(fnNode.invoke(params));
             }});
@@ -531,7 +503,7 @@ class EmberClient extends EventEmitter {
      * @returns {boolean}
      */
     isConnected() {
-        return ((this._client !== undefined) && (this._client.isConnected()));
+        return ((this._client != null) && (this._client.isConnected()));
     }
 
     /**
@@ -544,7 +516,7 @@ class EmberClient extends EventEmitter {
     matrixOPeration(matrixNode, targetID, sources, operation = ember.MatrixOperation.connect) {
         return new Promise((resolve, reject) => {
             if (!Array.isArray(sources)) {
-                return reject(new Error("Sources should be an array"));
+                return reject(new errors.InvalidSourcesFormat());
             }
             try {
                 matrixNode.validateConnection(targetID, sources);
@@ -568,11 +540,11 @@ class EmberClient extends EventEmitter {
                 this._callback = (error, node) => {
                     const requestedPath = matrixNode.getPath();
                     if (node == null) { 
-                        this.log.debug(`received null response for ${requestedPath}`);
+                        winston.debug(`received null response for ${requestedPath}`);
                         return; 
                     }
                     if (error) {
-                        this.log.debug("Received getDirectory error", error);
+                        winston.debug("Received getDirectory error", error);
                         this._clearTimeout(); // clear the timeout now. The resolve below may take a while.
                         this._finishRequest();
                         reject(error);
@@ -588,7 +560,7 @@ class EmberClient extends EventEmitter {
                         resolve(matrix);
                     }
                     else {
-                        this.log.debug(`unexpected node response during matrix connect ${requestedPath}`, 
+                        winston.debug(`unexpected node response during matrix connect ${requestedPath}`, 
                             matrix == null ? null : JSON.stringify(matrix.toJSON(), null, 4));
                     }
                 }
@@ -670,7 +642,7 @@ class EmberClient extends EventEmitter {
                     };
     
                     this._callback = cb;
-                    this.log.debug('setValue sending ...', node.getPath(), value);
+                    winston.debug('setValue sending ...', node.getPath(), value);
                     this._client.sendBERNode(node.setValue(value));
                 }});
             }
@@ -693,7 +665,7 @@ class EmberClient extends EventEmitter {
                     if (error != null) {
                         return reject(error);
                     }         
-                    this.log.debug("Sending subscribe", qnode);
+                    winston.debug("Sending subscribe", qnode);
                     this._client.sendBERNode(qnode.subscribe(callback));
                     this._finishRequest();
                     resolve();
@@ -720,7 +692,7 @@ class EmberClient extends EventEmitter {
                     if (error != null) {
                         return reject(error);
                     }            
-                    this.log.debug("Sending subscribe", qnode);
+                    winston.debug("Sending subscribe", qnode);
                     this._client.sendBERNode(qnode.unsubscribe(callback));
                     this._finishRequest();
                     resolve();

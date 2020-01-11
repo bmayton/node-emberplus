@@ -5,6 +5,7 @@ const BER = require('../ber.js');
 const MatrixMode = require("./MatrixMode");
 const MatrixOperation = require("./MatrixOperation");
 const MatrixType = require("./MatrixType");
+const Errors = require("../errors");
 
 class Matrix extends TreeNode 
 {
@@ -64,7 +65,7 @@ class Matrix extends TreeNode
      * @param {BER} ber 
      */
     encodeConnections(ber) {
-        if (this.connections !== undefined) {
+        if (this.connections != null) {
             ber.startSequence(BER.CONTEXT(5));
             ber.startSequence(BER.EMBER_SEQUENCE);
     
@@ -109,7 +110,7 @@ class Matrix extends TreeNode
      * @param {BER} ber 
      */
     encodeTargets(ber) {
-        if (this.targets !== undefined) {
+        if (this.targets != null) {
     
             ber.startSequence(BER.CONTEXT(3));
             ber.startSequence(BER.EMBER_SEQUENCE);
@@ -289,7 +290,7 @@ class Matrix extends TreeNode
         while(seq.remain > 0) {
             var conSeq = seq.getSequence(BER.CONTEXT(0));
             var con = MatrixConnection.decode(conSeq);
-            if (con.target !== undefined) {
+            if (con.target != null) {
                 connections[con.target] = (con);
             }
         }
@@ -388,25 +389,25 @@ class Matrix extends TreeNode
      */
     static validateConnection(matrixNode, targetID, sources) {
         if (targetID < 0) {
-            throw new Error(`Invalid negative target index ${targetID}`);
+            throw new Errors.InvalidEmberNode(matrixNode.getPath(), `Invalid negative target index ${targetID}`);
         }
         for(let i = 0; i < sources.length; i++) {
             if (sources[i] < 0) {
-                throw new Error(`Invalid negative source at index ${i}`);
+                throw new Errors.InvalidEmberNode(matrixNode.getPath(),`Invalid negative source at index ${i}`);
             }
         }
         if (matrixNode.contents.mode === MatrixMode.linear) {
             if (targetID >= matrixNode.contents.targetCount) {
-                throw new Error(`targetID ${targetID} higher than max value ${matrixNode.contents.targetCount}`);
+                throw Errors.InvalidEmberNode(matrixNode.getPath(),`targetID ${targetID} higher than max value ${matrixNode.contents.targetCount}`);
             }
             for(let i = 0; i < sources.length; i++) {
                 if (sources[i] >= matrixNode.contents.sourceCount) {
-                    throw new Error(`Invalid source at index ${i}`);
+                    throw new Errors.InvalidEmberNode(matrixNode.getPath(),`Invalid source at index ${i}`);
                 }
             }
         }
         else if ((matrixNode.targets == null) || (matrixNode.sources == null)) {
-            throw new Error("Non-Linear matrix should have targets and sources");
+            throw new Errors.InvalidEmberNode(matrixNode.getPath(),"Non-Linear matrix should have targets and sources");
         }    
         else {
             let found = false;
@@ -417,7 +418,7 @@ class Matrix extends TreeNode
                 }
             }
             if (!found) {
-                throw new Error(`Unknown targetid ${targetID}`);
+                throw new Errors.InvalidEmberNode(matrixNode.getPath(),`Unknown targetid ${targetID}`);
             }
             found = false;
             for(let i = 0; i < sources.length; i++) {
@@ -428,7 +429,7 @@ class Matrix extends TreeNode
                     }
                 }
                 if (!found) {
-                    throw new Error(`Unknown source at index ${i}`);
+                    throw new Errors.InvalidEmberNode(matrixNode.getPath(),`Unknown source at index ${i}`);
                 }
             }
         }    

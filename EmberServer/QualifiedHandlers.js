@@ -1,5 +1,6 @@
 "use strict";
 const MatrixHandlers = require("./MatrixHandlers");
+const Errors = require("../errors");
 
 class QualifiedHandlers extends MatrixHandlers {
     /**
@@ -32,7 +33,7 @@ class QualifiedHandlers extends MatrixHandlers {
         const element = this.server.tree.getElementByPath(path);
     
         if (element == null) {
-            this.server.emit("error", new Error(`unknown element at path ${path}`));
+            this.server.emit("error", new Errors.UnknownElement(path));
             return this.server.handleError(client);
         }
         
@@ -63,7 +64,7 @@ class QualifiedHandlers extends MatrixHandlers {
      */
     handleQualifiedParameter(client, element, parameter)
     {
-        if (parameter.contents.value !== undefined) {
+        if (parameter.contents.value != null) {
             this.server.setValue(element, parameter.contents.value, client);
             let res = this.server.getQualifiedResponse(element);
             client.sendBERNode(res)

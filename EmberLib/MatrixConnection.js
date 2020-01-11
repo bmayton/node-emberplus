@@ -62,17 +62,17 @@ class MatrixConnection {
         ber.writeInt(this.target);
         ber.endSequence();
     
-        if ((this.sources !== undefined)&& (this.sources.length > 0)) {
+        if ((this.sources != null)&& (this.sources.length > 0)) {
             ber.startSequence(BER.CONTEXT(1));
             ber.writeRelativeOID(this.sources.join("."), BER.EMBER_RELATIVE_OID);
             ber.endSequence();
         }
-        if (this.operation !== undefined) {
+        if (this.operation != null) {
             ber.startSequence(BER.CONTEXT(2));
             ber.writeInt(this.operation.value);
             ber.endSequence();
         }
-        if (this.disposition !== undefined) {
+        if (this.disposition != null) {
             ber.startSequence(BER.CONTEXT(3));
             ber.writeInt(this.disposition.value);
             ber.endSequence();

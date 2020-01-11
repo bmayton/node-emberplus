@@ -2,7 +2,7 @@ const fs = require("fs");
 const sinon = require("sinon");
 const Decoder = require('../EmberLib').DecodeBuffer;
 const EmberClient = require("../EmberClient");
-const EmberServer = require("../EmberServer");
+const {EmberServer} = require("../EmberServer");
 
 const LOCALHOST = "127.0.0.1";
 const UNKNOWN_HOST = "192.168.99.99";

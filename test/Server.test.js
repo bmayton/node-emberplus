@@ -1,5 +1,5 @@
 const expect = require("expect");
-const EmberServer = require("../EmberServer");
+const {EmberServer, ServerEvents} = require("../EmberServer");
 const EmberClient = require("../EmberClient");
 const ember = require("../EmberLib");
 const {jsonRoot} = require("./utils");
@@ -7,12 +7,6 @@ const MatrixHandlers = require("../EmberServer/MatrixHandlers");
 
 const LOCALHOST = "127.0.0.1";
 const PORT = 9009;
-
-const wait = function(t) {
-    return new Promise(resolve => {
-        setTimeout(resolve, t);
-    });
-}
 
 describe("server", function() {
     describe("JSONtoTree", function() {
@@ -182,7 +176,6 @@ describe("server", function() {
                     throw new Error("Should not succeed");
                 })
                 .catch(e => {
-                    console.log(e);
                     expect(e.message).toMatch(/Failed path discovery/);
                     return client.disconnect();                    
                 });
@@ -224,7 +217,7 @@ describe("server", function() {
                 })
                 .then(() => {
                     expect(count).toBe(1);
-                    expect(receivedEvent).toMatch(/getdirectory to root/);
+                    expect(receivedEvent.type).toBe(ServerEvents.Types.GETDIRECTORY);
                     return client.getElementByPath("0.1.0");
                 })
                 .then(matrix => {
@@ -233,7 +226,7 @@ describe("server", function() {
                 })
                 .then(() => {
                     expect(count).toBe(1);
-                    expect(receivedEvent).toMatch(/Matrix connection to matrix/);
+                    expect(receivedEvent.type).toBe(ServerEvents.Types.MATRIX_CONNECTION);
                 })
                 .then(() => {
                     count = 0;
@@ -245,7 +238,7 @@ describe("server", function() {
                 })
                 .then(() => {
                     expect(count).toBe(1);
-                    expect(receivedEvent).toMatch(/invoke to /);
+                    expect(receivedEvent.type).toBe(ServerEvents.Types.INVOKE);
                 })
                 .then(() => client.getNodeByPathnum("0.0.2"))
                 .then(parameter => {
@@ -263,7 +256,7 @@ describe("server", function() {
                 })
                 .then(() => {
                     expect(count).toBe(1);
-                    expect(receivedEvent).toMatch(/subscribe to version/);
+                    expect(receivedEvent.type).toBe(ServerEvents.Types.SUBSCRIBE);
                 })
                 .then(() => {
                     server.off("event", eventHandler);
@@ -281,7 +274,7 @@ describe("server", function() {
         });
         it("should verify if connection allowed in 1-to-N", function() {
             let disconnectCount = 0;
-            const handleDisconnect = info => {
+            const handleDisconnect = () => {
                 disconnectCount++;
             }
             server.on("matrix-disconnect", handleDisconnect.bind(this));

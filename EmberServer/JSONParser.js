@@ -1,5 +1,6 @@
 "use strict";
 const ember = require('../EmberLib');
+const Errors = require("../errors");
 
 class JSONParser {
     /**
@@ -43,7 +44,7 @@ class JSONParser {
                     Number(content.sourceCount) : Number(content.maximumConnectsPerTarget);
             }
             else {
-                throw new Error(`Invalid matrix type ${content.type}`);
+                throw new Errors.InvalidEmberNode("", `Invalid matrix type ${content.type}`);
             }
             delete content.type;
         }
@@ -55,7 +56,7 @@ class JSONParser {
                 matrixContent.mode = ember.MatrixMode.nonLinear;
             }
             else {
-                throw new Error(`Invalid matrix mode ${content.mode}`);
+                throw new Errors.InvalidEmberNode("",`Invalid matrix mode ${content.mode}`);
             }
             delete content.mode;
         }
@@ -70,7 +71,7 @@ class JSONParser {
         for(let i = 0; i < obj.length; i++) {
             let emberElement;
             let content = obj[i];
-            let number = content.number !== undefined ? content.number : i;
+            let number = content.number != null ? content.number : i;
             delete content.number;
             if (content.value != null) {            
                 emberElement = new ember.Parameter(number);

@@ -108,7 +108,7 @@ ExtendedReader.prototype.readValue = function() {
 
 
 ExtendedReader.prototype.readReal = function(tag) {
-    if(tag !== undefined) {
+    if(tag != null) {
         tag = UNIVERSAL(9);
     }
 
@@ -313,7 +313,7 @@ ExtendedWriter.prototype.writeValue = function(value, tag) {
 }
 
 ExtendedWriter.prototype.writeIfDefined = function(property, writer, outer, inner) {
-    if(property !== undefined) {
+    if(property != null) {
         this.startSequence(CONTEXT(outer));
         writer.call(this, property, inner);
         this.endSequence();
@@ -321,9 +321,9 @@ ExtendedWriter.prototype.writeIfDefined = function(property, writer, outer, inne
 }
 
 ExtendedWriter.prototype.writeIfDefinedEnum = function(property, type, writer, outer, inner) {
-    if(property !== undefined) {
+    if(property != null) {
         this.startSequence(CONTEXT(outer));
-        if(property.value !== undefined) {
+        if(property.value != null) {
             writer.call(this, property.value, inner);
         } else {
             writer.call(this, type.get(property), inner);

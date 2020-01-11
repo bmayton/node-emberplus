@@ -1,6 +1,9 @@
 "use strict";
 const QualifiedHandlers = require("./QualifiedHandlers");
 const EmberLib = require('../EmberLib');
+const ServerEvents = require("./ServerEvents");
+const Errors = require("../errors");
+const winston = require("winston");
 
 class ElementHandlers extends QualifiedHandlers{
     /**
@@ -16,31 +19,34 @@ class ElementHandlers extends QualifiedHandlers{
      * @param {TreeNode} root 
      * @param {Command} cmd
      */
-    handleCommand(client, element, cmd) {        
-        switch(cmd.number) {
-            case EmberLib.COMMAND_GETDIRECTORY:
-                this.handleGetDirectory(client, element);
-                break;
-            case EmberLib.COMMAND_SUBSCRIBE:
-                this.handleSubscribe(client, element);
-                break;
-            case EmberLib.COMMAND_UNSUBSCRIBE:
-                this.handleUnSubscribe(client, element);
-                break;
-            case EmberLib.COMMAND_INVOKE:
-                this.handleInvoke(client, cmd.invocation, element);
-                break;
-            default:
-                this.server.emit("error", new Error(`invalid command ${cmd.number}`));
-                return;
-        }
+    handleCommand(client, element, cmd) {  
         let identifier = "root"
         if (!element.isRoot()) {
             const node = this.server.tree.getElementByPath(element.getPath());
             identifier = node == null || node.contents == null || node.contents.identifier == null ? "unknown" : node.contents.identifier;
         }
         const src = client == null ? "local" : `${client.socket.remoteAddress}:${client.socket.remotePort}`;
-        this.server.emit("event", `${EmberLib.COMMAND_STRINGS[cmd.number]} to ${identifier}(path: ${element.getPath()}) from ${src}`);
+        switch(cmd.number) {
+            case EmberLib.COMMAND_GETDIRECTORY:
+                this.server.emit("event", ServerEvents.GETDIRECTORY(identifier, element.getPath(), src));
+                this.handleGetDirectory(client, element);
+                break;
+            case EmberLib.COMMAND_SUBSCRIBE:
+                this.server.emit("event", ServerEvents.SUBSCRIBE(identifier, element.getPath(), src));
+                this.handleSubscribe(client, element);
+                break;
+            case EmberLib.COMMAND_UNSUBSCRIBE:
+                this.server.emit("event", ServerEvents.UNSUBSCRIBE(identifier, element.getPath(), src));
+                this.handleUnSubscribe(client, element);
+                break;
+            case EmberLib.COMMAND_INVOKE:
+                this.server.emit("event", ServerEvents.INVOKE(identifier, element.getPath(), src));
+                this.handleInvoke(client, cmd.invocation, element);
+                break;
+            default:
+                this.server.emit("error", new Errors.InvalidCommand(cmd.number));
+                return;
+        }        
     }
 
     /**
@@ -49,7 +55,7 @@ class ElementHandlers extends QualifiedHandlers{
      * @param {TreeNode} root 
      */
     handleGetDirectory(client, element) {
-        if (client !== undefined) {
+        if (client != null) {
             if ((element.isMatrix() || element.isParameter()) &&
                 (!element.isStream())) {
                 // ember spec: parameter without streamIdentifier should
@@ -70,7 +76,7 @@ class ElementHandlers extends QualifiedHandlers{
             }
     
             const res = this.server.getQualifiedResponse(element);
-            this.server.log.debug("getDirectory response", res);
+            winston.debug("getDirectory response", res);
             client.sendBERNode(res);
         }
     }
@@ -111,9 +117,9 @@ class ElementHandlers extends QualifiedHandlers{
         // traverse the tree
         let element = node;
         let path = [];
-        while(element !== undefined) {
+        while(element != null) {
             if (element.number == null) {
-                this.server.emit("error", "invalid request");
+                this.server.emit("error", new Errors.MissingElementNumber());
                 return;
             }
             if (element.isCommand()) {
@@ -130,34 +136,34 @@ class ElementHandlers extends QualifiedHandlers{
         let cmd = element;
     
         if (cmd == null) {
-            this.server.emit("error", "invalid request");
+            this.server.emit("error", new Errors.InvalidRequest());
             return this.server.handleError(client);
         }
     
         element = this.server.tree.getElementByPath(path.join("."));
     
         if (element == null) {
-            this.server.emit("error", new Error(`unknown element at path ${path}`));
+            this.server.emit("error", new Errors.UnknownElement(path.join(".")));
             return this.server.handleError(client);
         }
     
         if (cmd.isCommand()) {
             this.handleCommand(client, element, cmd);
         }
-        else if ((cmd.isCommand()) && (cmd.connections !== undefined)) {
+        else if ((cmd.isCommand()) && (cmd.connections != null)) {
             this.handleMatrixConnections(client, element, cmd.connections);
         }
         else if ((cmd.isParameter()) &&
-            (cmd.contents !== undefined) && (cmd.contents.value !== undefined)) {
-            this.server.log.debug(`setValue for element at path ${path} with value ${cmd.contents.value}`); 
+            (cmd.contents != null) && (cmd.contents.value != null)) {
+            winston.debug(`setValue for element at path ${path} with value ${cmd.contents.value}`); 
             this.server.setValue(element, cmd.contents.value, client);
             const res = this.server.getResponse(element);
             client.sendBERNode(res)
             this.server.updateSubscribers(element.getPath(), res, client);
         }
         else {
-            this.server.emit("error", new Error("invalid request format"));
-            this.server.log.debug("invalid request format"); 
+            this.server.emit("error", new Errors.InvalidRequesrFormat(path.join(".")));
+            winston.debug("invalid request format"); 
             return this.server.handleError(client, element.getTreeBranch());
         }
         return path;
@@ -169,7 +175,7 @@ class ElementHandlers extends QualifiedHandlers{
      * @param {TreeNode} root 
      */
     handleSubscribe(client, element) {
-        this.server.log.debug("subscribe");
+        winston.debug("subscribe");
         this.server.subscribe(client, element);
     }
 
@@ -179,7 +185,7 @@ class ElementHandlers extends QualifiedHandlers{
      * @param {TreeNode} root 
      */
     handleUnSubscribe(client, element) {
-        this.server.log.debug("unsubscribe");
+        winston.debug("unsubscribe");
         this.server.unsubscribe(client, element);
     }
 }

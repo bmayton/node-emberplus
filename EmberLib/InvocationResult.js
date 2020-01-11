@@ -3,7 +3,7 @@
 const BER = require('../ber.js');
 const {ParameterTypefromBERTAG, ParameterTypetoBERTAG} = require("./ParameterType");
 const FunctionArgument = require("./FunctionArgument");
-const errors = require("../errors");
+const Errors = require("../errors");
 
 
 class InvocationResult {
@@ -65,7 +65,7 @@ class InvocationResult {
      */
     setResult(result) {
         if (!Array.isArray(result)) {
-            throw new Error("Invalid inovation result. Should be array");
+            throw new Errors.InvalidResultFormat();
         }
         this.result = result;
     }
@@ -107,7 +107,7 @@ class InvocationResult {
                 continue
             } else {
                 // TODO: options
-                throw new errors.UnimplementedEmberTypeError(tag);
+                throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }
     

@@ -3,8 +3,15 @@ const BER = require('../ber.js');
 const errors = require("../errors");
 
 class NodeContents{
-    constructor() {
+    /**
+     * 
+     * @param {string} identifier 
+     * @param {string} description 
+     */
+    constructor(identifier=null, description=null) {
         this.isOnline = true;
+        this.identifier = identifier;
+        this.description = description;
         this._subscribers = new Set();
     }
 
@@ -15,31 +22,31 @@ class NodeContents{
     encode(ber) {
         ber.startSequence(BER.EMBER_SET);
     
-        if(this.identifier !== undefined) {
+        if(this.identifier != null) {
             ber.startSequence(BER.CONTEXT(0));
             ber.writeString(this.identifier, BER.EMBER_STRING);
             ber.endSequence(); // BER.CONTEXT(0)
         }
     
-        if(this.description !== undefined) {
+        if(this.description != null) {
             ber.startSequence(BER.CONTEXT(1));
             ber.writeString(this.description, BER.EMBER_STRING);
             ber.endSequence(); // BER.CONTEXT(1)
         }
     
-        if(this.isRoot !== undefined) {
+        if(this.isRoot != null) {
             ber.startSequence(BER.CONTEXT(2));
             ber.writeBoolean(this.isRoot);
             ber.endSequence(); // BER.CONTEXT(2)
         }
     
-        if(this.isOnline !== undefined) {
+        if(this.isOnline != null) {
             ber.startSequence(BER.CONTEXT(3));
             ber.writeBoolean(this.isOnline);
             ber.endSequence(); // BER.CONTEXT(3)
         }
     
-        if(this.schemaIdentifiers !== undefined) {
+        if(this.schemaIdentifiers != null) {
             ber.startSequence(BER.CONTEXT(4));
             ber.writeString(this.schemaIdentifiers, BER.EMBER_STRING);
             ber.endSequence(); // BER.CONTEXT(4)

@@ -1,5 +1,7 @@
 "use strict";
 const ember = require('../EmberLib');
+const ServerEvents = require("./ServerEvents");
+const winston = require("winston");
 
 class MatrixHandlers {
      /**
@@ -46,7 +48,7 @@ class MatrixHandlers {
     handleMatrixConnections(client, matrix, connections, response = true) {
         let res,conResult;
         let root; // ember message root
-        this.server.log.debug("Handling Matrix Connection");
+        winston.debug("Handling Matrix Connection");
         if (client != null && client.request.isQualified()) {
             root = new ember.Root();
             res = new ember.QualifiedMatrix(matrix.getPath());
@@ -64,7 +66,9 @@ class MatrixHandlers {
             }
             let connection = connections[id];
             const src = client == null ? "local" : `${client.socket.remoteAddress}:${client.socket.remotePort}`;
-            this.server.emit("event", `Matrix connection to ${matrix.contents.identifier}(path: ${matrix.getPath()}) target ${id} connections: ${connection.sources.toString()} from ${src}`);
+            this.server.emit("event", ServerEvents.MATRIX_CONNECTION(
+                matrix.contents.identifier,matrix.getPath(),src,id,connection.sources
+            ));
             conResult = new ember.MatrixConnection(connection.target);
             let emitType;
             res.connections[connection.target] = conResult;
@@ -189,7 +193,7 @@ class MatrixHandlers {
                 }
             }
             else if (conResult.disposition !== ember.MatrixDisposition.locked){
-                this.server.log.debug(`Invalid Matrix operation ${connection.operarion} on target ${connection.target} with sources ${JSON.stringify(connection.sources)}`);
+                winston.debug(`Invalid Matrix operation ${connection.operarion} on target ${connection.target} with sources ${JSON.stringify(connection.sources)}`);
                 conResult.disposition = ember.MatrixDisposition.tally;
             }
     
@@ -209,7 +213,7 @@ class MatrixHandlers {
         }
     
         if (conResult != null && conResult.disposition !== ember.MatrixDisposition.tally) {
-            this.server.log.debug("Updating subscribers for matrix change");
+            winston.debug("Updating subscribers for matrix change");
             this.server.updateSubscribers(matrix.getPath(), root, client);
         }
     }

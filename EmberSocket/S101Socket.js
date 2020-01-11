@@ -64,7 +64,7 @@ class S101Socket extends EventEmitter{
                     const ber = new BER.Reader(packet);
                     try {
                         const root = ember.rootDecode(ber);
-                        if (root !== undefined) {
+                        if (root != null) {
                             this.emit('emberTree', root);
                         }
                     } catch (e) {
@@ -122,7 +122,7 @@ class S101Socket extends EventEmitter{
      * @returns {boolean}
      */
     isConnected() {
-        return ((this.socket !== null) && (this.socket !== undefined));
+        return ((this.socket !== null) && (this.socket != null));
     }
 
     /**

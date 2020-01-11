@@ -4,9 +4,11 @@ const FunctionArgument = require("./FunctionArgument");
 const errors = require("../errors");
 
 class FunctionContent {
-    constructor() {
+    constructor(identifier=null, description=null) {
         this.arguments = [];
         this.result = [];
+        this.identifier = identifier;
+        this.description = description;
     }
 
     /**

@@ -80,9 +80,6 @@ class QualifiedMatrix extends Matrix {
      * @returns {TreeNode}
      */
     getDirectory(callback) {
-        if (this.path === undefined) {
-            throw new Error("Invalid path");
-        }
         if (callback != null && !this.isStream()) {
             this.contents._subscribers.add(callback);
         }
@@ -95,9 +92,6 @@ class QualifiedMatrix extends Matrix {
      * @returns {TreeNode}
      */
     subscribe(callback) {
-        if (this.path === undefined) {
-            throw new Error("Invalid path");
-        }
         if (callback != null && this.isStream()) {
             this.contents._subscribers.add(callback);
         }
@@ -110,9 +104,6 @@ class QualifiedMatrix extends Matrix {
      * @returns {TreeNode}
      */
     unsubscribe(callback) {
-        if (this.path === undefined) {
-            throw new Error("Invalid path");
-        }
         if (callback != null && this.isStream()) {
             this.contents._subscribers.delete(callback);
         }
@@ -147,7 +138,7 @@ class QualifiedMatrix extends Matrix {
                 while(seq.remain > 0) {
                     let conSeq = seq.getSequence(BER.CONTEXT(0));
                     let con = MatrixConnection.decode(conSeq);
-                    if (con.target !== undefined) {
+                    if (con.target != null) {
                         qm.connections[con.target] = con;
                     }
                 }

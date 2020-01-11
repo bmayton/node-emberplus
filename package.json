@@ -1,10 +1,10 @@
 {
   "name": "node-emberplus",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "description": "Javascript implementation of the Ember+ automation protocol",
   "main": "index.js",
   "scripts": {
-    "test": "jest test",
+    "test": "jest test --coverage",
     "eslint": "eslint ./",
     "start": "node server.js"
   },

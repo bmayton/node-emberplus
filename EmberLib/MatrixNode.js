@@ -23,7 +23,7 @@ class MatrixNode extends Matrix {
         ber.writeInt(this.number);
         ber.endSequence(); // BER.CONTEXT(0)
     
-        if(this.contents !== undefined) {
+        if(this.contents != null) {
             ber.startSequence(BER.CONTEXT(1));
             this.contents.encode(ber);
             ber.endSequence(); // BER.CONTEXT(1)

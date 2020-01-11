@@ -6,10 +6,17 @@ const BER = require('../ber.js');
 const ember = require("../EmberLib");
 
 class S101Client extends S101Socket {
+    /**
+     * 
+     * @param {Socket} socket 
+     * @param {S101Server} server 
+     */
     constructor(socket, server) {
         super()
         this.request = null;
+        /** @type {S101Server} */
         this.server = server;
+        /** @type {Socket} */
         this.socket = socket;
 
         this.pendingRequests = [];
@@ -27,7 +34,7 @@ class S101Client extends S101Socket {
             const ber = new BER.Reader(packet);
             try {
                 const root = ember.rootDecode(ber);
-                if (root !== undefined) {
+                if (root != null) {
                     this.emit('emberTree', root);
                 }
             } catch (e) {
@@ -52,6 +59,10 @@ class S101Client extends S101Socket {
         }
     }
 
+    /**
+     * 
+     * @param {function} cb 
+     */
     addRequest(cb) {
         this.pendingRequests.push(cb);
         this._makeRequest();

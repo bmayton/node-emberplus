@@ -1,5 +1,6 @@
 const Enum = require('enum');
 const BER = require('../ber.js');
+const Errors = require("../errors");
 
 function ParameterTypetoBERTAG(type) {
     switch (type.value) {
@@ -9,7 +10,7 @@ function ParameterTypetoBERTAG(type) {
         case 4: return BER.EMBER_BOOLEAN;
         case 7: return BER.EMBER_OCTETSTRING;
         default:
-            throw new Error(`Unhandled ParameterType ${type}`);
+            throw new Errors.InvalidBERFormat(`Unhandled ParameterType ${type}`);
     }    
 }
 
@@ -21,7 +22,7 @@ function ParameterTypefromBERTAG(tag) {
         case BER.EMBER_BOOLEAN: return ParameterType.boolean;
         case BER.EMBER_OCTETSTRING: return ParameterType.octets;
         default:
-            throw new Error(`Unhandled BER TAB ${tag}`);
+            throw new Errors.InvalidBERFormat(`Unhandled BER TAB ${tag}`);
     }    
 }
 

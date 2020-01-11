@@ -18,47 +18,47 @@ class MatrixContents {
      */
     encode(ber) {
         ber.startSequence(BER.EMBER_SET);
-        if (this.identifier !== undefined) {
+        if (this.identifier != null) {
             ber.startSequence(BER.CONTEXT(0));
             ber.writeString(this.identifier, BER.EMBER_STRING);
             ber.endSequence();
         }
-        if (this.description !== undefined) {
+        if (this.description != null) {
             ber.startSequence(BER.CONTEXT(1));
             ber.writeString(this.description, BER.EMBER_STRING);
             ber.endSequence();
         }
-        if (this.type !== undefined) {
+        if (this.type != null) {
             ber.startSequence(BER.CONTEXT(2));
             ber.writeInt(this.type.value);
             ber.endSequence();
         }
-        if (this.mode !== undefined) {
+        if (this.mode != null) {
             ber.startSequence(BER.CONTEXT(3));
             ber.writeInt(this.mode.value);
             ber.endSequence();
         }
-        if (this.targetCount !== undefined) {
+        if (this.targetCount != null) {
             ber.startSequence(BER.CONTEXT(4));
             ber.writeInt(this.targetCount);
             ber.endSequence();
         }
-        if (this.sourceCount !== undefined) {
+        if (this.sourceCount != null) {
             ber.startSequence(BER.CONTEXT(5));
             ber.writeInt(this.sourceCount);
             ber.endSequence();
         }
-        if (this.maximumTotalConnects !== undefined) {
+        if (this.maximumTotalConnects != null) {
             ber.startSequence(BER.CONTEXT(6));
             ber.writeInt(this.maximumTotalConnects);
             ber.endSequence();
         }
-        if (this.maximumConnectsPerTarget !== undefined) {
+        if (this.maximumConnectsPerTarget != null) {
             ber.startSequence(BER.CONTEXT(7));
             ber.writeInt(this.maximumConnectsPerTarget);
             ber.endSequence();
         }
-        if (this.parametersLocation !== undefined) {
+        if (this.parametersLocation != null) {
             ber.startSequence(BER.CONTEXT(8));
             let param = Number(this.parametersLocation)
             if (isNaN(param)) {
@@ -69,12 +69,12 @@ class MatrixContents {
             }
             ber.endSequence();
         }
-        if (this.gainParameterNumber !== undefined) {
+        if (this.gainParameterNumber != null) {
             ber.startSequence(BER.CONTEXT(9));
             ber.writeInt(this.gainParameterNumber);
             ber.endSequence();
         }
-        if (this.labels !== undefined) {
+        if (this.labels != null) {
             ber.startSequence(BER.CONTEXT(10));
             ber.startSequence(BER.EMBER_SEQUENCE);
             for(var i =0; i < this.labels.length; i++) {
@@ -85,12 +85,12 @@ class MatrixContents {
             ber.endSequence();
             ber.endSequence();
         }
-        if (this.schemaIdentifiers !== undefined) {
+        if (this.schemaIdentifiers != null) {
             ber.startSequence(BER.CONTEXT(11));
             ber.writeInt(this.schemaIdentifiers, BER.EMBER_STRING);
             ber.endSequence();
         }
-        if (this.templateReference !== undefined) {
+        if (this.templateReference != null) {
             ber.startSequence(BER.CONTEXT(12));
             ber.writeRelativeOID(this.templateReference, BER.EMBER_RELATIVE_OID);
             ber.endSequence();

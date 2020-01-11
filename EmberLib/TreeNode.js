@@ -173,7 +173,7 @@ class TreeNode {
         else {
             obj = new this.constructor(this.number);
         }
-        if (this.contents !== undefined) {
+        if (this.contents != null) {
             obj.contents= this.contents;
         }
         return obj;
@@ -198,11 +198,11 @@ class TreeNode {
     
     getTreeBranch(child, modifier) {
         const m = this.getMinimal();
-        if(child !== undefined) {
+        if(child != null) {
             m.addChild(child);
         }
     
-        if(modifier !== undefined) {
+        if(modifier != null) {
             modifier(m);
         }
     
@@ -336,7 +336,7 @@ class TreeNode {
         const children = this.getChildren();
         if (children == null) return null;
         for(var i = 0; i < children.length; i++) {
-            if(children[i].contents !== undefined &&
+            if(children[i].contents != null &&
               children[i].contents.identifier == identifier) {
                 return children[i];
             }
@@ -373,10 +373,7 @@ class TreeNode {
                 }
                 child = node.getElement(path[0]);
                 if(child === null) {
-                //let e = new Error('invalid path: "' + path[0] + '"');
-            //	console.log(e.message ,"Self:", self, "Node:", node);
-                    //callback(e);
-                //DO NOT REJECT !!!! We could still be updating the tree.
+                    //DO NOT REJECT !!!! We could still be updating the tree.
                     return;
                 } else {
                     child.getNodeByPath(client, path.slice(1), callback);
@@ -427,7 +424,7 @@ class TreeNode {
         res.path = node.getPath();        
         if (node.contents) {
             for(let prop in node.contents) {
-                if (prop[0] == "_") {
+                if (prop[0] == "_" || node.contents[prop] == null) {
                     continue;
                 }
                 if (node.contents.hasOwnProperty(prop)) {
@@ -435,7 +432,7 @@ class TreeNode {
                     if ((type === "string") || (type === "number")) {
                         res[prop] = node.contents[prop];
                     }
-                    else if (node.contents[prop].value !== undefined) {
+                    else if (node.contents[prop].value != null) {
                         res[prop] = node.contents[prop].value;
                     }
                     else {

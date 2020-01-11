@@ -21,7 +21,7 @@ class S101Server extends EventEmitter {
      * @param {Socket} socket 
      */
     addClient(socket) {
-        var client = new S101Client(socket, this);
+        const client = new S101Client(socket, this);
         this.emit("connection", client);
     }
     /**

@@ -1,5 +1,5 @@
 "use strict";
-const TreeNode = require("./TreeNode");
+const Element = require("./Element");
 const QualifiedFunction = require("./QualifiedFunction");
 const BER = require('../ber.js');
 const Command = require("./Command");
@@ -7,7 +7,7 @@ const {COMMAND_INVOKE} = require("./constants");
 const FunctionContent = require("./FunctionContent");
 const errors = require("../errors");
 
-class Function extends TreeNode {
+class Function extends Element {
     constructor(number, func) {
         super();
         this.number = number;

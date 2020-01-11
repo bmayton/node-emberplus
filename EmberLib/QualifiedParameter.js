@@ -56,7 +56,7 @@ class QualifiedParameter extends QualifiedElement {
      * @param {QualifiedParameter} other 
      */
     update(other) {
-        if ((other !== undefined) && (other.contents !== undefined)) {
+        if ((other != null) && (other.contents != null)) {
             if (this.contents == null) {
                 this.contents = other.contents;
             }

@@ -14,6 +14,8 @@ class Node extends Element {
     constructor(number) {
         super(number);
         this._seqID = BER.APPLICATION(3);
+        /** @type {NodeContents} */
+        this.contents = null;
     }
 
     /**
