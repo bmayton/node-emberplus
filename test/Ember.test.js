@@ -69,6 +69,9 @@ describe("Ember", () => {
             const identifier = "node_identifier";
             const description = "node_description";
             node.contents = new EmberLib.NodeContents(identifier, description);
+            node.contents.isRoot = true;
+            node.contents.isOnline = true;
+            node.contents.schemaIdentifiers = "schema1";
             const root = new EmberLib.Node(0);
             root.addChild(node);
             const writer = new BER.Writer();
@@ -79,6 +82,9 @@ describe("Ember", () => {
         it("should have a decoder", () => {
             const node = new EmberLib.Node(0);            
             node.contents = new EmberLib.NodeContents(identifier, description);
+            node.contents.isRoot = true;
+            node.contents.isOnline = true;
+            node.contents.schemaIdentifiers = "schema1";
             const writer = new BER.Writer();
             node.encode(writer);
             const n = EmberLib.Node.decode(new BER.Reader(writer.buffer));
@@ -121,6 +127,50 @@ describe("Ember", () => {
             expect(f.number).toBe(func.number);
             expect(f.contents.identifier).toBe(identifier);
             expect(f.contents.description).toBe(description);
+        });
+    });
+    describe("Parameter", () => {
+        it("should have an update function", () => {
+            const parameter = new EmberLib.Parameter(0);
+            const VALUE = 1;
+            let count = 0;
+            parameter.contents = new EmberLib.ParameterContents(VALUE, "integer");
+            parameter.contents._subscribers.add(() => {count++;});
+            const newParameter = new EmberLib.Parameter(0);
+            const NEW_VALUE = VALUE + 1;
+            newParameter.contents = new EmberLib.ParameterContents(NEW_VALUE, "integer");
+            parameter.update(newParameter);
+            expect(count).toBe(1);
+            expect(parameter.contents.value).toBe(NEW_VALUE);
+        });
+        it("should have setValue function", () => {
+            const parameter = new EmberLib.Parameter(0);
+            const VALUE = 1;
+            parameter.contents = new EmberLib.ParameterContents(VALUE, "integer");
+            const NEW_VALUE = VALUE + 1;
+            const setVal = parameter.setValue(NEW_VALUE);
+            expect(setVal.contents.value).toBe(NEW_VALUE);
+        });
+        it("should have decoder function", () => {
+            const parameter = new EmberLib.Parameter(0);
+            const VALUE = 1;
+            parameter.contents = new EmberLib.ParameterContents(VALUE, "integer");
+            parameter.contents.minimum = 0;
+            parameter.contents.maximum = 100;
+            parameter.contents.access = EmberLib.ParameterAccess.readWrite;
+            parameter.contents.format = "db";
+            parameter.contents.factor = 10;
+            parameter.contents.isOnline = true;
+            parameter.contents.formula = "x10";
+            parameter.contents.step = 2;
+            parameter.contents.default = 0;
+            parameter.contents.type = EmberLib.ParameterType.integer;
+            const node = new EmberLib.Node(0);
+            parameter.addChild(node);
+            const writer = new BER.Writer();
+            parameter.encode(writer);
+            const newParameter = EmberLib.Parameter.decode(new BER.Reader(writer.buffer));
+            expect(newParameter.getChildren().length).toBe(1);
         });
     });
 });

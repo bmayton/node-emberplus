@@ -8,6 +8,11 @@ const BER = require('../ber.js');
 const errors = require("../errors");
 
 class ParameterContents {
+    /**
+     * 
+     * @param {string|number} value 
+     * @param {string} type 
+     */
     constructor(value, type) {
         this._subscribers = new Set();
         if(value != null) {
