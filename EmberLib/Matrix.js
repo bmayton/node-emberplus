@@ -13,6 +13,9 @@ class Matrix extends TreeNode
         super();
         this._connectedSources = {};
         this._numConnections = 0;
+        this.targets = null;
+        this.sources = null;
+        this.connections = {};
     }
 
     isMatrix() {
@@ -175,17 +178,23 @@ class Matrix extends TreeNode
      * @returns {boolean}
      */
     static canConnect(matrixNode, targetID, sources, operation) {
+        if (matrixNode.connections == null) {
+            matrixNode.connections = {};
+        }
+        if (matrixNode.connections[targetID] == null) {
+            matrixNode.connections[targetID] = new MatrixConnection(targetID);
+        }
         const type = matrixNode.contents.type == null ? MatrixType.oneToN : matrixNode.contents.type;
         const connection = matrixNode.connections[targetID];
         const oldSources = connection == null || connection.sources == null ? [] : connection.sources.slice();
         const newSources = operation === MatrixOperation.absolute ? sources : oldSources.concat(sources);
         const sMap = new Set(newSources.map(i => Number(i)));
-        
+               
         if (matrixNode.connections[targetID].isLocked()) {
             return false;
         }
         if (type === MatrixType.oneToN &&
-            matrixNode.contents.maximumConnectsPerTarget == null &&
+            matrixNode.contents.maximumTotalConnects == null &&
             matrixNode.contents.maximumConnectsPerTarget == null) { 
             return sMap.size < 2;
         }
@@ -389,20 +398,20 @@ class Matrix extends TreeNode
      */
     static validateConnection(matrixNode, targetID, sources) {
         if (targetID < 0) {
-            throw new Errors.InvalidEmberNode(matrixNode.getPath(), `Invalid negative target index ${targetID}`);
+            throw new Errors.InvalidMatrixSignal(targetID, "target");
         }
         for(let i = 0; i < sources.length; i++) {
             if (sources[i] < 0) {
-                throw new Errors.InvalidEmberNode(matrixNode.getPath(),`Invalid negative source at index ${i}`);
+                throw new Errors.InvalidMatrixSignal(sources[i], `Source at index ${i}`);
             }
         }
         if (matrixNode.contents.mode === MatrixMode.linear) {
             if (targetID >= matrixNode.contents.targetCount) {
-                throw Errors.InvalidEmberNode(matrixNode.getPath(),`targetID ${targetID} higher than max value ${matrixNode.contents.targetCount}`);
+                throw new Errors.InvalidMatrixSignal(targetID, `Target higher than max value ${matrixNode.contents.targetCount}`);
             }
             for(let i = 0; i < sources.length; i++) {
                 if (sources[i] >= matrixNode.contents.sourceCount) {
-                    throw new Errors.InvalidEmberNode(matrixNode.getPath(),`Invalid source at index ${i}`);
+                    throw new Errors.InvalidMatrixSignal(sources[i],`Source at index ${i} higher than max ${matrixNode.contents.sourceCount}`);
                 }
             }
         }
@@ -411,25 +420,25 @@ class Matrix extends TreeNode
         }    
         else {
             let found = false;
-            for(let i = 0; i < matrixNode.targets; i++) {
+            for(let i = 0; i < matrixNode.targets.length; i++) {
                 if (matrixNode.targets[i] === targetID) {
                     found = true;
                     break;
                 }
             }
             if (!found) {
-                throw new Errors.InvalidEmberNode(matrixNode.getPath(),`Unknown targetid ${targetID}`);
+                throw new Errors.InvalidMatrixSignal(targetID, "Not part of existing targets");
             }
             found = false;
             for(let i = 0; i < sources.length; i++) {
-                for(let j = 0; i < matrixNode.sources; j++) {
+                for(let j = 0; j < matrixNode.sources.length; j++) {
                     if (matrixNode.sources[j] === sources[i]) {
                         found = true;
                         break;
                     }
                 }
                 if (!found) {
-                    throw new Errors.InvalidEmberNode(matrixNode.getPath(),`Unknown source at index ${i}`);
+                    throw new Errors.InvalidMatrixSignal(sources[i],`Unknown source at index ${i}`);
                 }
             }
         }    

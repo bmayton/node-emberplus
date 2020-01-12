@@ -176,3 +176,15 @@ class InvalidResultFormat extends Error {
     }
 }
 module.exports.InvalidResultFormat = InvalidResultFormat;
+
+class InvalidMatrixSignal extends Error {
+    /**
+     * 
+     * @param {number} value 
+     * @param {string} info 
+     */
+    constructor(value, info) {
+        super(`Invalid Matrix Signal ${value}: ${info}`);
+    }
+}
+module.exports.InvalidMatrixSignal = InvalidMatrixSignal;

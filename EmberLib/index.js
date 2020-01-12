@@ -10,6 +10,7 @@ const FunctionContent = require("./FunctionContent");
 const Invocation = require("./Invocation");
 const InvocationResult = require("./InvocationResult");
 const Label = require("./Label");
+const Matrix = require("./Matrix");
 const MatrixNode = require("./MatrixNode");
 const MatrixMode = require("./MatrixMode");
 const MatrixType = require("./MatrixType");
@@ -128,6 +129,7 @@ module.exports = {
     Invocation,
     InvocationResult,
     Label,
+    Matrix,
     MatrixNode,
     MatrixMode,
     MatrixType,

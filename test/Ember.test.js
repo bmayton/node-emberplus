@@ -4,7 +4,7 @@ const s101Buffer = Buffer.from("fe000e0001c001021f026082008d6b820089a0176a15a005
 const errorBuffer = Buffer.from("76fe000e0001c001021f026082008d6b820089a0176a15a0050d03010201a10c310aa0080c066c6162656c73a01b6a19a0050d03010202a110310ea00c0c0a706172616d6574657273a051714fa0050d03010203a1463144a0080c066d6174726978a403020104a503020104aa183016a0147212a0050d03010201a1090c075072696d617279a203020102a303020101a8050d03010202a903020101f24cff", "hex");
 const ember = require("../EmberLib");
 const BER = require('../ber.js');
-const errors = require('../errors.js');
+const Errors = require('../errors.js');
 const EmberLib = require("../EmberLib");
 
 const identifier = "node_identifier";
@@ -30,9 +30,9 @@ describe("Ember", () => {
             client.codec.dataIn(s101Buffer);
         });
 
-        it("should handle errors in message", () => {
+        it("should handle Errors in message", () => {
             var ber = new BER.Reader(errorBuffer);
-            expect(() => ember.Root.decode(ber)).toThrow(errors.UnimplementedEmberTypeError);
+            expect(() => ember.Root.decode(ber)).toThrow(Errors.UnimplementedEmberTypeError);
         });
     });
     describe("Command", () => {
@@ -171,6 +171,265 @@ describe("Ember", () => {
             parameter.encode(writer);
             const newParameter = EmberLib.Parameter.decode(new BER.Reader(writer.buffer));
             expect(newParameter.getChildren().length).toBe(1);
+        });
+    });
+    describe("Matrix", () => {
+        describe("validateConnection", () => {
+            let matrixNode;
+            const TARGETCOUNT = 5;
+            const SOURCECOUNT = 5;
+            beforeAll(() => {
+                matrixNode = new EmberLib.MatrixNode(0);
+                matrixNode.contents = new EmberLib.MatrixContents(
+                    EmberLib.MatrixType.onetoN, 
+                    EmberLib.MatrixMode.linear
+                );
+                matrixNode.contents.identifier = "matrix";
+                matrixNode.contents.description = "matrix";
+                matrixNode.contents.targetCount = TARGETCOUNT;
+                matrixNode.contents.sourceCount = SOURCECOUNT;
+            });
+            it("should through an error if target is negative", () => {
+                try {
+                    EmberLib.Matrix.validateConnection(matrixNode, -1, []);
+                    throw new Error("Should not succeed");
+                }
+                catch(e) {
+                    expect(e instanceof Errors.InvalidMatrixSignal).toBeTruthy();
+                }
+            });
+            it("should through an error if source is negative", () => {
+                try {
+                    EmberLib.Matrix.validateConnection(matrixNode, 0, [-1]);
+                    throw new Error("Should not succeed");
+                }
+                catch(e) {
+                    expect(e instanceof Errors.InvalidMatrixSignal).toBeTruthy();
+                }
+            });
+            it("should through an error if target higher than max target", () => {
+                try {
+                    EmberLib.Matrix.validateConnection(matrixNode, TARGETCOUNT, [0]);
+                    throw new Error("Should not succeed");
+                }
+                catch(e) {
+                    expect(e instanceof Errors.InvalidMatrixSignal).toBeTruthy();
+                }
+            });
+            it("should through an error if target higher than max target", () => {
+                try {
+                    EmberLib.Matrix.validateConnection(matrixNode, 0, [SOURCECOUNT]);
+                    throw new Error("Should not succeed");
+                }
+                catch(e) {                    
+                    expect(e instanceof Errors.InvalidMatrixSignal).toBeTruthy();
+                }
+            });
+            it("should through an error if non-Linear Matrix without targets", () => {
+                matrixNode.contents.mode = EmberLib.MatrixMode.nonLinear;
+                try {
+                    EmberLib.Matrix.validateConnection(matrixNode, 0, [0]);
+                    throw new Error("Should not succeed");
+                }
+                catch(e) {        
+                    matrixNode.contents.mode = EmberLib.MatrixMode.linear;            
+                    expect(e instanceof Errors.InvalidEmberNode).toBeTruthy();
+                }
+            });
+            it("should through an error if non-Linear Matrix without sources", () => {
+                matrixNode.contents.mode = EmberLib.MatrixMode.nonLinear;
+                matrixNode.targets = [0, 3];
+                try {
+                    EmberLib.Matrix.validateConnection(matrixNode, 0, [0]);
+                    throw new Error("Should not succeed");
+                }
+                catch(e) {   
+                    matrixNode.contents.mode = EmberLib.MatrixMode.linear;
+                    expect(e instanceof Errors.InvalidEmberNode).toBeTruthy();
+                }
+            });
+            it("should through an error if non-Linear Matrix and not valid target", () => {
+                matrixNode.contents.mode = EmberLib.MatrixMode.nonLinear;
+                matrixNode.targets = [0, 3];
+                matrixNode.sources = [0, 3];
+                try {
+                    EmberLib.Matrix.validateConnection(matrixNode, 1, [0]);
+                    throw new Error("Should not succeed");
+                }
+                catch(e) {   
+                    matrixNode.contents.mode = EmberLib.MatrixMode.linear;
+                    expect(e instanceof Errors.InvalidMatrixSignal).toBeTruthy();
+                }
+            });
+            it("should through an error if non-Linear Matrix and not valid source", () => {
+                matrixNode.contents.mode = EmberLib.MatrixMode.nonLinear;
+                matrixNode.targets = [0, 3];
+                matrixNode.sources = [0, 3];
+                try {
+                    EmberLib.Matrix.validateConnection(matrixNode, 0, [1]);
+                    throw new Error("Should not succeed");
+                }
+                catch(e) {   
+                    matrixNode.contents.mode = EmberLib.MatrixMode.linear;                    
+                    expect(e instanceof Errors.InvalidMatrixSignal).toBeTruthy();
+                }
+            });
+            it("should not through an error on valid non-linear connect", () => {
+                let error = null;
+                matrixNode.contents.mode = EmberLib.MatrixMode.nonLinear;
+                matrixNode.targets = [0, 3];
+                matrixNode.sources = [0, 3];
+                try {
+                    EmberLib.Matrix.validateConnection(matrixNode, 0, [0]);                    
+                }
+                catch(e) {   
+                    error = e;
+                }
+                expect(error == null).toBeTruthy();
+            });
+        });
+        describe("MatrixUpdate", () => {
+            let matrixNode;
+            const TARGETCOUNT = 5;
+            const SOURCECOUNT = 5;
+            beforeAll(() => {
+                matrixNode = new EmberLib.MatrixNode(0);
+                matrixNode.contents = new EmberLib.MatrixContents(
+                    EmberLib.MatrixType.onetoN, 
+                    EmberLib.MatrixMode.linear
+                );
+                matrixNode.contents.identifier = "matrix";
+                matrixNode.contents.description = "matrix";
+                matrixNode.contents.targetCount = TARGETCOUNT;
+                matrixNode.contents.sourceCount = SOURCECOUNT;
+            });
+            it("should not through an error on valid non-linear connect", () => {
+                let error = null;
+                const newMatrixNode = new EmberLib.MatrixNode(0);
+                newMatrixNode.contents = new EmberLib.MatrixContents(
+                    EmberLib.MatrixType.onetoN, 
+                    EmberLib.MatrixMode.nonLinear
+                );
+                newMatrixNode.targets = [0, 3];
+                newMatrixNode.sources = [0, 3];
+                newMatrixNode.contents.identifier = "matrix";
+                newMatrixNode.contents.description = "matrix";
+
+
+                matrixNode.contents.mode = EmberLib.MatrixMode.nonLinear;
+                matrixNode.connections = null;
+                try {
+                    EmberLib.Matrix.MatrixUpdate(matrixNode, newMatrixNode);                    
+                }
+                catch(e) {   
+                    error = e;
+                }
+                expect(error == null).toBeTruthy();
+                expect(matrixNode.targets).toBeDefined();
+                expect(matrixNode.targets.length).toBe(newMatrixNode.targets.length);
+                expect(matrixNode.sources.length).toBe(newMatrixNode.sources.length);
+            });
+        });
+        describe("disconnectSources", () => {
+            let matrixNode;
+            const TARGETCOUNT = 5;
+            const SOURCECOUNT = 5;
+            beforeAll(() => {
+                matrixNode = new EmberLib.MatrixNode(0);
+                matrixNode.contents = new EmberLib.MatrixContents(
+                    EmberLib.MatrixType.onetoN, 
+                    EmberLib.MatrixMode.linear
+                );
+                matrixNode.contents.identifier = "matrix";
+                matrixNode.contents.description = "matrix";
+                matrixNode.contents.targetCount = TARGETCOUNT;
+                matrixNode.contents.sourceCount = SOURCECOUNT;
+            });
+            it("should generate the connection structure if not existent", () => {
+                EmberLib.Matrix.disconnectSources(matrixNode, 0, [1]);
+            });
+        });
+        describe("decodeConnections", () => {
+            let matrixNode;
+            const TARGETCOUNT = 5;
+            const SOURCECOUNT = 5;
+            beforeAll(() => {
+                matrixNode = new EmberLib.MatrixNode(0);
+                matrixNode.contents = new EmberLib.MatrixContents(
+                    EmberLib.MatrixType.onetoN, 
+                    EmberLib.MatrixMode.linear
+                );
+                matrixNode.contents.identifier = "matrix";
+                matrixNode.contents.description = "matrix";
+                matrixNode.contents.targetCount = TARGETCOUNT;
+                matrixNode.contents.sourceCount = SOURCECOUNT;
+            });
+            it("should generate the connection structure if not existent", () => {
+                const SOURCEID = 0;
+                EmberLib.Matrix.connectSources(matrixNode, 0, [SOURCEID]);
+                const writer = new BER.Writer();
+                matrixNode.encodeConnections(writer);
+                const ber = new BER.Reader(writer.buffer);
+                const seq = ber.getSequence(BER.CONTEXT(5));
+                const connections = EmberLib.Matrix.decodeConnections(seq);
+                expect(connections[0].sources).toBeDefined();
+                expect(connections[0].sources.length).toBe(1);
+                expect(connections[0].sources[0]).toBe(SOURCEID);
+            });
+        });
+        describe("canConnect", () => {
+            let matrixNode;
+            const TARGETCOUNT = 5;
+            const SOURCECOUNT = 5;
+            beforeAll(() => {
+                matrixNode = new EmberLib.MatrixNode(0);
+                matrixNode.contents = new EmberLib.MatrixContents(
+                    EmberLib.MatrixType.onetoN, 
+                    EmberLib.MatrixMode.linear
+                );
+                matrixNode.contents.identifier = "matrix";
+                matrixNode.contents.description = "matrix";
+                matrixNode.contents.targetCount = TARGETCOUNT;
+                matrixNode.contents.sourceCount = SOURCECOUNT;
+            });
+            it("should return false if more than 1 source in 1toN", () => {
+                matrixNode.connections = null;
+                matrixNode.contents.maximumTotalConnects = 1;
+                const res = EmberLib.Matrix.canConnect(matrixNode, 0, [0,3]);
+                expect(res).toBeFalsy();
+            });
+        });
+        describe("Matrix Non-Linear", () => {
+            it("should have encoder / decoder", () => {
+                const matrixNode = new EmberLib.MatrixNode(0);
+                matrixNode.contents = new EmberLib.MatrixContents(
+                    EmberLib.MatrixType.onetoN, 
+                    EmberLib.MatrixMode.nonLinear
+                );
+                matrixNode.contents.identifier = "matrix";
+                matrixNode.contents.description = "matrix";
+                matrixNode.targets = [0,3];
+                matrixNode.sources = [1,2];
+                const writer = new BER.Writer();
+                matrixNode.encode(writer);
+                const newMatrixNode = EmberLib.Matrix.decode(new BER.Reader(writer.buffer));
+                expect(newMatrixNode.targets).toBeDefined();
+            });
+            it("should have connect function", () => {
+                const root = new EmberLib.Root();
+                const matrixNode = new EmberLib.MatrixNode(0);
+                matrixNode.contents = new EmberLib.MatrixContents(
+                    EmberLib.MatrixType.onetoN, 
+                    EmberLib.MatrixMode.nonLinear
+                );
+                matrixNode.contents.identifier = "matrix";
+                matrixNode.contents.description = "matrix";
+                matrixNode.targets = [0,3];
+                matrixNode.sources = [1,2];
+                root.addChild(matrixNode);
+                const connect = matrixNode.connect({0: new EmberLib.MatrixConnection(0)});
+                expect(connect).toBeDefined();
+            });
         });
     });
 });

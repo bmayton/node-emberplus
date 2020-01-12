@@ -74,12 +74,6 @@ function ExtendedReader(data) {
 util.inherits(ExtendedReader, BER.Reader);
 module.exports.Reader = ExtendedReader;
 
-
-readBlock = function(ber) {
-
-}
-
-
 ExtendedReader.prototype.getSequence = function(tag) {
     var buf = this.readString(tag, true);
     return new ExtendedReader(buf);
