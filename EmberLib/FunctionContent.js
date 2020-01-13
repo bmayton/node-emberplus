@@ -42,15 +42,20 @@ class FunctionContent {
             ber.endSequence(); // BER.CONTEXT(2)
         }
     
-        if(this.result != null) {
+        if(this.result != null && this.result.length > 0) {
             ber.startSequence(BER.CONTEXT(3));
-            ber.startSequence(BER.EMBER_SEQUENCE);
-            for(let i = 0; i < this.result.length; i++) {
+            for(let i = 0; i < this.result.length; i++) {                                
                 ber.startSequence(BER.CONTEXT(0));
+                /** @type {FunctionArgument} */
                 this.result[i].encode(ber);
                 ber.endSequence();
-            }
-            ber.endSequence();
+            }            
+            ber.endSequence(); // BER.CONTEXT(3)
+        }
+
+        if(this.templateReference != null) {
+            ber.startSequence(BER.CONTEXT(4));
+            ber.writeRelativeOID(this.templateReference, BER.EMBER_RELATIVE_OID);
             ber.endSequence(); // BER.CONTEXT(3)
         }
     
@@ -83,9 +88,12 @@ class FunctionContent {
                 fc.result = [];
                 while(seq.remain > 0) {
                     tag = seq.peek();
-                    let dataSeq = seq.getSequence(tag);
+                    const dataSeq = seq.getSequence(tag);
                     if (tag === BER.CONTEXT(0)) {
                         fc.result.push(FunctionArgument.decode(dataSeq));
+                    }
+                    else {
+                        throw new errors.UnimplementedEmberTypeError(tag);
                     }
                 }
             } else if(tag == BER.CONTEXT(4)) {

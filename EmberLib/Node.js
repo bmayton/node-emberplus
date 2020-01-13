@@ -4,7 +4,7 @@ const Element = require("./Element");
 const QualifiedNode = require("./QualifiedNode");
 const NodeContents = require("./NodeContents");
 const BER = require('../ber.js');
-const errors = require("../errors");
+const Errors = require("../errors");
 
 class Node extends Element {
     /**
@@ -13,7 +13,7 @@ class Node extends Element {
      */
     constructor(number) {
         super(number);
-        this._seqID = BER.APPLICATION(3);
+        this._seqID = Node.BERID;
         /** @type {NodeContents} */
         this.contents = null;
     }
@@ -24,16 +24,6 @@ class Node extends Element {
     isNode() {
         return true;
     }    
-
-    /**
-     * 
-     * @param {function} callback 
-     */
-    subscribe(callback) {
-        if (callback != null && this.isStream()) {
-            this.contents._subscribers.add(callback);
-        }
-    }
 
     /**
      * @returns {QualifiedNode}
@@ -51,7 +41,7 @@ class Node extends Element {
      */
     static decode(ber) {
         const n = new Node();
-        ber = ber.getSequence(BER.APPLICATION(3));
+        ber = ber.getSequence(Node.BERID);
     
         while(ber.remain > 0) {
             let tag = ber.peek();
@@ -63,10 +53,17 @@ class Node extends Element {
             } else if(tag == BER.CONTEXT(2)) {
                 n.decodeChildren(seq);
             } else {
-                throw new errors.UnimplementedEmberTypeError(tag);
+                throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }
         return n;
+    }
+
+    /**
+     * @returns {number}
+     */
+    static get BERID() {
+        return BER.APPLICATION(3);
     }
 }
 

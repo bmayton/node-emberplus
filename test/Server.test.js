@@ -19,28 +19,27 @@ describe("server", function() {
             expect(root).toBeDefined();
             expect(root.elements).toBeDefined();
             expect(root.elements.size).toBe(1);
-            console.log("root", root.getElementByNumber(0).contents);
             expect(root.getElementByNumber(0).contents.identifier).toBe("scoreMaster");
             expect(root.getElementByNumber(0).elements.size).toBe(jsonTree[0].children.length);
         });
     });
 
     describe("Server - Client communication", function() {
-        let server,client;
+        let server,client,jsonTree;
         beforeAll(function() {
             jsonTree = jsonRoot();
             const root = EmberServer.JSONtoTree(jsonTree);
             server = new EmberServer(LOCALHOST, PORT, root);
             server.on("error", e => {
+                // eslint-disable-next-line no-console
                 console.log(e);
             });
             server.on("clientError", e => {
+                // eslint-disable-next-line no-console
                 console.log(e);
             });
             //server._debug = true;
-            return server.listen().then(() => {
-                console.log("server listening");
-            });
+            return server.listen();
         });
         afterAll(function() {
             return server.close();
@@ -51,7 +50,6 @@ describe("server", function() {
             return Promise.resolve()
                 .then(() => client.connect())
                 .then(() => {
-                    console.log("client connected");
                     return client.getDirectory();
                 })
                 .then(() => {
@@ -71,7 +69,7 @@ describe("server", function() {
                     // Issue #33 EmberServer.handleGetDirectory does not subscribe to child parameters
                     expect(server.subscribers["0.0.0"]).toBeDefined();
                     // Keepalive
-	                return client.disconnect();
+                    return client.disconnect();
                 });
         });
         it("should be able to modify a parameter", () => {
@@ -110,7 +108,6 @@ describe("server", function() {
                     ]);
                 })
                 .then(result => {
-                    console.log(result);
                     expect(result).toBeDefined();
                     expect(result.result).toBeDefined();
                     expect(result.result.length).toBe(1);
@@ -119,7 +116,7 @@ describe("server", function() {
                 });
         });
         
-	    it("should be able to get child with tree.getNodeByPath", function() {
+        it("should be able to get child with tree.getNodeByPath", function() {
             //server._debug = true;
             client = new EmberClient(LOCALHOST, PORT);
             //client._debug = true;
@@ -127,17 +124,14 @@ describe("server", function() {
             return Promise.resolve()
                 .then(() => client.connect())
                 .then(() => {
-                    console.log("client connected");
                     return client.getDirectory();
                 })
                 .then(() =>  client.getNodeByPath("scoreMaster/identity/product"))
-                .then(child => {
-                    console.log(child);
+                .then(() => {
                     return client.getNodeByPath("scoreMaster/router/labels/group 1");
                 })
-                .then(child => {
-                    console.log("router/labels", child);
-			        return client.disconnect();
+                .then(() => {
+                    return client.disconnect();
                 });
         });
         it("should be able to get child with getElementByPath", function() {
@@ -148,17 +142,14 @@ describe("server", function() {
             return Promise.resolve()
                 .then(() => client.connect())
                 .then(() => {
-                    console.log("client connected");
                     return client.getDirectory();
                 })
                 .then(() =>  client.getElementByPath("scoreMaster/identity/product"))
-                .then(child => {
-                    console.log(child);
+                .then(() => {
                     return client.getElementByPath("scoreMaster/router/labels/group 1");
                 })
-                .then(child => {
-                    console.log("router/labels", child);
-			        return client.disconnect();
+                .then(() => {
+                    return client.disconnect();
                 });
         });
         it("should throw an error if getNodeByPath for unknown path", function() {
@@ -167,12 +158,10 @@ describe("server", function() {
             return Promise.resolve()
                 .then(() => client.connect())
                 .then(() => {
-                    console.log("client connected");
                     return client.getDirectory();
                 })
                 .then(() => client.getNodeByPath("scoreMaster/router/labels/group"))
-                .then(child => {
-                    console.log("router/labels", child);
+                .then(() => {
                     throw new Error("Should not succeed");
                 })
                 .catch(e => {
@@ -193,7 +182,6 @@ describe("server", function() {
                     return client.getElementByPath(matrix.getPath());
                 })
                 .then(matrix => {
-                    console.log(matrix);
                     expect(matrix.connections['0'].sources).toBeDefined();
                     expect(matrix.connections['0'].sources.length).toBe(1);
                     expect(matrix.connections['0'].sources[0]).toBe(1);                    
@@ -244,7 +232,7 @@ describe("server", function() {
                 .then(parameter => {
                     server._subscribe = server.subscribe;
                     let _resolve;
-                    const p = new Promise((resolve, reject) => {
+                    const p = new Promise((resolve) => {
                         _resolve = resolve;
                     });
                     server.subscribe = (c,e) => {
@@ -312,7 +300,7 @@ describe("server", function() {
         it("should verify if connection allowed in 1-to-1", function() {
             const matrix = server.tree.getElementByPath("0.1.0");
             let disconnectCount = 0;
-            const handleDisconnect = info => {
+            const handleDisconnect = () => {
                 disconnectCount++;
             }
             server.on("matrix-disconnect", handleDisconnect.bind(this));
@@ -344,7 +332,7 @@ describe("server", function() {
         it("should disconnect if trying to connect same source and target in 1-to-1", function() {
             const matrix = server.tree.getElementByPath("0.1.0");
             let disconnectCount = 0;
-            const handleDisconnect = info => {
+            const handleDisconnect = () => {
                 disconnectCount++;
             }
             server.on("matrix-disconnect", handleDisconnect.bind(this));
@@ -360,7 +348,7 @@ describe("server", function() {
         it("should be able to lock a connection", function() {
             const matrix = server.tree.getElementByPath("0.1.0");
             let disconnectCount = 0;
-            const handleDisconnect = info => {
+            const handleDisconnect = () => {
                 disconnectCount++;
             }
             server.on("matrix-disconnect", handleDisconnect.bind(this));
@@ -429,9 +417,11 @@ describe("server", function() {
         it("should return modified answer on absolute connect", function() {
             let client;
             server.on("error", e => {
+                // eslint-disable-next-line no-console
                 console.log(e);
             });
             server.on("clientError", e => {
+                // eslint-disable-next-line no-console
                 console.log(e);
             });
             //server._debug = true;
@@ -443,12 +433,8 @@ describe("server", function() {
                 .then(() => client.connect())
                 .then(() => client.getDirectory())
                 .then(() => client.getNodeByPathnum("0.1.0"))
-                .then(matrix => {
-                    console.log(matrix);
-                    return client.matrixSetConnection(matrix, 0, [1]);
-                })
+                .then(matrix => client.matrixSetConnection(matrix, 0, [1]))
                 .then(result => {
-                    console.log(result);
                     expect(result).toBeDefined();
                     expect(result.connections).toBeDefined();
                     expect(result.connections[0]).toBeDefined();
@@ -456,7 +442,6 @@ describe("server", function() {
                     return client.disconnect();
                 })
                 .then(() => {
-                    console.log("closing server");
                     server.close();
                 });
         });
@@ -469,9 +454,11 @@ describe("server", function() {
             const root = EmberServer.JSONtoTree(jsonTree);
             server = new EmberServer(LOCALHOST, PORT, root);
             server.on("error", e => {
+                // eslint-disable-next-line no-console
                 console.log(e);
             });
             server.on("clientError", e => {
+                // eslint-disable-next-line no-console
                 console.log(e);
             });
             return server.listen();
@@ -481,7 +468,6 @@ describe("server", function() {
         });
         it("should not auto subscribe stream parameter", function() {
             const parameter = server.tree.getElementByPath("0.0.2");
-            console.log(parameter);
             expect(parameter.isStream()).toBeTruthy();
             expect(server.subscribers["0.0.2"]).not.toBeDefined();
         });
@@ -498,13 +484,12 @@ describe("server", function() {
                 })
                 .then(() => client.getNodeByPathnum("0.0.2"))
                 .then(parameter => {
-                    console.log(parameter);
                     expect(server.subscribers["0.0.2"]).not.toBeDefined();
                     expect(parameter.contents._subscribers).toBeDefined();
                     expect(parameter.contents._subscribers.size).toBe(0);
                     server._subscribe = server.subscribe;
                     let _resolve;
-                    const p = new Promise((resolve, reject) => {
+                    const p = new Promise(resolve => {
                         _resolve = resolve;
                     });
                     server.subscribe = (c,e) => {
@@ -523,24 +508,20 @@ describe("server", function() {
                     expect(parameter.contents._subscribers.size).toBe(1);
                     server._unsubscribe = server.unsubscribe;
                     let _resolve;
-                    const p = new Promise((resolve, reject) => {
+                    const p = new Promise(resolve => {
                         _resolve = resolve;
                     });
                     server.unsubscribe = (c,e) => {
-                        console.log("unsubscribe");
                         server._unsubscribe(c,e);
                         _resolve();
                     };
-                    console.log(parameter);
                     return client.unsubscribe(parameter, cb).then(() => (p))
                 })
                 .then(() => {       
-                    console.log(server.subscribers);             
                     expect(server.subscribers["0.0.2"]).toBeDefined();
                     return client.getNodeByPathnum("0.0.2");
                 })
                 .then(parameter => {
-                    console.log(parameter);
                     expect(server.subscribers["0.0.2"]).toBeDefined();
                     expect(server.subscribers["0.0.2"].size).toBe(0);
                     expect(parameter.contents._subscribers).toBeDefined();

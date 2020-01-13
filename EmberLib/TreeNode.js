@@ -2,6 +2,7 @@
 const BER = require('../ber.js');
 const Command = require("./Command");
 const {COMMAND_GETDIRECTORY, COMMAND_SUBSCRIBE, COMMAND_UNSUBSCRIBE} = require("./constants");
+const Errors = require("../errors");
 
 class TreeNode {
     constructor() {
@@ -9,6 +10,25 @@ class TreeNode {
         this._parent = null;  
     }
     
+    _isSubscribable(callback) {
+        return (callback != null && this.isParameter() && this.isStream());
+    }
+
+    _subscribe(callback) {
+        if (this.contents == null) {
+            throw new Errors.InvalidEmberNode(this.getPath(), "No content to subscribe");
+        }
+        this.contents._subscribers.add(callback);
+    }
+
+    _unsubscribe(callback) {
+        this.contents._subscribers.delete(callback);
+    }
+
+    /**
+     * 
+     * @param {TreeNode} child 
+     */
     addChild(child) {
         TreeNode.addElement(this, child);
     }
@@ -222,26 +242,21 @@ class TreeNode {
         }
     }
     
+    getCommand(cmd) {
+        return this.getTreeBranch(new Command(cmd));
+    }
+
+    /**
+     * 
+     * @param {function} callback 
+     */
     getDirectory(callback) {
-        if (callback != null && this.contents != null && !this.isStream()) {
-            this.contents._subscribers.add(callback);
+        if (this._isSubscribable(callback)) {
+            this._subscribe(callback);
         }
-        return this.getTreeBranch(new Command(COMMAND_GETDIRECTORY));
+        return this.getCommand(COMMAND_GETDIRECTORY);
     }
     
-    subscribe(callback) {
-        if (callback != null && this.isParameter() && this.isStream()) {
-            this.contents._subscribers.add(callback);
-        }
-        return this.getTreeBranch(new Command(COMMAND_SUBSCRIBE));
-    }
-    
-    unsubscribe(callback) {
-        if (callback != null && this.isParameter() && this.isStream()) {
-            this.contents._subscribers.delete(callback);
-        }
-        return this.getTreeBranch(new Command(COMMAND_UNSUBSCRIBE));
-    }
     
     /**
      * @returns {TreeNode[]}
@@ -473,6 +488,26 @@ class TreeNode {
 
         /**
      * 
+     * @param {function} callback 
+     */
+    subscribe(callback) {
+        if (this._isSubscribable(callback)) {
+            this._subscribe(callback);
+        }
+        return this.getCommand(COMMAND_SUBSCRIBE);
+    }
+
+    /**
+     * 
+     * @param {*} callback 
+     */
+    unsubscribe(callback) {
+        this._unsubscribe(callback);
+        return this.getCommand(COMMAND_UNSUBSCRIBE);
+    }
+
+    /**
+     * 
      * @param {TreeNode} other 
      */
     update(other) {
@@ -481,9 +516,18 @@ class TreeNode {
                 this.contents = other.contents;
             }
             else {
+                let modified = false;
                 for (var key in other.contents) {
-                    if (other.contents.hasOwnProperty(key)) {
+                    if (key[0] === "_") { continue; }
+                    if (other.contents.hasOwnProperty(key) && 
+                        this.contents[key] != other.contents[key]) {
                         this.contents[key] = other.contents[key];
+                        modified = true;
+                    }
+                }
+                if (modified && this.contents._subscribers != null) {
+                    for(let cb of this.contents._subscribers) {
+                        cb(this);
                     }
                 }
             }

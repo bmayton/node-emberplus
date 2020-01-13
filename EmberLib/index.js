@@ -28,6 +28,7 @@ const QualifiedFunction = require("./QualifiedFunction");
 const QualifiedMatrix = require("./QualifiedMatrix");
 const QualifiedNode = require("./QualifiedNode");
 const QualifiedParameter = require("./QualifiedParameter");
+const StringIntegerPair = require("./StringIntegerPair");
 const StringIntegerCollection = require("./StringIntegerCollection");
 const StreamFormat = require("./StreamFormat");
 const StreamDescription = require("./StreamDescription");
@@ -149,6 +150,7 @@ module.exports = {
     QualifiedParameter,
     StreamFormat,
     StreamDescription,
+    StringIntegerPair,
     StringIntegerCollection,
     Subscribe,COMMAND_SUBSCRIBE,
     Unsubscribe,COMMAND_UNSUBSCRIBE,

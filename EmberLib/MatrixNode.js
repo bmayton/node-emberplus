@@ -80,7 +80,7 @@ class MatrixNode extends Matrix {
      */
     static decode(ber) {
         const m = new MatrixNode();
-        ber = ber.getSequence(BER.APPLICATION(13));
+        ber = ber.getSequence(MatrixNode.BERID);
         while (ber.remain > 0) {
             let tag = ber.peek();
             let seq = ber.getSequence(tag);
@@ -104,6 +104,13 @@ class MatrixNode extends Matrix {
             }
         }
         return m;
+    }
+
+    /**
+     * @returns {number}
+     */
+    static get BERID() {
+        return BER.APPLICATION(13);
     }
 }
 

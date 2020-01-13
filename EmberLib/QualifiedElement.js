@@ -75,30 +75,6 @@ class QualifiedElement extends TreeNode {
         }
         return this.getCommand(COMMAND_GETDIRECTORY);
     }
-
-       /**
-     * 
-     * @param {function} callback 
-     * @returns {TreeNode}
-     */
-    subscribe(callback) {
-        if (callback != null && this.isStream()) {
-            this.contents._subscribers.add(callback);
-        }
-        return this.getCommand(COMMAND_SUBSCRIBE);
-    }
-
-    /**
-     * 
-     * @param {function} callback
-     * @returns {TreeNode}
-     */
-    unsubscribe(callback) {
-        if (callback != null && this.isStream()) {
-            this.contents._subscribers.delete(callback);
-        }
-        return this.getCommand(COMMAND_UNSUBSCRIBE);
-    }
 }
 
 module.exports = QualifiedElement;

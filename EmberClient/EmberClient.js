@@ -683,10 +683,6 @@ class EmberClient extends EventEmitter {
      */
     unsubscribe(qnode, callback) {
         if (qnode.isParameter() && qnode.isStream()) {
-            if (qnode == null) {
-                this.root.clear();
-                qnode = this.root;
-            }
             return new Promise((resolve, reject) => {
                 this.addRequest({node: qnode, func: (error) => {  
                     if (error != null) {
@@ -698,7 +694,7 @@ class EmberClient extends EventEmitter {
                     resolve();
                 }});
             });
-        }
+        }        
     }
 }
 

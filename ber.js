@@ -79,6 +79,16 @@ ExtendedReader.prototype.getSequence = function(tag) {
     return new ExtendedReader(buf);
 }
 
+/**
+Value ::=
+ CHOICE {
+ integer Integer64,
+ real REAL,
+ string EmberString,
+ boolean BOOLEAN,
+ octets OCTET STRING,
+ null NULL
+ } */
 ExtendedReader.prototype.readValue = function() {
     var tag = this.peek();
 

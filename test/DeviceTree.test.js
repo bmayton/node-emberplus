@@ -15,7 +15,7 @@ describe("EmberClient", () => {
         beforeAll(() => {
             return Promise.resolve()
                 .then(() => new Promise((resolve, reject) => {
-                    fs.readFile("./embrionix.ember", (e, data) => {
+                    fs.readFile("./test/embrionix.ember", (e, data) => {
                         if (e) {
                             reject(e);
                         }

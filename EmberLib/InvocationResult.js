@@ -20,7 +20,7 @@ class InvocationResult {
      * @param {BER} ber 
      */
     encode(ber) {
-        ber.startSequence(BER.APPLICATION(23));
+        ber.startSequence(InvocationResult.BERID);
         if (this.invocationId != null) {
             ber.startSequence(BER.CONTEXT(0));
             ber.writeInt(this.invocationId);
@@ -81,7 +81,7 @@ class InvocationResult {
      */
     static decode(ber) {
         const invocationResult = new InvocationResult();
-        ber = ber.getSequence(BER.APPLICATION(23));
+        ber = ber.getSequence(InvocationResult.BERID);
         while(ber.remain > 0) {
             let tag = ber.peek();
             let seq = ber.getSequence(tag);
@@ -103,15 +103,25 @@ class InvocationResult {
                                 resTag.readValue()
                         ));
                     }
+                    else {
+                        throw new Errors.UnimplementedEmberTypeError(tag);
+                    }
                 }
                 continue
             } else {
-                // TODO: options
                 throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }
     
         return invocationResult;
+    }
+
+
+    /**
+     * @returns {number}
+     */
+    static get BERID() {
+        return BER.APPLICATION(23);
     }
 }
 

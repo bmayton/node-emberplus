@@ -6,9 +6,14 @@ const errors = require("../errors");
 
 let _id = 1;
 class Invocation {
-    constructor(id = null) {
-        this.id = id == null ? _id++ : id;
-        this.arguments = [];
+    /**
+     * 
+     * @param {number} id 
+     * @param {FunctionArgument[]} args 
+     */
+    constructor(id = null, args = []) {
+        this.id = id;
+        this.arguments = args;
     }
 
     /**
@@ -16,13 +21,12 @@ class Invocation {
      * @param {BER} ber 
      */
     encode(ber) {
-        ber.startSequence(BER.APPLICATION(22));
-        // ber.startSequence(BER.EMBER_SEQUENCE);
-    
-        ber.startSequence(BER.CONTEXT(0));
-        ber.writeInt(this.id)
-        ber.endSequence();
-    
+        ber.startSequence(Invocation.BERID);            
+        if (this.id != null) {
+            ber.startSequence(BER.CONTEXT(0));
+            ber.writeInt(this.id)
+            ber.endSequence();
+        }
         ber.startSequence(BER.CONTEXT(1));
         ber.startSequence(BER.EMBER_SEQUENCE);
         for(var i = 0; i < this.arguments.length; i++) {
@@ -41,19 +45,27 @@ class Invocation {
 
     /**
      * 
+     */
+    toJSON() {
+        return {
+            id: this.id,
+            arguments: this.arguments == null ? null : this.arguments.map(a => a.toJSON()),
+        }
+    }
+    
+    /**
+     * 
      * @param {BER} ber 
      * @returns {Invocation}
      */
     static decode(ber) {
-        let invocation = null;
-        ber = ber.getSequence(BER.APPLICATION(22));
+        const invocation = new Invocation();
+        ber = ber.getSequence(Invocation.BERID);
         while(ber.remain > 0) {
             let tag = ber.peek();
             let seq = ber.getSequence(tag);
             if(tag == BER.CONTEXT(0)) {
-                // Create the invocation with the id received otherwise we will 
-                // increment the internal id counter.
-                invocation = new Invocation(seq.readInt());
+                invocation.id = seq.readInt();
             }
             else if(tag == BER.CONTEXT(1)) {
                 invocation.arguments = [];
@@ -73,6 +85,20 @@ class Invocation {
             }
         }
         return invocation;
+    }
+
+    /**
+     * @returns {number}
+     */
+    static get BERID() {
+        return BER.APPLICATION(22);
+    }
+
+    /**
+     * @returns {number}
+     */
+    static newInvocationID() {
+        return _id++;
     }
 }
 

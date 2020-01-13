@@ -5,14 +5,14 @@ const BER = require('../ber.js');
 const Command = require("./Command");
 const {COMMAND_INVOKE} = require("./constants");
 const FunctionContent = require("./FunctionContent");
-const errors = require("../errors");
+const Errors = require("../errors");
 
 class Function extends Element {
     constructor(number, func) {
         super();
         this.number = number;
         this.func = func;
-        this._seqID = BER.APPLICATION(19);
+        this._seqID = Function.BERID;
     }
 
     /**
@@ -48,7 +48,7 @@ class Function extends Element {
      */
     static decode(ber) {
         const f = new Function();
-        ber = ber.getSequence(BER.APPLICATION(19));
+        ber = ber.getSequence(Function.BERID);
     
         while(ber.remain > 0) {
             let tag = ber.peek();
@@ -60,10 +60,17 @@ class Function extends Element {
             } else if(tag == BER.CONTEXT(2)) {
                 f.decodeChildren(seq);
             } else {
-                throw new errors.UnimplementedEmberTypeError(tag);
+                throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }
         return f;
+    }
+
+    /**
+     * 
+     */
+    static get BERID() {
+        return BER.APPLICATION(19);
     }
 }
 

@@ -16,7 +16,7 @@ class QualifiedFunction extends QualifiedElement {
     constructor(path, func) {
         super(path);
         this.func = func;
-        this._seqID = BER.APPLICATION(20);
+        this._seqID = QualifiedFunction.BERID;
     }
 
     /**
@@ -39,7 +39,7 @@ class QualifiedFunction extends QualifiedElement {
      * @param {*} params 
      */
     invoke(params) {        
-        const invocation = new Invocation()
+        const invocation = new Invocation(Invocation.newInvocationID());
         invocation.arguments = params;
         const qualifiedFunctionNode = this.getCommand(COMMAND_INVOKE, "invocation", invocation);
         //qualifiedFunctionNode.getElementByNumber(this.getNumber()).getElementByNumber(COMMAND_INVOKE).invocation = invocation
@@ -54,7 +54,7 @@ class QualifiedFunction extends QualifiedElement {
      */
     static decode(ber) {
         const qf = new QualifiedFunction();
-        ber = ber.getSequence(BER.APPLICATION(20));
+        ber = ber.getSequence(QualifiedFunction.BERID);
         while(ber.remain > 0) {
             let tag = ber.peek();
             let seq = ber.getSequence(tag);
@@ -71,6 +71,13 @@ class QualifiedFunction extends QualifiedElement {
             }
         }
         return qf;
+    }
+
+    /**
+     * @returns {number}
+     */
+    static get BERID() {
+        return BER.APPLICATION(20);
     }
 }
 

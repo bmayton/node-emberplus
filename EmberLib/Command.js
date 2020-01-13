@@ -40,7 +40,7 @@ class Command {
      * @param {BER} ber 
      */
     encode(ber) {
-        ber.startSequence(BER.APPLICATION(2));
+        ber.startSequence(Command.BERID);
     
         ber.startSequence(BER.CONTEXT(0));
         ber.writeInt(this.number);
@@ -87,7 +87,7 @@ class Command {
      */
     static decode(ber) {
         const c = new Command();
-        ber = ber.getSequence(BER.APPLICATION(2));
+        ber = ber.getSequence(Command.BERID);
     
         while(ber.remain > 0) {
             let tag = ber.peek();
@@ -110,6 +110,12 @@ class Command {
         return c;
     }
     
+    /**
+     * @returns {number}
+     */
+    static get BERID() {
+        return BER.APPLICATION(2);
+    }
 }
 
 module.exports = Command;

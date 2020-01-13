@@ -8,7 +8,7 @@ const errors = require("../errors");
 class QualifiedNode extends QualifiedElement {
     constructor (path) {  
         super(path);  
-        this._seqID = BER.APPLICATION(10);
+        this._seqID = QualifiedNode.BERID;
     }
 
     /**
@@ -39,7 +39,7 @@ class QualifiedNode extends QualifiedElement {
      */
     static decode(ber) {
         const qn = new QualifiedNode();
-        ber = ber.getSequence(BER.APPLICATION(10));
+        ber = ber.getSequence(QualifiedNode.BERID);
         while(ber.remain > 0) {
             let tag = ber.peek();
             let seq = ber.getSequence(tag);
@@ -55,6 +55,13 @@ class QualifiedNode extends QualifiedElement {
             }
         }
         return qn;
+    }
+
+    /**
+     * @returns {number}
+     */
+    static get BERID() {
+        return BER.APPLICATION(10);
     }
 }
 

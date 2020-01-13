@@ -224,9 +224,8 @@ class Matrix extends TreeNode
                 }
                 return count <= matrixNode.contents.maximumTotalConnects;
             }
-            
-        }
-        return true;
+            return true;   
+        }        
     }
 
     /**

@@ -12,7 +12,7 @@ class QualifiedParameter extends QualifiedElement {
      */
     constructor(path) {
         super(path);
-        this._seqID = BER.APPLICATION(9);
+        this._seqID = QualifiedParameter.BERID;
     }
 
     /**
@@ -84,7 +84,7 @@ class QualifiedParameter extends QualifiedElement {
      */
     static decode(ber) {
         var qp = new QualifiedParameter();
-        ber = ber.getSequence(BER.APPLICATION(9));
+        ber = ber.getSequence(QualifiedParameter.BERID);
         while(ber.remain > 0) {
             var tag = ber.peek();
             var seq = ber.getSequence(tag);
@@ -100,6 +100,13 @@ class QualifiedParameter extends QualifiedElement {
             }
         }
         return qp;
+    }
+
+    /**
+     * @returns {number}
+     */
+    static get BERID() {
+        return BER.APPLICATION(9);
     }
 }
 

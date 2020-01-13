@@ -1,6 +1,6 @@
 "use strict";
 const BER = require('../ber.js');
-const errors = require("../errors");
+const Errors = require("../errors");
 
 class Label {
     constructor(path, description) {
@@ -18,16 +18,18 @@ class Label {
      */
     encode(ber) {
         ber.startSequence(BER.APPLICATION(18));
-        if (this.basePath != null) {
-            ber.startSequence(BER.CONTEXT(0));
-            ber.writeRelativeOID(this.basePath, BER.EMBER_RELATIVE_OID);
-            ber.endSequence();
+        if (this.basePath == null) {
+            throw new Errors.InvalidEmberNode("", "Missing label base path");
         }
-        if (this.description != null) {
-            ber.startSequence(BER.CONTEXT(1));
-            ber.writeString(this.description, BER.EMBER_STRING);
-            ber.endSequence();
+        ber.startSequence(BER.CONTEXT(0));
+        ber.writeRelativeOID(this.basePath, BER.EMBER_RELATIVE_OID);
+        ber.endSequence();
+        if (this.description == null) { 
+            throw new Errors.InvalidEmberNode("", "Missing label description");
         }
+        ber.startSequence(BER.CONTEXT(1));
+        ber.writeString(this.description, BER.EMBER_STRING);
+        ber.endSequence();
         ber.endSequence();
     }
 
@@ -50,7 +52,7 @@ class Label {
                 l.description = seq.readString(BER.EMBER_STRING);
             }
             else {
-                throw new errors.UnimplementedEmberTypeError(tag);
+                throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }
         return l;

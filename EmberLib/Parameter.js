@@ -4,7 +4,8 @@ const Element = require("./Element");
 const QualifiedParameter = require("./QualifiedParameter");
 const BER = require('../ber.js');
 const ParameterContents = require("./ParameterContents");
-const errors = require("../errors");
+const Errors = require("../errors");
+const {COMMAND_SUBSCRIBE} = require("./Command");
 
 class Parameter extends Element {
     /**
@@ -14,7 +15,7 @@ class Parameter extends Element {
     constructor(number) {
         super();
         this.number = number;
-        this._seqID = BER.APPLICATION(1);
+        this._seqID = Parameter.BERID;
     }
 
     /**
@@ -43,30 +44,6 @@ class Parameter extends Element {
         qp.update(this);
         return qp;
     }
-
-    /**
-     * 
-     * @param {Parameter} other 
-     */
-    update(other) {
-        if ((other != null) && (other.contents != null)) {
-            if (this.contents == null) {
-                this.contents = other.contents;
-            }
-            else {
-                for (var key in other.contents) {
-                    if (key[0] === "_") { continue; }
-                    if (other.contents.hasOwnProperty(key)) {
-                        this.contents[key] = other.contents[key];
-                    }
-                }            
-                for(let cb of this.contents._subscribers) {
-                    cb(this);
-                }
-            }
-        }
-        return;
-    }
     
     /**
      * 
@@ -75,7 +52,7 @@ class Parameter extends Element {
      */
     static decode(ber) {
         const p = new Parameter();
-        ber = ber.getSequence(BER.APPLICATION(1));
+        ber = ber.getSequence(Parameter.BERID);
     
         while(ber.remain > 0) {
             let tag = ber.peek();
@@ -88,12 +65,18 @@ class Parameter extends Element {
             } else if(tag == BER.CONTEXT(2)) {
                 p.decodeChildren(seq);
             } else {
-                throw new errors.UnimplementedEmberTypeError(tag);
+                throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }
         return p;
     }
     
+    /**
+     * @returns {number}
+     */
+    static get BERID() {
+        return BER.APPLICATION(1);
+    }
 }
 
 module.exports = Parameter;

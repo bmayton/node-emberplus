@@ -58,9 +58,28 @@ describe("Ember", () => {
             }
         });
         it("should have a toJSON", () => {
-            const command = new EmberLib.Command(EmberLib.COMMAND_GETDIRECTORY);
-            const jsonCommand = command.toJSON();
+            const command = new EmberLib.Command(EmberLib.COMMAND_GETDIRECTORY);            
+            let jsonCommand = command.toJSON();
             expect(jsonCommand.number).toBe(EmberLib.COMMAND_GETDIRECTORY);
+            command.invocation = new EmberLib.Invocation(1, [
+                new EmberLib.FunctionArgument(EmberLib.ParameterType.integer, 1, "arg1")
+            ]);
+            jsonCommand = command.toJSON();
+            expect(jsonCommand.invocation.arguments.length).toBe(1);
+        });
+        it("Should throw an error if unable to decode", () => {
+            const writer = new BER.Writer();
+            writer.startSequence(EmberLib.Command.BERID);
+            writer.startSequence(BER.CONTEXT(99));
+            writer.endSequence();
+            writer.endSequence();
+            try {
+                EmberLib.Command.decode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(e) {                
+                expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
+            }
         });
     });
     describe("Node", () => {
@@ -92,6 +111,34 @@ describe("Ember", () => {
             expect(n.contents.identifier).toBe(identifier);
             expect(n.contents.description).toBe(description);
         });
+        it("Should throw an error if unable to decode", () => {
+            const writer = new BER.Writer();
+            writer.startSequence(EmberLib.Node.BERID);
+            writer.startSequence(BER.CONTEXT(99));
+            writer.endSequence();
+            writer.endSequence();
+            try {
+                EmberLib.Node.decode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(e) {                
+                expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
+            }
+        });
+        it("should through an error if unable to decode content", () => {
+            const writer = new BER.Writer();
+            writer.startSequence(BER.EMBER_SET);
+            writer.startSequence(BER.CONTEXT(99));
+            writer.endSequence();
+            writer.endSequence();
+            try {
+                EmberLib.NodeContents.decode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(e) {  
+                expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
+            }
+        });
     });
     describe("Function", () => {
         let func;
@@ -102,7 +149,39 @@ describe("Ember", () => {
                 res.value = args[0].value + args[1].value;
                 return [res];
             });
-        })
+        });
+        it("should be able to encode FunctionArgument with no name", () => {
+            const res = new EmberLib.FunctionArgument();
+            res.type = EmberLib.ParameterType.integer;
+            const writer = new BER.Writer();
+            res.encode(writer);
+            expect(writer.buffer.length > 0).toBeTruthy();
+        });
+        it("should throw an Error  if encoding FunctionArgument with no type", () => {
+            const res = new EmberLib.FunctionArgument();
+            const writer = new BER.Writer();
+            try {
+                res.encode(writer);
+                throw new Error("Should not succeed");
+            }
+            catch(e) {
+                expect(e instanceof Errors.InvalidEmberNode);
+            }
+        });
+        it("should throw an Error  if unable to decode", () => {
+            const writer = new BER.Writer();
+            try {
+                writer.startSequence(EmberLib.Function.BERID);
+                writer.startSequence(BER.CONTEXT(99));
+                writer.endSequence(); // BER.CONTEXT(0)
+                writer.endSequence(); // BER.CONTEXT(0)            
+                EmberLib.Function.decode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(e) {
+                expect(e instanceof Errors.UnimplementedEmberTypeError);
+            }
+        });
         it("should return true when calling isFunction", () => {
             expect(func.isFunction()).toBeTruthy();
         });
@@ -112,8 +191,10 @@ describe("Ember", () => {
             expect(children.length).toBe(1);
             expect(children[0].isCommand()).toBeTruthy();
         });
-        it("should have a decoder", () => {
+        it("should have a encoder/decoder", () => {
             func.contents = new EmberLib.FunctionContent(identifier, description);
+            func.contents.templateReference = "1.2.3";
+            func.addChild(new EmberLib.Node(1));
             func.contents.arguments = [ 
                 new EmberLib.FunctionArgument(EmberLib.ParameterType.integer,null, "arg1"),
                 new EmberLib.FunctionArgument(EmberLib.ParameterType.integer,null, "arg2")
@@ -121,12 +202,68 @@ describe("Ember", () => {
             func.contents.result = [
                 new EmberLib.FunctionArgument(EmberLib.ParameterType.integer,null, "result")
             ];
-            const writer = new BER.Writer();
+            let writer = new BER.Writer();
             func.encode(writer);
-            const f = EmberLib.Function.decode(new BER.Reader(writer.buffer));
+            let f = EmberLib.Function.decode(new BER.Reader(writer.buffer));
             expect(f.number).toBe(func.number);
             expect(f.contents.identifier).toBe(identifier);
             expect(f.contents.description).toBe(description);
+            expect(f.contents.result.length).toBe(1);
+            expect(f.contents.templateReference).toBe(func.contents.templateReference);
+
+            writer = new BER.Writer();
+            func.contents.identifier = null;
+            func.contents.arguments = null;
+            func.contents.result = null;
+            func.encode(writer);
+            f = EmberLib.Function.decode(new BER.Reader(writer.buffer));
+            expect(f.number).toBe(func.number);
+            expect(f.contents.identifier == null).toBeTruthy();
+            expect(f.contents.result == null || f.contents.result.length == 0).toBeTruthy();
+        });
+        it("should through an error if unable to decode result", () => {
+            const writer = new BER.Writer();
+            writer.startSequence(BER.EMBER_SET);
+            writer.startSequence(BER.CONTEXT(3));
+            writer.startSequence(BER.CONTEXT(99));
+            writer.endSequence();
+            writer.endSequence();
+            writer.endSequence();
+            try {
+                EmberLib.FunctionContent.decode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(e) {  
+                expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
+            }
+        });
+        it("should through an error if unable to decode content", () => {
+            const writer = new BER.Writer();
+            writer.startSequence(BER.EMBER_SET);
+            writer.startSequence(BER.CONTEXT(99));
+            writer.endSequence();
+            writer.endSequence();
+            try {
+                EmberLib.FunctionContent.decode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(e) {  
+                expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
+            }
+        });
+        it("should through an error if unable to decode FunctionArgument", () => {
+            const writer = new BER.Writer();
+            writer.startSequence(EmberLib.FunctionArgument.BERID);
+            writer.startSequence(BER.CONTEXT(99));
+            writer.endSequence();
+            writer.endSequence();
+            try {
+                EmberLib.FunctionArgument.decode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(e) { 
+                expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
+            }
         });
     });
     describe("Parameter", () => {
@@ -171,6 +308,61 @@ describe("Ember", () => {
             parameter.encode(writer);
             const newParameter = EmberLib.Parameter.decode(new BER.Reader(writer.buffer));
             expect(newParameter.getChildren().length).toBe(1);
+        });
+        it("should support type real", () => {
+            const parameter = new EmberLib.Parameter(0);
+            const VALUE = 1.1;
+            parameter.contents = new EmberLib.ParameterContents(VALUE, "real");
+            const writer = new BER.Writer();
+            parameter.encode(writer);
+            const newParameter = EmberLib.Parameter.decode(new BER.Reader(writer.buffer));
+            expect(newParameter.contents.value).toBe(VALUE);
+        });
+        it("should support type string", () => {
+            const parameter = new EmberLib.Parameter(0);
+            const VALUE ="string support";
+            parameter.contents = new EmberLib.ParameterContents(VALUE, "string");
+            const writer = new BER.Writer();
+            parameter.encode(writer);
+            const newParameter = EmberLib.Parameter.decode(new BER.Reader(writer.buffer));
+            expect(newParameter.contents.value).toBe(VALUE);
+        });
+        it("should support type boolean", () => {
+            const parameter = new EmberLib.Parameter(0);
+            const VALUE = true;
+            parameter.contents = new EmberLib.ParameterContents(VALUE, "boolean");
+            const writer = new BER.Writer();
+            parameter.encode(writer);
+            const newParameter = EmberLib.Parameter.decode(new BER.Reader(writer.buffer));
+            expect(newParameter.contents.value).toBe(VALUE);
+        });
+        it("should through an error if fails to decode StringIntegerPair", () => {
+            const writer = new BER.Writer();
+            writer.startSequence(EmberLib.StringIntegerPair.BERID);
+            writer.startSequence(BER.CONTEXT(99));
+            writer.endSequence();
+            writer.endSequence();
+            try {
+                EmberLib.StringIntegerPair.decode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(e) {                
+                expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
+            }
+        });
+        it("should through an error if fails to decode StringIntegerCollection", () => {
+            const writer = new BER.Writer();
+            writer.startSequence(EmberLib.StringIntegerCollection.BERID);
+            writer.startSequence(BER.CONTEXT(99));
+            writer.endSequence();
+            writer.endSequence();
+            try {
+                EmberLib.StringIntegerCollection.decode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(e) {     
+                expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
+            }
         });
     });
     describe("Matrix", () => {
@@ -252,6 +444,11 @@ describe("Ember", () => {
                 matrixNode.contents.mode = EmberLib.MatrixMode.nonLinear;
                 matrixNode.targets = [0, 3];
                 matrixNode.sources = [0, 3];
+                matrixNode.connections = {
+                    0: new EmberLib.MatrixConnection(0)
+                }
+                const min = matrixNode.getMinimal(true);
+                expect(min.sources).toBeDefined();
                 try {
                     EmberLib.Matrix.validateConnection(matrixNode, 1, [0]);
                     throw new Error("Should not succeed");
@@ -398,6 +595,17 @@ describe("Ember", () => {
                 const res = EmberLib.Matrix.canConnect(matrixNode, 0, [0,3]);
                 expect(res).toBeFalsy();
             });
+            it("should always return true if NtoN and no limits", () => {
+                matrixNode.contents = new EmberLib.MatrixContents(
+                    EmberLib.MatrixType.nToN, 
+                    EmberLib.MatrixMode.linear
+                );
+                matrixNode.connections = null;
+                matrixNode.contents.maximumConnectsPerTarget = null;
+                matrixNode.contents.maximumTotalConnects = null;
+                const res = EmberLib.Matrix.canConnect(matrixNode, 0, [0,3]);
+                expect(res).toBeTruthy();
+            });
         });
         describe("Matrix Non-Linear", () => {
             it("should have encoder / decoder", () => {
@@ -406,8 +614,14 @@ describe("Ember", () => {
                     EmberLib.MatrixType.onetoN, 
                     EmberLib.MatrixMode.nonLinear
                 );
+                matrixNode.contents.gainParameterNumber = 4;
                 matrixNode.contents.identifier = "matrix";
                 matrixNode.contents.description = "matrix";
+                matrixNode.contents.maximumTotalConnects = 5;
+                matrixNode.contents.maximumConnectsPerTarget = 1;
+                matrixNode.contents.parametersLocation = "1.2.3";
+                matrixNode.contents.schemaIdentifiers = "de.l-s-b.emberplus.schema1";
+                matrixNode.contents.templateReference = "0.1.2.3";
                 matrixNode.targets = [0,3];
                 matrixNode.sources = [1,2];
                 const writer = new BER.Writer();
@@ -430,6 +644,189 @@ describe("Ember", () => {
                 const connect = matrixNode.connect({0: new EmberLib.MatrixConnection(0)});
                 expect(connect).toBeDefined();
             });
+            it("should through an error if can't decode", () => {
+                const writer = new BER.Writer();
+                writer.startSequence(BER.APPLICATION(13));    
+                writer.startSequence(BER.CONTEXT(0));
+                writer.writeInt(1);
+                writer.endSequence(); // BER.CONTEXT(0)
+                writer.startSequence(BER.CONTEXT(99));
+                writer.endSequence();
+                writer.endSequence();
+                try {
+                    EmberLib.MatrixNode.decode(new BER.Reader(writer.buffer));
+                    throw new Error("Should not succeed");
+                }
+                catch(e) {
+                    expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
+                }
+            });
+        });
+        describe("Label", () => {
+            it ("should throw an error if it fails to decode", () => {
+                const writer = new BER.Writer();
+                writer.startSequence(BER.APPLICATION(18));
+                writer.startSequence(BER.CONTEXT(99));
+                writer.endSequence();
+                writer.endSequence();
+                try {
+                    EmberLib.Label.decode(new BER.Reader(writer.buffer));
+                    throw new Error("Should not succeed");
+                }
+                catch(e) {
+                    expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
+                }
+            });
+            it ("should throw an error if no basePath", () => {
+                const label = new EmberLib.Label(null, "test");
+                const writer = new BER.Writer();
+                try {
+                    label.encode(writer);
+                    throw new Error("Should not succeed");
+                }
+                catch(e) {
+                    expect(e instanceof Errors.InvalidEmberNode).toBeTruthy();
+                }
+            });
+            it ("should throw an error if no description", () => {
+                const label = new EmberLib.Label("1.2.3", null);
+                const writer = new BER.Writer();
+                try {
+                    label.encode(writer);
+                    throw new Error("Should not succeed");
+                }
+                catch(e) {
+                    expect(e instanceof Errors.InvalidEmberNode).toBeTruthy();
+                }
+            });
+            it ("should be able to encode/decode a valid label", () => {
+                const label = new EmberLib.Label("1.2.3", "primary");
+                const writer = new BER.Writer();
+                label.encode(writer);
+                const reader = new BER.Reader(writer.buffer);
+                const newLabel = EmberLib.Label.decode(reader);
+                expect(newLabel.description).toBe(label.description);
+                expect(newLabel.basePath).toBe(label.basePath);
+            });
+        })
+    });
+    describe("Invocation", () => {
+        it("Should throw an error if unable to decode", () => {
+            const writer = new BER.Writer();
+            writer.startSequence(EmberLib.Invocation.BERID);
+            writer.startSequence(BER.CONTEXT(99));
+            writer.endSequence();
+            writer.endSequence();
+            try {
+                EmberLib.Invocation.decode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(e) {
+                expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
+            }
+        });
+        it("Should be able to encode even if no id", () => {
+            const invocation = new EmberLib.Invocation();
+            const writer = new BER.Writer();
+            invocation.encode(writer);
+            const i = EmberLib.Invocation.decode(new BER.Reader(writer.buffer));
+            expect(i.id == null).toBeTruthy();
+        });
+        it("Should have a toJSON", () => {
+            const invocation = new EmberLib.Invocation(1, [
+                new EmberLib.FunctionArgument(EmberLib.ParameterType.integer, 10, "arg1" )
+            ]);
+            let js = invocation.toJSON();
+            expect(js.id).toBe(invocation.id);
+            expect(js.arguments.length).toBe(invocation.arguments.length);
+            invocation.arguments = null;
+            js = invocation.toJSON();
+            expect(js.id).toBe(invocation.id);
+            expect(js.arguments).toBe(null);
+        });
+    });
+    describe("InvocationResult", () => {
+        it("should support all types of result", () => {
+            const invocationResult = new EmberLib.InvocationResult();
+            invocationResult.invocationId = 100;
+            const valBuf = [0xa, 0x1, 0x2];
+            invocationResult.setFailure();
+            expect(invocationResult.success).toBeFalsy();
+            invocationResult.setSuccess();
+            expect(invocationResult.success).toBeTruthy();
+            try {
+                invocationResult.setResult(new EmberLib.FunctionArgument(EmberLib.ParameterType.integer, 1));
+                throw new Error("should not succeed");
+            }
+            catch(e) {
+                expect(e instanceof Errors.InvalidResultFormat).toBeTruthy();
+            }
+            expect(invocationResult.toQualified()).toBe(invocationResult);
+            invocationResult.setResult([
+                new EmberLib.FunctionArgument(EmberLib.ParameterType.integer, 1),
+                new EmberLib.FunctionArgument(EmberLib.ParameterType.real, 1.1),
+                new EmberLib.FunctionArgument(EmberLib.ParameterType.string, "one"),
+                new EmberLib.FunctionArgument(EmberLib.ParameterType.boolean, false),
+                new EmberLib.FunctionArgument(EmberLib.ParameterType.octets, Buffer.from(valBuf))
+            ]);
+            const writer = new BER.Writer();
+            invocationResult.encode(writer);
+            const newInvocationRes = EmberLib.InvocationResult.decode(new BER.Reader(writer.buffer));
+            expect(newInvocationRes.success).toBe(invocationResult.success);
+            expect(newInvocationRes.invocationId).toBe(invocationResult.invocationId);
+            expect(newInvocationRes.result.length).toBe(invocationResult.result.length);
+            expect(newInvocationRes.result[4].value.length).toBe(valBuf.length);
+            expect(newInvocationRes.result[4].value[0]).toBe(valBuf[0]);
+        });
+        it("should be able to encode with not result, no success", () => {
+            const invocationResult = new EmberLib.InvocationResult();
+            invocationResult.invocationId = 100;
+            invocationResult.result = null;
+            invocationResult.sucess = null;
+            const writer = new BER.Writer();
+            invocationResult.encode(writer);
+            const newInvocationRes = EmberLib.InvocationResult.decode(new BER.Reader(writer.buffer));
+            expect(newInvocationRes.result).not.toBeDefined();
+        });
+        it("should be able to encode with no invocationId", () => {
+            const invocationResult = new EmberLib.InvocationResult();
+            invocationResult.invocationId = null;
+            invocationResult.result = null;
+            invocationResult.sucess = null;
+            const writer = new BER.Writer();
+            invocationResult.encode(writer);
+            const newInvocationRes = EmberLib.InvocationResult.decode(new BER.Reader(writer.buffer));
+            expect(newInvocationRes.invocationId == null).toBeTruthy();
+        });
+        it("should through an error if can't decode", () => {
+            let writer = new BER.Writer();
+            writer.startSequence(EmberLib.InvocationResult.BERID);
+            writer.startSequence(BER.CONTEXT(3));
+            writer.endSequence();
+            writer.endSequence();
+            try {
+                EmberLib.InvocationResult.decode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(e) {
+                expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
+            }
+            writer = new BER.Writer();
+            writer.startSequence(EmberLib.InvocationResult.BERID);
+            writer.startSequence(BER.CONTEXT(2));
+            writer.startSequence(BER.EMBER_SEQUENCE);
+            writer.startSequence(BER.CONTEXT(99));
+            writer.endSequence();
+            writer.endSequence();
+            writer.endSequence();
+            writer.endSequence();
+            try {
+                EmberLib.InvocationResult.decode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(e) {
+                expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
+            }
         });
     });
 });

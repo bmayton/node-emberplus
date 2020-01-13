@@ -2,7 +2,7 @@
 const Element = require("./Element");
 const BER = require('../ber.js');
 const StreamFormat = require("./StreamFormat");
-const errors = require("../errors");
+const Errors = require("../errors");
 
 class StreamDescription extends Element{
     /**
@@ -17,17 +17,32 @@ class StreamDescription extends Element{
      * @param {BER} ber 
      */
     encode(ber) {
-        ber.startSequence(BER.APPLICATION(12));
+        ber.startSequence(StreamDescription.BERID);
     
         ber.writeIfDefinedEnum(this.format, StreamFormat, ber.writeInt, 0);
         ber.writeIfDefined(this.offset, ber.writeInt, 1);
     
         ber.endSequence();
     }
-    
+
+    /**
+     * 
+     */
+    toJSON() {
+        return {
+            format: this.format == null ? null : this.format.key,
+            offset: this.offset
+        };
+    }
+
+    /**
+     * 
+     * @param {BER} ber
+     * @returns {StreamDescription}
+     */
     static decode(ber) {
         const sd = new StreamDescription();
-        ber = ber.getSequence(BER.APPLICATION(12));
+        ber = ber.getSequence(StreamDescription.BERID);
     
         while(ber.remain > 0) {
             var tag = ber.peek();
@@ -37,10 +52,17 @@ class StreamDescription extends Element{
             } else if(tag == BER.CONTEXT(1)) {
                 sd.offset = seq.readInt();
             } else {
-                throw new errors.UnimplementedEmberTypeError(tag);
+                throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }    
         return sd;
+    }
+
+    /**
+     * @returns {number}
+     */
+    static get BERID() {
+        return BER.APPLICATION(12);
     }
 }
 

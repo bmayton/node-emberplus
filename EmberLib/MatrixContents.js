@@ -87,7 +87,7 @@ class MatrixContents {
         }
         if (this.schemaIdentifiers != null) {
             ber.startSequence(BER.CONTEXT(11));
-            ber.writeInt(this.schemaIdentifiers, BER.EMBER_STRING);
+            ber.writeString(this.schemaIdentifiers, BER.EMBER_STRING);
             ber.endSequence();
         }
         if (this.templateReference != null) {
@@ -139,7 +139,7 @@ class MatrixContents {
                     mc.labels.push(Label.decode(lSeq));
                 }
             } else if(tag == BER.CONTEXT(11)) {
-                mc.schemaIdentifiers = seq.readInt();
+                mc.schemaIdentifiers = seq.readString(BER.EMBER_STRING);
             } else if(tag == BER.CONTEXT(12)) {
                 mc.templateReference = seq.readRelativeOID(BER.EMBER_RELATIVE_OID);
             }

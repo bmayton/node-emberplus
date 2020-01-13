@@ -40,7 +40,7 @@ class QualifiedMatrix extends Matrix {
      * @param {BER} ber 
      */
     encode(ber) {
-        ber.startSequence(BER.APPLICATION(17));
+        ber.startSequence(QualifiedMatrix.BERID);
     
         ber.startSequence(BER.CONTEXT(0));
         ber.writeRelativeOID(this.path, BER.EMBER_RELATIVE_OID);
@@ -117,7 +117,7 @@ class QualifiedMatrix extends Matrix {
      */
     static decode(ber) {
         const qm = new QualifiedMatrix();
-        ber = ber.getSequence(BER.APPLICATION(17));
+        ber = ber.getSequence(QualifiedMatrix.BERID);
         while(ber.remain > 0) {
             let tag = ber.peek();
             let seq = ber.getSequence(tag);
@@ -148,6 +148,13 @@ class QualifiedMatrix extends Matrix {
             }
         }
         return qm;
+    }
+
+    /**
+     * @returns {number}
+     */
+    static get BERID() {
+        return BER.APPLICATION(17);
     }
 }
 
