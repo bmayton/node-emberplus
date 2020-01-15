@@ -5,7 +5,7 @@ const JSONParser = require("./JSONParser");
 const ElementHandlers = require("./ElementHandlers");
 const ServerEvents = require("./ServerEvents");
 const winston = require("winston");
-const Errors = require("../errors");
+const Errors = require("../Errors");
 
 class TreeServer extends EventEmitter{
     /**

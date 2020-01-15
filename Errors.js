@@ -188,3 +188,13 @@ class InvalidMatrixSignal extends Error {
     }
 }
 module.exports.InvalidMatrixSignal = InvalidMatrixSignal;
+
+class InvalidStringPair extends Error {
+    /**
+     * 
+     */
+    constructor() {
+        super("Invalid StringPair Value");
+    }
+}
+module.exports.InvalidStringPair = InvalidStringPair;

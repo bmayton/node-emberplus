@@ -1,7 +1,7 @@
 "use strict";
 const BER = require('../ber.js');
 const FunctionArgument = require("./FunctionArgument");
-const errors = require("../errors");
+const errors = require("../Errors");
 
 class FunctionContent {
     constructor(identifier=null, description=null) {

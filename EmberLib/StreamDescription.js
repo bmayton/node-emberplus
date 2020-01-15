@@ -2,7 +2,7 @@
 const Element = require("./Element");
 const BER = require('../ber.js');
 const StreamFormat = require("./StreamFormat");
-const Errors = require("../errors");
+const Errors = require("../Errors");
 
 class StreamDescription extends Element{
     /**

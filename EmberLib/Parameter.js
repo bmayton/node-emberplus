@@ -4,8 +4,7 @@ const Element = require("./Element");
 const QualifiedParameter = require("./QualifiedParameter");
 const BER = require('../ber.js');
 const ParameterContents = require("./ParameterContents");
-const Errors = require("../errors");
-const {COMMAND_SUBSCRIBE} = require("./Command");
+const Errors = require("../Errors");
 
 class Parameter extends Element {
     /**
@@ -40,7 +39,7 @@ class Parameter extends Element {
      * @returns {QualifiedParameter}
      */
     toQualified() {
-        let qp = new QualifiedParameter(this.getPath());
+        const qp = new QualifiedParameter(this.getPath());
         qp.update(this);
         return qp;
     }

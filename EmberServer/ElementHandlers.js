@@ -2,7 +2,7 @@
 const QualifiedHandlers = require("./QualifiedHandlers");
 const EmberLib = require('../EmberLib');
 const ServerEvents = require("./ServerEvents");
-const Errors = require("../errors");
+const Errors = require("../Errors");
 const winston = require("winston");
 
 class ElementHandlers extends QualifiedHandlers{

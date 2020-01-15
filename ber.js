@@ -22,7 +22,7 @@
  ***************************************************************************/
 
 const BER = require('asn1').Ber;
-const errors = require('./errors.js');
+const errors = require('./Errors.js');
 const util = require('util');
 const Long = require('long');
 

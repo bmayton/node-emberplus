@@ -28,9 +28,7 @@ class QualifiedElement extends TreeNode {
     encode(ber) {
         ber.startSequence(this._seqID);
     
-        ber.startSequence(BER.CONTEXT(0));
-        ber.writeRelativeOID(this.path, BER.EMBER_RELATIVE_OID);
-        ber.endSequence(); // BER.CONTEXT(0)
+        this.encodePath(ber);
     
         if(this.contents != null) {
             ber.startSequence(BER.CONTEXT(1));
@@ -42,7 +40,6 @@ class QualifiedElement extends TreeNode {
     
         ber.endSequence(); // BER.APPLICATION(3)
     }
-
 
     /**
      * 

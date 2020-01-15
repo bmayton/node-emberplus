@@ -1,7 +1,7 @@
 const {Subscribe,COMMAND_SUBSCRIBE,Unsubscribe,COMMAND_UNSUBSCRIBE,
     GetDirectory,COMMAND_GETDIRECTORY,Invoke,COMMAND_INVOKE, COMMAND_STRINGS} = require("./constants");
 const BER = require('../ber.js');
-const errors = require("../errors");
+const Errors = require("../Errors");
 const TreeNode = require("./TreeNode");    
 const Command = require("./Command");
 const Function =  require("./Function");
@@ -32,6 +32,9 @@ const StringIntegerPair = require("./StringIntegerPair");
 const StringIntegerCollection = require("./StringIntegerCollection");
 const StreamFormat = require("./StreamFormat");
 const StreamDescription = require("./StreamDescription");
+const Template = require("./Template");
+const TemplateElement = require("./TemplateElement");
+const QualifiedTemplate = require("./QualifiedTemplate");
 
 const rootDecode = function(ber) {
     const r = new TreeNode();
@@ -62,7 +65,7 @@ const rootDecode = function(ber) {
             else {
                 // StreamCollection BER.APPLICATION(6)
                 // InvocationResult BER.APPLICATION(23)
-                throw new errors.UnimplementedEmberTypeError(tag);
+                throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }
         else if (tag === BER.CONTEXT(0)) {
@@ -76,7 +79,7 @@ const rootDecode = function(ber) {
             }
         }          
         else {
-            throw new errors.UnimplementedEmberTypeError(tag);
+            throw new Errors.UnimplementedEmberTypeError(tag);
         }
     }
     return r;
@@ -84,29 +87,31 @@ const rootDecode = function(ber) {
 
 const childDecode = function(ber) {
     const tag = ber.peek();
-    if (tag == BER.APPLICATION(1)) {
+    if (tag == Parameter.BERID) {
         return Parameter.decode(ber);
-    } else if(tag == BER.APPLICATION(3)) {
+    } else if(tag == Node.BERID) {
         return Node.decode(ber);
-    } else if(tag == BER.APPLICATION(2)) {
+    } else if(tag == Command.BERID) {
         return Command.decode(ber);
-    } else if(tag == BER.APPLICATION(9)) {
+    } else if(tag == QualifiedParameter.BERID) {
         return QualifiedParameter.decode(ber);
-    } else if(tag == BER.APPLICATION(10)) {
+    } else if(tag == QualifiedNode.BERID) {
         return QualifiedNode.decode(ber);
-    } else if(tag == BER.APPLICATION(13)) {
+    } else if(tag == MatrixNode.BERID) {
         return MatrixNode.decode(ber);
-    } else if(tag == BER.APPLICATION(17)) {
+    } else if(tag == QualifiedMatrix.BERID) {
         return QualifiedMatrix.decode(ber);
-    } else if(tag == BER.APPLICATION(19)) {
+    } else if(tag == Function.BERID) {
         return Function.decode(ber);
-    } else if (tag == BER.APPLICATION(20)) {
+    } else if (tag == QualifiedFunction.BERID) {
         return QualifiedFunction.decode(ber);
-    } else if(tag == BER.APPLICATION(24)) {
-        // Template
-        throw new errors.UnimplementedEmberTypeError(tag);
-    } else {
-        throw new errors.UnimplementedEmberTypeError(tag);
+    } else if(tag == Template.BERID) {
+        return Template.decode(ber);
+    } else if (tag == QualifiedTemplate.BERID) {
+        return QualifiedTemplate.decode(ber)
+    }
+    else {
+        throw new Errors.UnimplementedEmberTypeError(tag);
     }
 }
 
@@ -148,10 +153,13 @@ module.exports = {
     QualifiedMatrix,
     QualifiedNode,
     QualifiedParameter,
+    QualifiedTemplate,
     StreamFormat,
     StreamDescription,
     StringIntegerPair,
     StringIntegerCollection,
+    Template,
+    TemplateElement,
     Subscribe,COMMAND_SUBSCRIBE,
     Unsubscribe,COMMAND_UNSUBSCRIBE,
     GetDirectory,COMMAND_GETDIRECTORY,

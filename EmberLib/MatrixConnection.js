@@ -2,7 +2,7 @@
 const BER = require('../ber.js');
 const MatrixOperation = require("./MatrixOperation");
 const MatrixDisposition = require("./MatrixDisposition");
-const errors = require("../errors");
+const Errors = require("../Errors");
 
 class MatrixConnection {
     /**
@@ -12,7 +12,9 @@ class MatrixConnection {
     constructor(target) {
         if (target) {
             let _target = Number(target);
-            if (isNaN(_target)) { _target = 0; }
+            if (isNaN(_target)) { 
+                throw new Errors.InvalidMatrixSignal(target, "Can't create connection with invalid target.")
+             }
             this.target = _target;
         }
         else {
@@ -26,14 +28,7 @@ class MatrixConnection {
      * @param {number[]} sources 
      */
     connectSources(sources) {
-        if (sources == null) {
-            return;
-        }
-        let s = new Set(this.sources);
-        for(let item of sources) {
-            s.add(item);
-        }
-        this.sources = [...s].sort();
+        this.sources = this.validateSources(sources);
     }
 
     /**
@@ -56,13 +51,13 @@ class MatrixConnection {
      * @param {BER} ber 
      */
     encode(ber) {
-        ber.startSequence(BER.APPLICATION(16));
+        ber.startSequence(MatrixConnection.BERID);
     
         ber.startSequence(BER.CONTEXT(0));
         ber.writeInt(this.target);
         ber.endSequence();
     
-        if ((this.sources != null)&& (this.sources.length > 0)) {
+        if (this.sources != null) {
             ber.startSequence(BER.CONTEXT(1));
             ber.writeRelativeOID(this.sources.join("."), BER.EMBER_RELATIVE_OID);
             ber.endSequence();
@@ -78,6 +73,31 @@ class MatrixConnection {
             ber.endSequence();
         }
         ber.endSequence();
+    }
+    
+    /**
+     * 
+     * @param {number[]|null} sources 
+     */
+    isDifferent(sources) {
+        const newSources = this.validateSources(sources);
+        
+        if (this.sources == null && newSources == null) {
+            return false;
+        }
+
+        if ((this.sources == null && newSources != null)||
+            (this.sources != null && newSources == null) ||
+            (this.sources.length != newSources.length)) {
+            return true;
+        }
+        // list are ordered, so we can simply parse 1 by 1.
+        for(let i = 0; i < this.sources.length; i++) {
+            if (this.sources[i] !== newSources[i]) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -103,8 +123,20 @@ class MatrixConnection {
             delete this.sources;
             return;
         }
-        let s = new Set(sources.map(i => Number(i)));
-        this.sources = [...s].sort(); // sources should be an array
+        this.sources = this.validateSources(sources);
+    }
+
+    /**
+     * 
+     * @param {number[]} sources 
+     * @returns {number[]} - uniq and sorted
+     */
+    validateSources(sources) {
+        if (sources == null) {
+            return null;
+        }
+        const s = new Set(sources.map(i => Number(i)));
+        return [...s].sort();
     }
 
     /**
@@ -121,7 +153,7 @@ class MatrixConnection {
      */
     static decode(ber) {
         const c = new MatrixConnection();
-        ber = ber.getSequence(BER.APPLICATION(16));
+        ber = ber.getSequence(MatrixConnection.BERID);
         while (ber.remain > 0) {
             let tag = ber.peek();
             let seq = ber.getSequence(tag);
@@ -143,12 +175,18 @@ class MatrixConnection {
                 c.disposition = MatrixDisposition.get(seq.readInt());
             }
             else {
-                throw new errors.UnimplementedEmberTypeError(tag);
+                throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }
         return c;
     }
     
+    /**
+     * 
+     */
+    static get BERID() {
+        return BER.APPLICATION(16);
+    }
 }
 
 module.exports = MatrixConnection;

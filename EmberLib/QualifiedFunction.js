@@ -5,7 +5,7 @@ const FunctionContent = require("./FunctionContent");
 const {COMMAND_GETDIRECTORY, COMMAND_INVOKE} = require("./constants");
 const BER = require('../ber.js');
 const Invocation = require("./Invocation");
-const errors = require("../errors");
+const Errors = require("../Errors");
 
 class QualifiedFunction extends QualifiedElement {
     /**
@@ -67,7 +67,7 @@ class QualifiedFunction extends QualifiedElement {
                 qf.decodeChildren(seq);
             }
             else {
-                throw new errors.UnimplementedEmberTypeError(tag);
+                throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }
         return qf;

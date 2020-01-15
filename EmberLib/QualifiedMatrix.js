@@ -1,12 +1,11 @@
 "use strict";
 
 const Matrix = require("./Matrix");
-const {COMMAND_GETDIRECTORY, COMMAND_SUBSCRIBE, COMMAND_UNSUBSCRIBE} = require("./constants");
 const BER = require('../ber.js');
 const Command = require("./Command");
 const MatrixContents = require("./MatrixContents");
 const MatrixConnection = require("./MatrixConnection");
-const errors = require("../errors");
+const errors = require("../Errors");
 
 class QualifiedMatrix extends Matrix {
     /**
@@ -42,9 +41,7 @@ class QualifiedMatrix extends Matrix {
     encode(ber) {
         ber.startSequence(QualifiedMatrix.BERID);
     
-        ber.startSequence(BER.CONTEXT(0));
-        ber.writeRelativeOID(this.path, BER.EMBER_RELATIVE_OID);
-        ber.endSequence(); // BER.CONTEXT(0)
+        this.encodePath(ber);
     
         if(this.contents != null) {
             ber.startSequence(BER.CONTEXT(1));
@@ -74,41 +71,6 @@ class QualifiedMatrix extends Matrix {
         return r;
     }
     
-    /**
-     * 
-     * @param {function} callback
-     * @returns {TreeNode}
-     */
-    getDirectory(callback) {
-        if (callback != null && !this.isStream()) {
-            this.contents._subscribers.add(callback);
-        }
-        return this.getCommand(COMMAND_GETDIRECTORY);
-    }
-
-    /**
-     * 
-     * @param {function} callback
-     * @returns {TreeNode}
-     */
-    subscribe(callback) {
-        if (callback != null && this.isStream()) {
-            this.contents._subscribers.add(callback);
-        }
-        return this.getCommand(COMMAND_SUBSCRIBE);
-    }
-
-    /**
-     * 
-     * @param {function} callback
-     * @returns {TreeNode}
-     */
-    unsubscribe(callback) {
-        if (callback != null && this.isStream()) {
-            this.contents._subscribers.delete(callback);
-        }
-        return this.getCommand(COMMAND_UNSUBSCRIBE);
-    }
 
     /**
      * 

@@ -1,7 +1,7 @@
 "use strict";
 const BER = require('../ber.js');
 const {ParameterType} = require("./ParameterType");
-const Errors = require("../errors");
+const Errors = require("../Errors");
 
 /*
 TupleDescription ::=

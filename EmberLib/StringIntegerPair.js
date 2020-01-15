@@ -1,6 +1,6 @@
 "use strict";
 const BER = require('../ber.js');
-const errors = require("../errors");
+const Errors = require("../Errors");
 
 class StringIntegerPair {
     constructor(key,value) {
@@ -14,7 +14,7 @@ class StringIntegerPair {
      */
     encode(ber) {
         if (this.key == null || this.value == null) {
-            throw new errors.InvalidEmberNode("", "Invalid key/value missing");
+            throw new Errors.InvalidEmberNode("", "Invalid key/value missing");
         }
         ber.startSequence(StringIntegerPair.BERID);        
         ber.startSequence(BER.CONTEXT(0));
@@ -26,8 +26,18 @@ class StringIntegerPair {
         ber.endSequence();            
     }
 
+     /**
+     * @typedef {{
+        *  key: string
+        *  value: number
+        * }} JSON_StringPair
+        */
+
     /**
-     * 
+     * @returns {{
+     *  key: string
+     *  value: number
+     * }}
      */
     toJSON() {
         return {
@@ -51,7 +61,7 @@ class StringIntegerPair {
             } else if(tag == BER.CONTEXT(1)) {
                 sp.value = dataSeq.readInt();
             } else {
-                throw new errors.UnimplementedEmberTypeError(tag);
+                throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }
         return sp;

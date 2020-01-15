@@ -5,7 +5,7 @@ const ParameterAccess = require("./ParameterAccess");
 const StringIntegerCollection = require("./StringIntegerCollection");
 const StreamDescription = require("./StreamDescription");
 const BER = require('../ber.js');
-const errors = require("../errors");
+const Errors = require("../Errors");
 
 class ParameterContents {
     /**
@@ -14,7 +14,6 @@ class ParameterContents {
      * @param {string} type 
      */
     constructor(value, type) {
-        this._subscribers = new Set();
         if(value != null) {
             this.value = value;
         }
@@ -48,8 +47,10 @@ class ParameterContents {
         ber.writeIfDefinedEnum(this.type, ParameterType, ber.writeInt, 13);
         ber.writeIfDefined(this.streamIdentifier, ber.writeInt, 14);
     
-        if(this.stringIntegerCollection != null) {            
-            this.stringIntegerCollection.encode(ber);
+        if(this.enumMap != null) {    
+            ber.startSequence(BER.CONTEXT(15));
+            this.enumMap.encode(ber);
+            ber.endSequence();
         }
     
         if(this.streamDescriptor != null) {
@@ -106,16 +107,14 @@ class ParameterContents {
             } else if(tag == BER.CONTEXT(14)) {
                 pc.streamIdentifier = seq.readInt();
             } else if(tag == BER.CONTEXT(15)) {
-                pc.stringIntegerCollection = StringIntegerCollection.decode(seq);
+                pc.enumMap = StringIntegerCollection.decode(seq);
             } else if(tag == BER.CONTEXT(16)) {
                 pc.streamDescriptor = StreamDescription.decode(seq);
             } else if(tag == BER.CONTEXT(17)) {
                 pc.schemaIdentifiers = seq.readString(BER.EMBER_STRING);
-            } else if (tag == null) {
-                break;
-            }
+            } 
             else {
-                throw new errors.UnimplementedEmberTypeError(tag);
+                throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }
         return pc;

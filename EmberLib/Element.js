@@ -19,9 +19,7 @@ class Element extends TreeNode {
     encode(ber) {
         ber.startSequence(this._seqID);
     
-        ber.startSequence(BER.CONTEXT(0));
-        ber.writeInt(this.number);
-        ber.endSequence(); // BER.CONTEXT(0)
+        this.encodeNumber(ber);
     
         if(this.contents != null) {
             ber.startSequence(BER.CONTEXT(1));
@@ -32,6 +30,16 @@ class Element extends TreeNode {
         this.encodeChildren(ber);
     
         ber.endSequence(); // BER.APPLICATION(3)
+    }
+
+    /**
+     * 
+     * @param {BER} ber 
+     */
+    encodeNumber(ber) {
+        ber.startSequence(BER.CONTEXT(0));
+        ber.writeInt(this.number);
+        ber.endSequence(); // BER.CONTEXT(0)
     }
 }
 

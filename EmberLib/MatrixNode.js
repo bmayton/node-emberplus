@@ -4,7 +4,7 @@ const Matrix = require("./Matrix");
 const MatrixContents = require("./MatrixContents");
 const QualifiedMatrix = require("./QualifiedMatrix");
 const BER = require('../ber.js');
-const errors = require("../errors");
+const errors = require("../Errors");
 
 class MatrixNode extends Matrix {
     constructor(number = undefined) {
@@ -17,7 +17,7 @@ class MatrixNode extends Matrix {
      * @param {BER} ber 
      */
     encode(ber) {
-        ber.startSequence(BER.APPLICATION(13));
+        ber.startSequence(MatrixNode.BERID);
     
         ber.startSequence(BER.CONTEXT(0));
         ber.writeInt(this.number);

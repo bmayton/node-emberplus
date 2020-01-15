@@ -3,7 +3,7 @@
 const QualifiedElement = require("./QualifiedElement");
 const ParameterContents = require("./ParameterContents");
 const BER = require('../ber.js');
-const Parameter = require("./Parameter");
+const Errors = require("../Errors");
 
 class QualifiedParameter extends QualifiedElement {
     /**
@@ -20,22 +20,6 @@ class QualifiedParameter extends QualifiedElement {
      */
     isParameter() {
         return true;
-    }
-
-    /**
-     * 
-     * @param {boolean} complete
-     * @returns {Parameter}
-     */
-    getMinimal(complete = false) {
-        const number = this.getNumber();
-        const p = new Parameter(number);
-        if (complete) {
-            if (this.contents != null) {
-                p.contents = this.contents;
-            }
-        }
-        return p;
     }
 
     /**
@@ -69,9 +53,6 @@ class QualifiedParameter extends QualifiedElement {
                         this.contents[key] = other.contents[key];
                     }
                 }
-                for(let cb of this.contents._subscribers) {
-                    cb(this);
-                } 
             }
         }
         return;
@@ -96,7 +77,7 @@ class QualifiedParameter extends QualifiedElement {
             } else if(tag == BER.CONTEXT(2)) {
                 qp.decodeChildren(seq);
             } else {
-                return qp;
+                throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }
         return qp;

@@ -485,8 +485,8 @@ describe("server", function() {
                 .then(() => client.getNodeByPathnum("0.0.2"))
                 .then(parameter => {
                     expect(server.subscribers["0.0.2"]).not.toBeDefined();
-                    expect(parameter.contents._subscribers).toBeDefined();
-                    expect(parameter.contents._subscribers.size).toBe(0);
+                    expect(parameter._subscribers).toBeDefined();
+                    expect(parameter._subscribers.size).toBe(0);
                     server._subscribe = server.subscribe;
                     let _resolve;
                     const p = new Promise(resolve => {
@@ -504,8 +504,8 @@ describe("server", function() {
                     return client.getNodeByPathnum("0.0.2");
                 })
                 .then(parameter => {                    
-                    expect(parameter.contents._subscribers).toBeDefined();
-                    expect(parameter.contents._subscribers.size).toBe(1);
+                    expect(parameter._subscribers).toBeDefined();
+                    expect(parameter._subscribers.size).toBe(1);
                     server._unsubscribe = server.unsubscribe;
                     let _resolve;
                     const p = new Promise(resolve => {
@@ -524,8 +524,8 @@ describe("server", function() {
                 .then(parameter => {
                     expect(server.subscribers["0.0.2"]).toBeDefined();
                     expect(server.subscribers["0.0.2"].size).toBe(0);
-                    expect(parameter.contents._subscribers).toBeDefined();
-                    expect(parameter.contents._subscribers.size).toBe(0);
+                    expect(parameter._subscribers).toBeDefined();
+                    expect(parameter._subscribers.size).toBe(0);
                 })
                 .then(() => client.disconnect());
         });

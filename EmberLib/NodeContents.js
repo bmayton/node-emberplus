@@ -1,6 +1,6 @@
 "use strict";
 const BER = require('../ber.js');
-const errors = require("../errors");
+const errors = require("../Errors");
 
 class NodeContents{
     /**
@@ -12,7 +12,6 @@ class NodeContents{
         this.isOnline = true;
         this.identifier = identifier;
         this.description = description;
-        this._subscribers = new Set();
     }
 
     /**

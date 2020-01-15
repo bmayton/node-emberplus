@@ -4,7 +4,7 @@ const MatrixType = require("./MatrixType");
 const MatrixMode = require("./MatrixMode");
 const BER = require('../ber.js');
 const Label = require("./Label");
-const errors = require("../errors");
+const errors = require("../Errors");
 
 class MatrixContents {
     constructor(type = MatrixType.oneToN, mode = MatrixMode.linear) {

@@ -1,6 +1,6 @@
 "use strict";
 const ember = require('../EmberLib');
-const Errors = require("../errors");
+const Errors = require("../Errors");
 
 class JSONParser {
     /**

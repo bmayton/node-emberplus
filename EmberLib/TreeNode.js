@@ -2,27 +2,26 @@
 const BER = require('../ber.js');
 const Command = require("./Command");
 const {COMMAND_GETDIRECTORY, COMMAND_SUBSCRIBE, COMMAND_UNSUBSCRIBE} = require("./constants");
-const Errors = require("../errors");
 
 class TreeNode {
     constructor() {
         /** @type {TreeNode} */
-        this._parent = null;  
+        this._parent = null;
+        this._subscribers = new Set();
     }
     
     _isSubscribable(callback) {
-        return (callback != null && this.isParameter() && this.isStream());
+        return (callback != null && 
+            ((this.isParameter() && this.isStream()) ||
+            this.isMatrix()));
     }
 
     _subscribe(callback) {
-        if (this.contents == null) {
-            throw new Errors.InvalidEmberNode(this.getPath(), "No content to subscribe");
-        }
-        this.contents._subscribers.add(callback);
+        this._subscribers.add(callback);
     }
 
     _unsubscribe(callback) {
-        this.contents._subscribers.delete(callback);
+        this._subscribers.delete(callback);
     }
 
     /**
@@ -120,6 +119,18 @@ class TreeNode {
     }
 
     /**
+     * 
+     * @param {BER} ber 
+     */
+    encodePath(ber) {
+        if (this.isQualified()) {
+            ber.startSequence(BER.CONTEXT(0));
+            ber.writeRelativeOID(this.path, BER.EMBER_RELATIVE_OID);
+            ber.endSequence(); // BER.CONTEXT(0)
+        }
+    }
+
+    /**
      * @returns {TreeNode}
      */
     getNewTree() {
@@ -182,6 +193,14 @@ class TreeNode {
         return this.contents != null &&
             this.contents.streamIdentifier != null;
     }
+
+    /**
+     * @returns {boolean}
+     */
+    isTemplate() {
+        return false;
+    }
+
     /**
      * @returns {TreeNode}
      */
@@ -511,12 +530,13 @@ class TreeNode {
      * @param {TreeNode} other 
      */
     update(other) {
+        let modified = false;
         if ((other != null) && (other.contents != null)) {
             if (this.contents == null) {
                 this.contents = other.contents;
+                modified = true;
             }
             else {
-                let modified = false;
                 for (var key in other.contents) {
                     if (key[0] === "_") { continue; }
                     if (other.contents.hasOwnProperty(key) && 
@@ -525,14 +545,17 @@ class TreeNode {
                         modified = true;
                     }
                 }
-                if (modified && this.contents._subscribers != null) {
-                    for(let cb of this.contents._subscribers) {
-                        cb(this);
-                    }
-                }
             }
         }
-        return;
+        return modified;
+    }
+
+    updateSubscribers() {
+        if (this._subscribers != null) {
+            for(let cb of this._subscribers) {
+                cb(this);
+            }
+        }
     }
 
     /**

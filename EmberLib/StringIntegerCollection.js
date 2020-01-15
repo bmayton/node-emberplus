@@ -1,7 +1,7 @@
 "use strict";
 const BER = require('../ber.js');
 const StringIntegerPair = require("./StringIntegerPair");
-const Errors = require("../errors");
+const Errors = require("../Errors");
 
 class StringIntegerCollection {
     constructor() {
@@ -14,6 +14,9 @@ class StringIntegerCollection {
      * @param {StringIntegerPair} value 
      */
     addEntry(key, value) {
+        if (!(value instanceof StringIntegerPair)) {
+            throw new Errors.InvalidStringPair();
+        }
         this._collection.set(key, value);
     }
 
@@ -32,23 +35,23 @@ class StringIntegerCollection {
      */
     encode(ber) {
         ber.startSequence(StringIntegerCollection.BERID);        
-        for(let [key,sp] of this._collection) {
+        for(let [,sp] of this._collection) {
             ber.startSequence(BER.CONTEXT(0));
             sp.encode(ber);
             ber.endSequence();
         }        
         ber.endSequence();
-        ber.endSequence();
     }
 
     /**
-     * 
+     * @returns {JSON_StringPair[]}
      */
     toJSON() {
         const collection = [];
-        for(let [key,sp] of this._collection) {
+        for(let [,sp] of this._collection) {
             collection.push(sp.toJSON());
         }
+        return collection;
     }
 
     /**

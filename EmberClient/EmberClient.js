@@ -2,7 +2,7 @@ const EventEmitter = require('events').EventEmitter;
 const S101Socket = require('../EmberSocket').S101Socket;
 const ember = require('../EmberLib');
 const BER = require('../ber.js');
-const errors = require('../errors.js');
+const errors = require('../Errors.js');
 const winston = require("winston");
 
 const DEFAULT_PORT = 9000;

@@ -1,6 +1,6 @@
 "use strict";
 const BER = require('../ber.js');
-const Errors = require("../errors");
+const Errors = require("../Errors");
 
 class Label {
     constructor(path, description) {
@@ -17,7 +17,7 @@ class Label {
      * @param {BER} ber 
      */
     encode(ber) {
-        ber.startSequence(BER.APPLICATION(18));
+        ber.startSequence(Label.BERID);
         if (this.basePath == null) {
             throw new Errors.InvalidEmberNode("", "Missing label base path");
         }
@@ -41,7 +41,7 @@ class Label {
     static decode(ber) {
         var l = new Label();
     
-        ber = ber.getSequence(BER.APPLICATION(18));
+        ber = ber.getSequence(Label.BERID);
     
         while (ber.remain > 0) {
             var tag = ber.peek();
@@ -56,6 +56,13 @@ class Label {
             }
         }
         return l;
+    }
+
+    /**
+     * 
+     */
+    static get BERID() {
+        return BER.APPLICATION(18);
     }
 }
 

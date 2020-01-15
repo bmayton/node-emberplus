@@ -5,7 +5,7 @@ const BER = require('../ber.js');
 const Command = require("./Command");
 const {COMMAND_INVOKE} = require("./constants");
 const FunctionContent = require("./FunctionContent");
-const Errors = require("../errors");
+const Errors = require("../Errors");
 
 class Function extends Element {
     constructor(number, func) {

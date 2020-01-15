@@ -1,6 +1,6 @@
 "use strict";
 const MatrixHandlers = require("./MatrixHandlers");
-const Errors = require("../errors");
+const Errors = require("../Errors");
 
 class QualifiedHandlers extends MatrixHandlers {
     /**

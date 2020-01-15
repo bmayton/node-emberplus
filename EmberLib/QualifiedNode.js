@@ -2,8 +2,7 @@
 const QualifiedElement = require("./QualifiedElement");
 const BER = require('../ber.js');
 const NodeContents = require("./NodeContents");
-const Node = require("./Node");
-const errors = require("../errors");
+const Errors = require("../Errors");
 
 class QualifiedNode extends QualifiedElement {
     constructor (path) {  
@@ -16,20 +15,6 @@ class QualifiedNode extends QualifiedElement {
      */
     isNode() {
         return true;
-    }
-
-    /**
-     * 
-     * @param {boolean} complete
-     * @returns {QualifiedNode}
-     */
-    getMinimal(complete = false) {
-        const number = this.getNumber();
-        const n = new Node(number);
-        if (complete && (this.contents != null)) {
-            n.contents = this.contents;
-        }
-        return n;
     }
 
     /**
@@ -51,7 +36,7 @@ class QualifiedNode extends QualifiedElement {
             } else if(tag == BER.CONTEXT(2)) {
                 qn.decodeChildren(seq);
             } else {
-                throw new errors.UnimplementedEmberTypeError(tag);
+                throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }
         return qn;

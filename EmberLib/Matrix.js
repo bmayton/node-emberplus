@@ -5,7 +5,7 @@ const BER = require('../ber.js');
 const MatrixMode = require("./MatrixMode");
 const MatrixOperation = require("./MatrixOperation");
 const MatrixType = require("./MatrixType");
-const Errors = require("../errors");
+const Errors = require("../Errors");
 
 class Matrix extends TreeNode 
 {
@@ -72,7 +72,7 @@ class Matrix extends TreeNode
             ber.startSequence(BER.CONTEXT(5));
             ber.startSequence(BER.EMBER_SEQUENCE);
     
-            for(var id in this.connections) {
+            for(let id in this.connections) {
                 if (this.connections.hasOwnProperty(id)) {
                     ber.startSequence(BER.CONTEXT(0));
                     this.connections[id].encode(ber);
@@ -93,7 +93,7 @@ class Matrix extends TreeNode
             ber.startSequence(BER.CONTEXT(4));
             ber.startSequence(BER.EMBER_SEQUENCE);
     
-            for(var i=0; i<this.sources.length; i++) {
+            for(let i=0; i<this.sources.length; i++) {
                 ber.startSequence(BER.CONTEXT(0));
                 ber.startSequence(BER.APPLICATION(15));
                 ber.startSequence(BER.CONTEXT(0));
@@ -118,7 +118,7 @@ class Matrix extends TreeNode
             ber.startSequence(BER.CONTEXT(3));
             ber.startSequence(BER.EMBER_SEQUENCE);
     
-            for(var i=0; i<this.targets.length; i++) {
+            for(let i=0; i<this.targets.length; i++) {
                 ber.startSequence(BER.CONTEXT(0));
                 ber.startSequence(BER.APPLICATION(14));
                 ber.startSequence(BER.CONTEXT(0));
@@ -155,9 +155,8 @@ class Matrix extends TreeNode
      * @param {MatrixNode} other 
      */
     update(other) {
-        super.update(other);
-        Matrix.MatrixUpdate(this, other);
-        return;
+        const res = super.update(other);
+        return Matrix.MatrixUpdate(this, other) || res;
     }
 
     /**
@@ -215,10 +214,7 @@ class Matrix extends TreeNode
                 return false;
             }
             if (matrixNode.contents.maximumTotalConnects != null) {
-                let count = matrixNode._numConnections;
-                if (oldSources) {
-                    count -= oldSources.length;
-                }
+                let count = matrixNode._numConnections - oldSources.length;
                 if (newSources) {
                     count += newSources.length;
                 }
@@ -236,6 +232,9 @@ class Matrix extends TreeNode
      */
     static connectSources(matrix, targetID, sources) {
         const target = Number(targetID);
+        if (matrix.connections == null) {
+            matrix.connections = {};
+        }
         if (matrix.connections[target] == null) {
             matrix.connections[target] = new MatrixConnection(target);
         }
@@ -262,7 +261,7 @@ class Matrix extends TreeNode
         const targets = [];
         ber = ber.getSequence(BER.EMBER_SEQUENCE);
         while(ber.remain > 0) {
-            var seq = ber.getSequence(BER.CONTEXT(0));
+            let seq = ber.getSequence(BER.CONTEXT(0));
             seq = seq.getSequence(BER.APPLICATION(14));
             seq = seq.getSequence(BER.CONTEXT(0));
             targets.push(seq.readInt());
@@ -279,7 +278,7 @@ class Matrix extends TreeNode
         const sources = [];
         ber = ber.getSequence(BER.EMBER_SEQUENCE);
         while(ber.remain > 0) {
-            var seq = ber.getSequence(BER.CONTEXT(0));
+            let seq = ber.getSequence(BER.CONTEXT(0));
             seq = seq.getSequence(BER.APPLICATION(15));
             seq = seq.getSequence(BER.CONTEXT(0));
             sources.push(seq.readInt());
@@ -293,14 +292,12 @@ class Matrix extends TreeNode
      * @returns {Object<number, MatrixConnection>}
      */
     static decodeConnections(ber) {
-        let connections = {};
-        let seq = ber.getSequence(BER.EMBER_SEQUENCE);
+        const connections = {};
+        const seq = ber.getSequence(BER.EMBER_SEQUENCE);
         while(seq.remain > 0) {
-            var conSeq = seq.getSequence(BER.CONTEXT(0));
-            var con = MatrixConnection.decode(conSeq);
-            if (con.target != null) {
-                connections[con.target] = (con);
-            }
+            const conSeq = seq.getSequence(BER.CONTEXT(0));
+            const con = MatrixConnection.decode(conSeq);
+            connections[con.target] = (con);
         }
         return connections;
     }
@@ -347,31 +344,44 @@ class Matrix extends TreeNode
      * 
      * @param {QualifiedMatrix|MatrixNode} matrix 
      * @param {QualifiedMatrix|MatrixNode} newMatrix 
+     * @returns {boolean} - True if something changed
      */
-    static MatrixUpdate(matrix, newMatrix) {        
+    static MatrixUpdate(matrix, newMatrix) {
+        let modified = false;
         if (newMatrix.targets != null) {
             matrix.targets = newMatrix.targets;
+            modified = true;
         }
         if (newMatrix.sources != null) {
             matrix.sources = newMatrix.sources;
+            modified = true;
         }
         if (newMatrix.connections != null) {
             if (matrix.connections == null) {
                 matrix.connections = {};
+                modified = true;
             }
             for(let id in newMatrix.connections) {
                 if (newMatrix.connections.hasOwnProperty(id)) {
-                    let connection = newMatrix.connections[id];
+                    const connection = newMatrix.connections[id];
                     if ((connection.target < matrix.contents.targetCount) &&
                         (connection.target >= 0)) {
                         if (matrix.connections[connection.target] == null) {
                             matrix.connections[connection.target] = new MatrixConnection(connection.target);
+                            modified = true;
                         }
-                        matrix.connections[connection.target].setSources(connection.sources);
+                        if (matrix.connections[connection.target].isDifferent(connection.sources)) {
+                            matrix.connections[connection.target].setSources(connection.sources);
+                            modified = true;
+                        }
+                    }
+                    else {
+                        throw new Errors.InvalidMatrixSignal(connection.target, "Invalid target")
                     }
                 }
             }
-        }        
+        }
+        return modified;
     }
 
     /**
