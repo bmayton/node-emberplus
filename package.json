@@ -1,6 +1,6 @@
 {
   "name": "node-emberplus",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "Javascript implementation of the Ember+ automation protocol",
   "main": "index.js",
   "scripts": {

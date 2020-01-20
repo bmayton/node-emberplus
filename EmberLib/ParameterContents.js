@@ -76,45 +76,63 @@ class ParameterContents {
         while(ber.remain > 0) {
             let tag = ber.peek();
             let seq = ber.getSequence(tag);
-            if(tag == BER.CONTEXT(0)) {
-                pc.identifier = seq.readString(BER.EMBER_STRING);
-            } else if(tag == BER.CONTEXT(1)) {
-                pc.description = seq.readString(BER.EMBER_STRING);
-            } else if(tag == BER.CONTEXT(2)) {
-                pc.value = seq.readValue();
-            } else if(tag == BER.CONTEXT(3)) {
-                pc.minimum = seq.readValue();
-            } else if(tag == BER.CONTEXT(4)) {
-                pc.maximum = seq.readValue();
-            } else if(tag == BER.CONTEXT(5)) {
-                pc.access = ParameterAccess.get(seq.readInt());
-            } else if(tag == BER.CONTEXT(6)) {
-                pc.format = seq.readString(BER.EMBER_STRING);
-            } else if(tag == BER.CONTEXT(7)) {
-                pc.enumeration = seq.readString(BER.EMBER_STRING);
-            } else if(tag == BER.CONTEXT(8)) {
-                pc.factor = seq.readInt();
-            } else if(tag == BER.CONTEXT(9)) {
-                pc.isOnline = seq.readBoolean();
-            } else if(tag == BER.CONTEXT(10)) {
-                pc.formula = seq.readString(BER.EMBER_STRING);
-            } else if(tag == BER.CONTEXT(11)) {
-                pc.step = seq.readInt();
-            } else if(tag == BER.CONTEXT(12)) {
-                pc.default = seq.readValue();
-            } else if(tag == BER.CONTEXT(13)) {
-                pc.type = ParameterType.get(seq.readInt());
-            } else if(tag == BER.CONTEXT(14)) {
-                pc.streamIdentifier = seq.readInt();
-            } else if(tag == BER.CONTEXT(15)) {
-                pc.enumMap = StringIntegerCollection.decode(seq);
-            } else if(tag == BER.CONTEXT(16)) {
-                pc.streamDescriptor = StreamDescription.decode(seq);
-            } else if(tag == BER.CONTEXT(17)) {
-                pc.schemaIdentifiers = seq.readString(BER.EMBER_STRING);
-            } 
-            else {
-                throw new Errors.UnimplementedEmberTypeError(tag);
+            switch(tag) {
+                case BER.CONTEXT(0):
+                    pc.identifier = seq.readString(BER.EMBER_STRING);
+                    break;
+                case BER.CONTEXT(1):
+                    pc.description = seq.readString(BER.EMBER_STRING);
+                    break;
+                case BER.CONTEXT(2):
+                    pc.value = seq.readValue();
+                    break;
+                case BER.CONTEXT(3):
+                    pc.minimum = seq.readValue();
+                    break;
+                case BER.CONTEXT(4):
+                    pc.maximum = seq.readValue();
+                    break;
+                case BER.CONTEXT(5):
+                    pc.access = ParameterAccess.get(seq.readInt());
+                    break;
+                case BER.CONTEXT(6):
+                    pc.format = seq.readString(BER.EMBER_STRING);
+                    break;
+                case BER.CONTEXT(7):
+                    pc.enumeration = seq.readString(BER.EMBER_STRING);
+                    break;
+                case BER.CONTEXT(8):
+                    pc.factor = seq.readInt();
+                    break;
+                case BER.CONTEXT(9):
+                    pc.isOnline = seq.readBoolean();
+                    break;
+                case BER.CONTEXT(10):
+                    pc.formula = seq.readString(BER.EMBER_STRING);
+                    break;
+                case BER.CONTEXT(11):
+                    pc.step = seq.readInt();
+                    break;
+                case BER.CONTEXT(12):
+                    pc.default = seq.readValue();
+                    break;
+                case BER.CONTEXT(13):
+                    pc.type = ParameterType.get(seq.readInt());
+                    break;
+                case BER.CONTEXT(14):
+                    pc.streamIdentifier = seq.readInt();
+                    break;
+                case BER.CONTEXT(15):
+                    pc.enumMap = StringIntegerCollection.decode(seq);
+                    break;
+                case BER.CONTEXT(16):
+                    pc.streamDescriptor = StreamDescription.decode(seq);
+                    break;
+                case BER.CONTEXT(17):
+                    pc.schemaIdentifiers = seq.readString(BER.EMBER_STRING);
+                    break;
+                default:
+                    throw new Errors.UnimplementedEmberTypeError(tag);
             }
         }
         return pc;

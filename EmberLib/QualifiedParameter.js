@@ -23,10 +23,11 @@ class QualifiedParameter extends QualifiedElement {
     }
 
     /**
-     * 
+     * Generate a Root containing a minimal  QualifiedParameter and its new value.
+     * Should be sent to the Provider to update the value.
      * @param {number|string} value
      * @returns {TreeNode}
-     */
+     */ 
     setValue(value) {
         let r = this.getNewTree();
         let qp = new QualifiedParameter(this.path);

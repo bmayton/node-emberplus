@@ -85,33 +85,28 @@ const rootDecode = function(ber) {
     return r;
 }
 
+const TreeNodeDecoders = {
+    [Parameter.BERID]: Parameter.decode,
+    [Node.BERID]: Node.decode,
+    [Command.BERID]: Command.decode,
+    [QualifiedParameter.BERID]: QualifiedParameter.decode,
+    [QualifiedNode.BERID]: QualifiedNode.decode,
+    [MatrixNode.BERID]: MatrixNode.decode,
+    [QualifiedMatrix.BERID]: QualifiedMatrix.decode,
+    [Function.BERID]: Function.decode,
+    [QualifiedFunction.BERID]: QualifiedFunction.decode,
+    [Template.BERID]: Template.decode,
+    [QualifiedTemplate.BERID]: QualifiedTemplate
+};
+
 const childDecode = function(ber) {
     const tag = ber.peek();
-    if (tag == Parameter.BERID) {
-        return Parameter.decode(ber);
-    } else if(tag == Node.BERID) {
-        return Node.decode(ber);
-    } else if(tag == Command.BERID) {
-        return Command.decode(ber);
-    } else if(tag == QualifiedParameter.BERID) {
-        return QualifiedParameter.decode(ber);
-    } else if(tag == QualifiedNode.BERID) {
-        return QualifiedNode.decode(ber);
-    } else if(tag == MatrixNode.BERID) {
-        return MatrixNode.decode(ber);
-    } else if(tag == QualifiedMatrix.BERID) {
-        return QualifiedMatrix.decode(ber);
-    } else if(tag == Function.BERID) {
-        return Function.decode(ber);
-    } else if (tag == QualifiedFunction.BERID) {
-        return QualifiedFunction.decode(ber);
-    } else if(tag == Template.BERID) {
-        return Template.decode(ber);
-    } else if (tag == QualifiedTemplate.BERID) {
-        return QualifiedTemplate.decode(ber)
+    const decode = TreeNodeDecoders[tag];
+    if (decode == null) {
+        throw new Errors.UnimplementedEmberTypeError(tag);
     }
     else {
-        throw new Errors.UnimplementedEmberTypeError(tag);
+        return decode(ber);
     }
 }
 

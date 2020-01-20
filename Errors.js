@@ -143,7 +143,19 @@ class PathDiscoveryFailure extends Error {
      * @param {string} path 
      */
     constructor(path) {
-        super(`Failed path discovery at ${path}`);
+        super(PathDiscoveryFailure.getMessage(path));
+    }
+
+    /**
+     * 
+     * @param {string} path 
+     */
+    setPath(path) {
+        this.message = PathDiscoveryFailure.getMessage(path);
+    }
+
+    static getMessage(path) {
+        return `Failed path discovery at ${path}`;
     }
 }
 module.exports.PathDiscoveryFailure = PathDiscoveryFailure;
@@ -198,3 +210,13 @@ class InvalidStringPair extends Error {
     }
 }
 module.exports.InvalidStringPair = InvalidStringPair;
+
+class InvalidRequesrFormat extends Error {
+    /**
+     * @param {string} path
+     */
+    constructor(path) {
+        super(`Can't process request for node ${path}`);
+    }
+}
+module.exports.InvalidRequesrFormat = InvalidRequesrFormat;

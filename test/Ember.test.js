@@ -34,6 +34,146 @@ describe("Ember", () => {
             var ber = new BER.Reader(errorBuffer);
             expect(() => ember.Root.decode(ber)).toThrow(Errors.UnimplementedEmberTypeError);
         });
+        it("Should have a toJSON()", () => {
+            const node = new EmberLib.Node();
+            node.addChild(new EmberLib.Node(0));
+            node.getElementByNumber(0).addChild(new EmberLib.Parameter(1));
+            const matrix = new EmberLib.MatrixNode(2);
+            matrix.targets = [0,3,6,7];
+            matrix.sources = [2,6,8];
+            matrix.contents = new EmberLib.MatrixContents(EmberLib.MatrixType.oneToN, EmberLib.MatrixMode.nonLinear);
+            node.getElementByNumber(0).addChild(matrix);
+            const js = node.toJSON();
+            expect(js).toBeDefined();
+            expect(js.elements.length).toBe(1);
+            expect(js.elements[0].number).toBe(0);
+            expect(js.elements[0].children[0].number).toBe(1);
+            expect(js.elements[0].children[1].number).toBe(2);
+            expect(js.elements[0].children[1].targets.length).toBe(matrix.targets.length);
+        });
+        it("should have a getElement()", () => {
+            const node = new EmberLib.Node();
+            node.addChild(new EmberLib.Node(0));
+            let res = node.getElement(0);
+            expect(res).toBeDefined();
+        });
+        it("should have a isCommand(), isRoot() ... functions", () => {
+            const root = new EmberLib.Root();
+            const node = new EmberLib.Node();
+            root.addElement(node);
+            expect(node.isCommand()).toBeFalsy();
+            expect(node.isRoot()).toBeFalsy();
+            expect(node.isStream()).toBeFalsy();
+            expect(node.isTemplate()).toBeFalsy();
+        });
+        it("should have function getElement", () => {
+            const node = new EmberLib.Node(0);
+            const identifier = "node_identifier";
+            const description = "node_description";
+            node.contents = new EmberLib.NodeContents(identifier, description);
+            const root = new EmberLib.Root();
+            root.addElement(node);
+            let res = root.getElement(identifier);
+            expect(res).toBeDefined();
+            expect(res.contents.identifier).toBe(identifier);
+        });
+
+        it("should throw error if function getElement called from a node with longer parh", () => {
+            const root = new EmberLib.Root();
+            root.addChild(new EmberLib.Node(0));
+            root.getElement(0).addChild(new EmberLib.Node(1));
+            root.getElementByPath("0.1").addChild(new EmberLib.Node(1));
+            const node = new EmberLib.Node(0);
+            root.getElementByPath("0.1.1").addChild(node);
+            const identifier = "node_identifier";
+            const description = "node_description";
+            node.contents = new EmberLib.NodeContents(identifier, description);
+            let res = root.getElementByPath("0.1").getElementByPath("0");
+            expect(res).toBe(null);
+
+            res = root.getElementByPath("0.1").getElementByPath("0.2.0");
+            expect(res).toBe(null);
+
+            res = root.getElementByPath("0.1").getElementByPath("0.1");
+            expect(res).toBeDefined();
+        });
+        it("should have a getRoot function", () => {
+            const root = new EmberLib.Root();
+            root.addChild(new EmberLib.Node(0));
+            root.getElement(0).addChild(new EmberLib.Node(1));
+            root.getElementByPath("0.1").addChild(new EmberLib.Node(1));
+            const node = new EmberLib.Node(0);
+            root.getElementByPath("0.1.1").addChild(node);
+            let res = node.getRoot();
+            expect(res).toBe(root);
+        });
+        it("should have a getDirectory() and accept a callback for subscribers", () => {
+            const parameter = new EmberLib.Parameter(0);
+            parameter.contents = new EmberLib.ParameterContents(7, "integer");
+            parameter.contents.streamIdentifier = 12345;
+            let res = parameter.getDirectory(0, () => {});
+            expect(res).toBeDefined();
+            expect(parameter._subscribers.size).toBe(1);
+        });
+        it("should have a getDuplicate function", () => {
+            const parameter = new EmberLib.Parameter(0);
+            parameter.contents = new EmberLib.ParameterContents("test", "string");
+            let res = parameter.getDuplicate();
+            expect(res).toBeDefined();
+
+            const qp = new EmberLib.QualifiedParameter("0.1");
+            qp.contents = parameter.contents;
+            res = qp.getDuplicate();
+            expect(res).toBeDefined();
+        });
+        it("should decode continuation messages", () => {
+            const writer = new BER.Writer();
+            writer.startSequence(BER.CONTEXT(0));
+            const qp = new EmberLib.QualifiedParameter("0.1");
+            qp.encode(writer);
+            writer.endSequence();
+            const res = EmberLib.rootDecode(new BER.Reader(writer.buffer));
+            expect(res).toBeDefined();
+            expect(res.getElementByPath("0.1")).toBeDefined();
+        });
+        it("should throw an error if not able to decode root", () => {
+            let writer = new BER.Writer();
+            writer.startSequence(BER.CONTEXT(0));
+            writer.startSequence(BER.CONTEXT(99));
+            writer.endSequence();
+            writer.endSequence();
+            try {
+                EmberLib.rootDecode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(error){
+                expect(error instanceof Errors.UnimplementedEmberTypeError);
+            }
+
+            writer = new BER.Writer();
+            writer.startSequence(BER.CONTEXT(99));
+            writer.endSequence();
+            try {
+                EmberLib.rootDecode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(error){
+                expect(error instanceof Errors.UnimplementedEmberTypeError);
+            }
+
+            writer = new BER.Writer();
+            writer.startSequence(BER.APPLICATION(0));
+            writer.startSequence(BER.CONTEXT(99));
+            writer.endSequence();
+            writer.endSequence();
+            try {
+                EmberLib.rootDecode(new BER.Reader(writer.buffer));
+                throw new Error("Should not succeed");
+            }
+            catch(error){
+                expect(error instanceof Errors.UnimplementedEmberTypeError);
+            }
+        });
     });
     describe("Command", () => {
         it("should throw error if unknown context found", () => {
@@ -80,6 +220,20 @@ describe("Ember", () => {
             catch(e) {                
                 expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
             }
+        });
+        it("should have a getElementByIdentifier", () => {
+            const node = new EmberLib.Node(0);
+            const identifier = "node_identifier";
+            const description = "node_description";
+            node.contents = new EmberLib.NodeContents(identifier, description);
+            const root = new EmberLib.Root();
+            root.addElement(node);
+            let res = root.getElementByIdentifier(identifier);
+            expect(res).toBeDefined();
+            expect(res.contents.identifier).toBe(identifier);
+
+            res = root.getElementByIdentifier("unknown");
+            expect(res).toBe(null);
         });
     });
     describe("Node", () => {
@@ -1248,10 +1402,35 @@ describe("Ember", () => {
             expect(qp.contents._ignore).not.toBeDefined();
             expect(qp.contents.value).toBe(NEW_VAL);
         });
-
         it("Should return true to isParameter() call", () => {
             const qNode = new EmberLib.QualifiedParameter(PATH);
             expect(qNode.isParameter()).toBeTruthy();
+        });
+        it("should have setValue function", () => {
+            const qp = new EmberLib.QualifiedParameter(PATH);
+            const VALUE = 1;
+            qp.contents = new EmberLib.ParameterContents(VALUE, "integer");
+            let NEW_VALUE = VALUE + 1;
+            let setVal = qp.setValue(NEW_VALUE);
+            let dup = setVal.getElementByPath(PATH);
+            expect(dup).toBeDefined();
+            expect(dup.contents.value).toBe(NEW_VALUE);
+            NEW_VALUE = NEW_VALUE + 1;
+            setVal = qp.setValue(new EmberLib.ParameterContents(NEW_VALUE));
+            expect(setVal.getElementByPath(PATH).contents.value).toBe(NEW_VALUE);
+        });
+        it("should accept subscribers and have a function to update them", () => {
+            const qp = new EmberLib.QualifiedParameter(PATH);
+            const VALUE = 1;
+            qp.contents = new EmberLib.ParameterContents(VALUE, "integer");
+            qp.contents.streamIdentifier = 12345;
+            let updatedValue = null;
+            const handleUpdate = function(param) {
+                updatedValue = param.contents.value;
+            }
+            qp.subscribe(handleUpdate);
+            qp.updateSubscribers();
+            expect(updatedValue).toBe(VALUE);
         });
     });
     describe("StreamDescription", () => {

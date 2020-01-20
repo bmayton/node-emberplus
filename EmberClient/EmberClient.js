@@ -2,7 +2,7 @@ const EventEmitter = require('events').EventEmitter;
 const S101Socket = require('../EmberSocket').S101Socket;
 const ember = require('../EmberLib');
 const BER = require('../ber.js');
-const errors = require('../Errors.js');
+const Errors = require('../Errors.js');
 const winston = require("winston");
 
 const DEFAULT_PORT = 9000;
@@ -79,6 +79,7 @@ class EmberClient extends EventEmitter {
 
     _finishRequest() {
         this._clearTimeout();
+        this._callback = undefined;
         this._activeRequest = null;
         try {
             this._makeRequest();
@@ -95,7 +96,7 @@ class EmberClient extends EventEmitter {
         if (this._activeRequest == null && this._pendingRequests.length > 0) {
             this._activeRequest = this._pendingRequests.shift();
             const req = `${ this._requestID++} - ${this._activeRequest.node.getPath()}`;
-            this._activeRequest.timeoutError = new errors.EmberTimeoutError(`Request ${req} timed out`)
+            this._activeRequest.timeoutError = new Errors.EmberTimeoutError(`Request ${req} timed out`)
            
             winston.debug(`Making request ${req}`, Date.now());
             this._timeout = setTimeout(() => {
@@ -239,12 +240,13 @@ class EmberClient extends EventEmitter {
     }
 
     /**
-     * 
+     * @returns {Promise}
      */
     disconnect() {
         if (this._client != null) {
             return this._client.disconnect();
         }
+        return Promise.resolve();
     }
 
     /**
@@ -255,33 +257,32 @@ class EmberClient extends EventEmitter {
      */
     expand(node, callback = null) {
         if (node == null) {
-            return Promise.reject(new errors.InvalidEmberNode("Invalid null node"));
+            return Promise.reject(new Errors.InvalidEmberNode("Invalid null node"));
         }
         if (node.isParameter() || node.isMatrix() || node.isFunction()) {
             return this.getDirectory(node);
         }    
-        return this.getDirectory(node, callback).then((res) => {
-            let children = node.getChildren();
-            if ((res === undefined) || (children === undefined) || (children === null)) {
+        return this.getDirectory(node, callback).then(res => {
+            const children = node.getChildren();
+            if ((res == null) || (children == null)) {
                 winston.debug("No more children for ", node);
                 return;
             }
-            let p = Promise.resolve();
+            let directChildren = Promise.resolve();
             for (let child of children) {
                 if (child.isParameter()) {
                     // Parameter can only have a single child of type Command.
                     continue;
                 }
-                winston.debug("Expanding child", child);
-                p = p.then(() => {
-                    return this.expand(child).catch((e) => {
+                directChildren = directChildren.then(() => {
+                    return this.expand(child, callback).catch((e) => {
                         // We had an error on some expansion
                         // let's save it on the child itthis
                         child.error = e;
                     });
                 });
             }
-            return p;
+            return directChildren
         });
     }
 
@@ -291,7 +292,7 @@ class EmberClient extends EventEmitter {
      * @param {function} callback=null
      * @returns {Promise}
      */
-    getDirectory(qnode, callback = null) {
+    getDirectory(qnode, callback = null) {        
         if (qnode == null) {
             this.root.clear();
             qnode = this.root;
@@ -300,28 +301,26 @@ class EmberClient extends EventEmitter {
             this.addRequest({node: qnode, func: error => {
                 if (error) {
                     this._finishRequest();
-                    reject(error);
-                    return;
+                    return reject(error);
                 }
     
                 this._callback = (error, node) => {
                     const requestedPath = qnode.getPath();
                     if (node == null) { 
                         winston.debug(`received null response for ${requestedPath}`);
+                        // ignore
                         return; 
                     }
                     if (error) {
                         winston.debug("Received getDirectory error", error);
-                        this._clearTimeout(); // clear the timeout now. The resolve below may take a while.
                         this._finishRequest();
-                        reject(error);
-                        return;
+                        return reject(error);
                     }
                     if (qnode.isRoot()) {
                         const elements = qnode.getChildren();
                         if (elements == null || elements.length === 0) {
                             winston.debug("getDirectory response", node);
-                            return this._callback(new errors.InvalidEmberNode());
+                            return reject(new Errors.InvalidEmberNode());
                         }
     
                         const nodeElements = node == null ? null : node.getChildren();
@@ -329,16 +328,14 @@ class EmberClient extends EventEmitter {
                         if (nodeElements != null
                             && nodeElements.every(el => el._parent instanceof ember.Root)) {
                             winston.debug("Received getDirectory response", node);
-                            this._clearTimeout(); // clear the timeout now. The resolve below may take a while.
                             this._finishRequest();
-                            resolve(node); // make sure the info is treated before going to next request.
+                            return resolve(node); // make sure the info is treated before going to next request.
                         }
                         else {
-                            return this._callback(new errors.InvalidEmberResponse(`getDirectory ${requestedPath}`));
+                            return this._callback(new Errors.InvalidEmberResponse(`getDirectory ${requestedPath}`));
                         }
                     }
                     else if (node.getElementByPath(requestedPath) != null) {
-                        this._clearTimeout(); // clear the timeout now. The resolve below may take a while.
                         this._finishRequest();
                         return resolve(node); // make sure the info is treated before going to next request.
                     }
@@ -348,7 +345,6 @@ class EmberClient extends EventEmitter {
                             ((qnode.isMatrix() && nodeElements.length === 1 && nodeElements[0].getPath() === requestedPath) ||
                              (!qnode.isMatrix() && nodeElements.every(el => isDirectSubPathOf(el.getPath(), requestedPath))))) {
                             winston.debug("Received getDirectory response", node);
-                            this._clearTimeout(); // clear the timeout now. The resolve below may take a while.
                             this._finishRequest();
                             return resolve(node); // make sure the info is treated before going to next request.
                         }
@@ -359,58 +355,75 @@ class EmberClient extends EventEmitter {
                     }
                 };
                 winston.debug("Sending getDirectory", qnode);
-                this._client.sendBERNode(qnode.getDirectory(callback));
+                try {
+                    this._client.sendBERNode(qnode.getDirectory(callback));
+                }
+                catch(e) {
+                    reject(e);
+                }
             }});
         });
     }
 
     /**
-     * @deprecated
+     * 
      * @param {string} path ie: "path/to/destination"
      * @param {function} callback=null
      * @returns {Promise<TreeNode>}
      */
     getElementByPath(path, callback=null) {
+        const pathError = new Errors.PathDiscoveryFailure(path);
+        const TYPE_NUM = 1;
+        const TYPE_ID = 2;
+        let type = TYPE_NUM;
+        let pathArray = [];
         if (path.indexOf("/") >= 0) {
-            return this.getNodeByPath(path, callback);
+            type = TYPE_ID;
+            pathArray = path.split("/");
         }
         else {
-            return this.getNodeByPathnum(path, callback);
+            pathArray = path.split(".");
+            if (pathArray.length === 1) {
+                if (isNaN(Number(pathArray[0]))) {
+                    type = TYPE_ID;
+                }
+            }
         }
-    }
-
-    /**
-     * @deprecated
-     * @param {string} path ie: "path/to/destination"
-     * @param {function} callback=null
-     * @returns {Promise<TreeNode>}
-     */
-    getNodeByPath(path, callback = null) {
-        if (typeof path === 'string') {
-            path = path.split('/');
-        }
-        var pathError = new errors.PathDiscoveryFailure(path.slice(0, pos + 1).join("/"));
-        var pos = 0;
-        var lastMissingPos = -1;
-        var currentNode = this.root;
+        let pos = 0;
+        let lastMissingPos = -1;
+        let currentNode = this.root;
         const getNext = () => {
             return Promise.resolve()
-            .then(() => {
-                const children = currentNode.getChildren();
-                const identifier = path[pos];
-                if (children != null) {
-                    for (let i = 0; i < children.length; i++) {
-                        var node = children[i];
-                        if (node.contents != null && node.contents.identifier === identifier) {
-                            // We have this part already.
-                            pos++;
-                            if (pos >= path.length) {
-                                return node;
+            .then(() => {                
+                let node;
+                if (type === TYPE_NUM) {
+                    const number = Number(pathArray[pos]);
+                    node = currentNode.getElementByNumber(number);                
+                }
+                else {                    
+                    const children = currentNode.getChildren();
+                    const identifier = pathArray[pos];
+                    if (children != null) {
+                        let i = 0;
+                        for (i = 0; i < children.length; i++) {
+                            node = children[i];
+                            if (node.contents != null && node.contents.identifier === identifier) {
+                                break;
                             }
-                            currentNode = node;                   
-                            return getNext();
+                        }
+                        if (i >= children.length) {
+                            node = null;
                         }
                     }
+                }
+                if (node != null) {
+                    // We have this part already.
+                    pos++;
+                    if (pos >= pathArray.length) {
+                        return node;
+                    }
+                    currentNode = node;                   
+                    return getNext();
                 }
                 // We do not have that node yet.
                 if (lastMissingPos === pos) {
@@ -423,50 +436,6 @@ class EmberClient extends EventEmitter {
         return getNext();
     }
 
-    /**
-     * @deprecated
-     * @param {string|number[]} path ie: 1.0.2
-     * @param {function} callback=null
-     * @returns {Promise<TreeNode>}
-     */
-    getNodeByPathnum(path, callback = null) {
-        if (typeof path === 'string') {
-            path = path.split('.');
-        }
-        var pathnumError = new errors.PathDiscoveryFailure(path.slice(0, pos).join("/"));
-        var pos = 0;
-        var lastMissingPos = -1;
-        var currentNode = this.root;
-        const getNext = () => {
-            return Promise.resolve()
-            .then(() => {
-                const children = currentNode.getChildren();
-                const number = Number(path[pos]);
-                if (children != null) {
-                    for (let i = 0; i < children.length; i++) {
-                        var node = children[i];
-                        if (node.getNumber() === number) {
-                            // We have this part already.
-                            pos++;
-                            if (pos >= path.length) {
-                                return node;
-                            }
-                            currentNode = node;                   
-                            return getNext();
-                        }
-                    }
-                }
-                // We do not have that node yet.
-                if (lastMissingPos === pos) {
-                    throw pathnumError;
-                }
-                lastMissingPos = pos;
-                return this.getDirectory(currentNode, callback).then(() => getNext());
-            });
-        }
-        return getNext();
-    }
-    
     /**
      * 
      * @param {TreeNode} fnNode 
@@ -516,7 +485,7 @@ class EmberClient extends EventEmitter {
     matrixOPeration(matrixNode, targetID, sources, operation = ember.MatrixOperation.connect) {
         return new Promise((resolve, reject) => {
             if (!Array.isArray(sources)) {
-                return reject(new errors.InvalidSourcesFormat());
+                return reject(new Errors.InvalidSourcesFormat());
             }
             try {
                 matrixNode.validateConnection(targetID, sources);
@@ -617,12 +586,10 @@ class EmberClient extends EventEmitter {
      */
     setValue(node, value) {
         return new Promise((resolve, reject) => {
-            if ((!(node instanceof ember.Parameter)) &&
-                (!(node instanceof ember.QualifiedParameter))) {
-                reject(new errors.EmberAccessError('not a property'));
+            if (!node.isParameter()) {
+                reject(new Errors.EmberAccessError('not a Parameter'));
             }
             else {
-                // if (this._debug) { console.log('setValue', node.getPath(), value); }
                 this.addRequest({node: node, func: error => {
                     if (error) {
                         this._finishRequest();
@@ -630,19 +597,18 @@ class EmberClient extends EventEmitter {
                         return;
                     }
     
-                    let cb = (error, node) => {
-                        this._clearTimeout();
+                    this._callback = (error, node) => {
                         this._finishRequest();
+                        this._callback = null;
                         if (error) {
                             reject(error);
                         }
                         else {
+                            
                             resolve(node);
                         }
                     };
-    
-                    this._callback = cb;
-                    winston.debug('setValue sending ...', node.getPath(), value);
+                        winston.debug('setValue sending ...', node.getPath(), value);
                     this._client.sendBERNode(node.setValue(value));
                 }});
             }

@@ -4,6 +4,7 @@ const {COMMAND_GETDIRECTORY, COMMAND_INVOKE} = require("./constants");
 const BER = require('../ber.js');
 const Invocation = require("./Invocation");
 const errors = require("../Errors");
+const ElementInterface = require("./ElementInterface");
 
 const FieldFlags = new Enum({
     sparse: -2,
@@ -16,12 +17,13 @@ const FieldFlags = new Enum({
     connections: 5
 });
 
-class Command {
+class Command extends ElementInterface{
     /**
      * 
      * @param {number} number 
      */
     constructor(number) {
+        super();
         this.number = number;
         if(number == COMMAND_GETDIRECTORY) {
             this.fieldFlags = FieldFlags.all;
@@ -108,6 +110,28 @@ class Command {
         }
     
         return c;
+    }
+
+    /**
+     * 
+     * @param {number} cmd 
+     * @param {string} key 
+     * @param {string|value|object} value 
+     */
+    static getCommand(cmd, key, value) {
+        const command = new Command(cmd);
+        if (key != null) {
+            command[key] = value;
+        }
+        return command;
+    }
+    
+    /**
+     * 
+     * @param {Invocation} invocation 
+     */
+    static getInvocationCommand(invocation) {
+        return this.getCommand(COMMAND_INVOKE, "invocation", invocation);
     }
     
     /**

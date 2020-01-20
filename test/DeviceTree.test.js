@@ -63,25 +63,23 @@ describe("EmberClient", () => {
             tree.on("error", () => {
             });
             const expectedTimeoutInSec = 2;
-            const initialTime = performance.now();
+            const initialTime = Date.now();
             return tree.connect(expectedTimeoutInSec)
                 .then(() => {
                         throw new Error("Should have thrown");
                     },
                     error => {
-                        const durationMs = performance.now() - initialTime;
+                        const durationMs = Date.now() - initialTime;
                         const deltaMs = Math.abs(expectedTimeoutInSec * 1000 - durationMs);
                         expect(deltaMs).toBeLessThan(10);
                         expect(error.message).toBe(`Could not connect to ${UNKNOWN_HOST}:${PORT} after a timeout of ${expectedTimeoutInSec} seconds`)
                     });
-        });     
-        
-        
+        });            
         it("should gracefully connect and getDirectory", () => {
             let tree = new EmberClient(LOCALHOST, PORT);
-            tree.on("error", e => {
-                console.log(e);
-            })
+            tree.on("error", () => {
+                // ignore
+            });
             let stub = sinon.stub(tree._client, "sendBER");
             tree._debug = true;
             server._debug = true;
@@ -95,10 +93,10 @@ describe("EmberClient", () => {
                 .then(() => {
                     stub.restore();
                     tree.disconnect();
-                }, error => {
+                }, () => {
                     stub.restore();
-                    tree.disconnect();   
-                    console.log(error);                 
+                    tree.disconnect();
+                    // do nothinf
                 });
         }, 10000);
 	});    

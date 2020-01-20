@@ -113,8 +113,9 @@ class ServerEvents {
      * @param {number[]} sources
      */
     static MATRIX_CONNECTION(identifier, path, src, target, sources) {
+        const sourcesInfo = sources == null || sources.length === 0 ? "empty" : sources.toString();
         return new ServerEvents(
-            `Matrix connection to ${identifier}(path: ${path}) target ${target} connections: ${sources.toString()} from ${src}`,
+            `Matrix connection to ${identifier}(path: ${path}) target ${target} connections: ${sourcesInfo} from ${src}`,
             Types.MATRIX_CONNECTION
         );
     }

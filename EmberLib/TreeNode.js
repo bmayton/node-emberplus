@@ -1,10 +1,14 @@
 "use strict";
 const BER = require('../ber.js');
+const ElementInterface = require("./ElementInterface");
+const Invocation = require("./Invocation");
 const Command = require("./Command");
-const {COMMAND_GETDIRECTORY, COMMAND_SUBSCRIBE, COMMAND_UNSUBSCRIBE} = require("./constants");
+const {COMMAND_GETDIRECTORY, COMMAND_SUBSCRIBE, COMMAND_UNSUBSCRIBE, COMMAND_INVOKE} = require("./constants");
+const Errors = require("../Errors");
 
-class TreeNode {
+class TreeNode extends ElementInterface {
     constructor() {
+        super();
         /** @type {TreeNode} */
         this._parent = null;
         this._subscribers = new Set();
@@ -147,58 +151,16 @@ class TreeNode {
     /**
      * @returns {boolean}
      */
-    isCommand() {
-        return false;
-    }
-    /**
-     * @returns {boolean}
-     */
-    isNode() {
-        return false;
-    }
-    /**
-     * @returns {boolean}
-     */
-    isMatrix() {
-        return false;
-    }
-    /**
-     * @returns {boolean}
-     */
-    isParameter() {
-        return false;
-    }
-    /**
-     * @returns {boolean}
-     */
-    isFunction() {
-        return false;
-    }
-    /**
-     * @returns {boolean}
-     */
     isRoot() {
         return this._parent == null;
     }
-    /**
-     * @returns {boolean}
-     */
-    isQualified() {
-        return false;
-    }
+
     /**
      * @returns {boolean}
      */
     isStream() {
         return this.contents != null &&
             this.contents.streamIdentifier != null;
-    }
-
-    /**
-     * @returns {boolean}
-     */
-    isTemplate() {
-        return false;
     }
 
     /**
@@ -261,8 +223,12 @@ class TreeNode {
         }
     }
     
+    /**
+     * 
+     * @param {Command} cmd 
+     */
     getCommand(cmd) {
-        return this.getTreeBranch(new Command(cmd));
+        return this.getTreeBranch(cmd);
     }
 
     /**
@@ -273,7 +239,7 @@ class TreeNode {
         if (this._isSubscribable(callback)) {
             this._subscribe(callback);
         }
-        return this.getCommand(COMMAND_GETDIRECTORY);
+        return this.getCommand(new Command(COMMAND_GETDIRECTORY));
     }
     
     
@@ -314,7 +280,14 @@ class TreeNode {
     getElementByPath(path) {
         if (this.elements == null || this.elements.size === 0) {
             return null;
-        }    
+        }
+        if (this.isRoot()) {
+            // check if we have QualifiedElement
+            const node = this.elements.get(path);
+            if (node != null) {
+                return node;
+            }
+        }
         const myPath = this.getPath();
         if (path == myPath) {
             return this;
@@ -322,7 +295,7 @@ class TreeNode {
         const myPathArray = this.isRoot() ? [] : myPath.split(".");
         let pathArray = path.split(".");        
     
-        if (pathArray.length <= myPathArray.length) {
+        if (pathArray.length < myPathArray.length) {
             // We are lower in the tree than the requested path
             return null;
         }
@@ -369,7 +342,7 @@ class TreeNode {
     getElementByIdentifier(identifier) {
         const children = this.getChildren();
         if (children == null) return null;
-        for(var i = 0; i < children.length; i++) {
+        for(let i = 0; i < children.length; i++) {
             if(children[i].contents != null &&
               children[i].contents.identifier == identifier) {
                 return children[i];
@@ -390,34 +363,7 @@ class TreeNode {
             return this.getElementByIdentifier(id);
         }
     }
-    
-    getNodeByPath(client, path, callback) {    
-        if(path.length === 0) {
-            callback(null, this);
-            return;
-        }
-    
-        let child = this.getElement(path[0]);
-        if(child !== null) {
-            child.getNodeByPath(client, path.slice(1), callback);
-        } else {
-            const cmd = this.getDirectory((error, node) => {
-                if(error) {
-                    callback(error);
-                }
-                child = node.getElement(path[0]);
-                if(child === null) {
-                    //DO NOT REJECT !!!! We could still be updating the tree.
-                    return;
-                } else {
-                    child.getNodeByPath(client, path.slice(1), callback);
-                }
-            });
-            if(cmd !== null) {
-                client.sendBERNode(cmd);
-            }
-        }
-    }
+
 
     /**
      * @returns {string}
@@ -440,6 +386,21 @@ class TreeNode {
             }
             return path + this.number;
         }
+    }
+
+        /**
+     * 
+     * @param {FunctionArgument[]} params 
+     * @returns {TreeNode}
+     */
+    invoke(params) {      
+        if (!this.isFunction()) {
+            throw new Errors.InvalidEmberNode(this.getPath(), "Invoke only for Ember Function");
+        }  
+        const invocation = new Invocation(Invocation.newInvocationID());
+        invocation.arguments = params;
+        const req = this.getCommand(Command.getInvocationCommand(invocation));
+        return req;
     }
 
     /**
@@ -513,7 +474,7 @@ class TreeNode {
         if (this._isSubscribable(callback)) {
             this._subscribe(callback);
         }
-        return this.getCommand(COMMAND_SUBSCRIBE);
+        return this.getCommand(new Command(COMMAND_SUBSCRIBE));
     }
 
     /**
@@ -522,7 +483,7 @@ class TreeNode {
      */
     unsubscribe(callback) {
         this._unsubscribe(callback);
-        return this.getCommand(COMMAND_UNSUBSCRIBE);
+        return this.getCommand(new Command(COMMAND_UNSUBSCRIBE));
     }
 
     /**
@@ -564,12 +525,25 @@ class TreeNode {
      * @param {TreeNode} element 
      */
     static addElement(parent, element) {
+        /* 
+        Store element hashed by number direct to the parent.
+        But if QualifiedElement, it could be directly attached to the root.
+        In this case, use the path instead of number.
+        However, if the path is a single number, it is equivalent to number.
+         */
         element._parent = parent;
         if(parent.elements == null) {
             parent.elements = new Map();
         }
+        if (parent.isRoot() && element.isQualified()) {
+            const path = element.getPath().split(".");
+            if (path.length > 1) {
+                parent.elements.set(element.getPath(), element);
+                return;
+            }
+        }
         parent.elements.set(element.getNumber(), element);
-    }     
+    }
 
     static path2number(path) {
         try {

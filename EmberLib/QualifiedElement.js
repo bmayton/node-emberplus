@@ -2,7 +2,7 @@
 const TreeNode = require("./TreeNode");
 const BER = require('../ber.js');
 const Command = require("./Command");
-const {COMMAND_GETDIRECTORY, COMMAND_SUBSCRIBE, COMMAND_UNSUBSCRIBE} = require("./constants");
+const {COMMAND_GETDIRECTORY} = require("./constants");
 
 class QualifiedElement extends TreeNode {
     /**
@@ -43,34 +43,16 @@ class QualifiedElement extends TreeNode {
 
     /**
      * 
-     * @param {number} cmd
-     * @param {string} key
-     * @param {string} value
+     * @param {Command} cmd
      * @returns {TreeNode}
      */
-    getCommand(cmd, key, value) {
+    getCommand(cmd) {
         const r = this.getNewTree();
         const qn = new this.constructor();
         qn.path = this.getPath();        
         r.addElement(qn);
-        const command = new Command(cmd);
-        if (key != null) {
-            command[key] = value;
-        }
-        qn.addChild(command);
+        qn.addChild(cmd);
         return r;
-    }
-
-    /**
-     * 
-     * @param {function} callback
-     * @returns {TreeNode}
-     */
-    getDirectory(callback) {
-        if (callback != null && !this.isStream()) {
-            this.contents._subscribers.add(callback);
-        }
-        return this.getCommand(COMMAND_GETDIRECTORY);
     }
 }
 

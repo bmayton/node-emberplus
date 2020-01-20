@@ -39,7 +39,7 @@ class ElementHandlers extends QualifiedHandlers{
                 this.server.emit("event", ServerEvents.UNSUBSCRIBE(identifier, element.getPath(), src));
                 this.handleUnSubscribe(client, element);
                 break;
-            case EmberLib.COMMAND_INVOKE:
+            case EmberLib.COMMAND_INVOKE:                
                 this.server.emit("event", ServerEvents.INVOKE(identifier, element.getPath(), src));
                 this.handleInvoke(client, cmd.invocation, element);
                 break;
@@ -118,39 +118,40 @@ class ElementHandlers extends QualifiedHandlers{
         let element = node;
         let path = [];
         while(element != null) {
+            if (element.isCommand()) {
+                break;
+            }
             if (element.number == null) {
                 this.server.emit("error", new Errors.MissingElementNumber());
                 return;
             }
-            if (element.isCommand()) {
-                break;
-            }
+            
             path.push(element.number);
     
-            let children = element.getChildren();
+            const children = element.getChildren();
             if ((! children) || (children.length === 0)) {
                 break;
             }
-            element = element.children[0];
+            element = children[0];
         }
         let cmd = element;
     
         if (cmd == null) {
             this.server.emit("error", new Errors.InvalidRequest());
-            return this.server.handleError(client);
-        }
+            this.server.handleError(client);
+            return path;
+        }  
     
         element = this.server.tree.getElementByPath(path.join("."));
-    
+        
         if (element == null) {
             this.server.emit("error", new Errors.UnknownElement(path.join(".")));
             return this.server.handleError(client);
         }
-    
         if (cmd.isCommand()) {
             this.handleCommand(client, element, cmd);
-        }
-        else if ((cmd.isCommand()) && (cmd.connections != null)) {
+            return path;
+        } else if ((cmd.isMatrix()) && (cmd.connections != null)) {
             this.handleMatrixConnections(client, element, cmd.connections);
         }
         else if ((cmd.isParameter()) &&
@@ -166,6 +167,7 @@ class ElementHandlers extends QualifiedHandlers{
             winston.debug("invalid request format"); 
             return this.server.handleError(client, element.getTreeBranch());
         }
+        // for logging purpose, return the path.
         return path;
     }
 
@@ -175,7 +177,7 @@ class ElementHandlers extends QualifiedHandlers{
      * @param {TreeNode} root 
      */
     handleSubscribe(client, element) {
-        winston.debug("subscribe");
+        winston.debug("subscribe", element);
         this.server.subscribe(client, element);
     }
 
@@ -185,7 +187,7 @@ class ElementHandlers extends QualifiedHandlers{
      * @param {TreeNode} root 
      */
     handleUnSubscribe(client, element) {
-        winston.debug("unsubscribe");
+        winston.debug("unsubscribe", element);
         this.server.unsubscribe(client, element);
     }
 }

@@ -1,6 +1,6 @@
 const EventEmitter = require('events').EventEmitter;
 const S101Server = require('../EmberSocket').S101Server;
-const ember = require('../EmberLib');
+const EmberLib = require('../EmberLib');
 const JSONParser = require("./JSONParser");
 const ElementHandlers = require("./ElementHandlers");
 const ServerEvents = require("./ServerEvents");
@@ -79,20 +79,26 @@ class TreeServer extends EventEmitter{
      */
     close() {
         return new Promise((resolve, reject) => {
-            this.callback = (e) => {
+            const cb = e => {
                 if (e == null) {
                     return resolve();
                 }
                 return reject(e);
             };
-            this.server.server.close();
+            if (this.server.server != null) {
+                this.server.server.close(cb);                
+            }
+            else {
+                cb();
+            }
             this.clients.clear();
         });
     }
 
     /**
      * 
-     * @param {TreeNode} element 
+     * @param {TreeNode} element
+     * @returns {TreeNode}
      */
     getResponse(element) {
         return element.getTreeBranch(undefined, node => {
@@ -103,9 +109,6 @@ class TreeServer extends EventEmitter{
                     node.addChild(children[i].getDuplicate());
                 }
             }
-            else {
-                winston.debug("getResponse","no children");
-            }
         });
     }
 
@@ -114,7 +117,7 @@ class TreeServer extends EventEmitter{
      * @param {TreeNode} element 
      */
     getQualifiedResponse(element) {
-        const res = new ember.Root();
+        const res = new EmberLib.Root();
         let dup;
         if (element.isRoot() === false) {
             dup = element.toQualified();
@@ -175,7 +178,8 @@ class TreeServer extends EventEmitter{
      */
     listen() {
         return new Promise((resolve, reject) => {
-            this.callback = (e) => {
+            this.callback = e => {
+                this.callback = null;
                 if (e == null) {
                     return resolve();
                 }
@@ -192,7 +196,7 @@ class TreeServer extends EventEmitter{
      * @param {number[]} sources 
      */
     matrixConnect(path, target, sources) {
-        doMatrixOperation(this, path, target, sources, ember.MatrixOperation.connect);
+        doMatrixOperation(this, path, target, sources, EmberLib.MatrixOperation.connect);
     }
 
     /**
@@ -202,7 +206,7 @@ class TreeServer extends EventEmitter{
      * @param {number[]} sources 
      */
     matrixDisconnect(path, target, sources) {
-        doMatrixOperation(this, path, target, sources, ember.MatrixOperation.disconnect);
+        doMatrixOperation(this, path, target, sources, EmberLib.MatrixOperation.disconnect);
     }
 
     /**
@@ -212,7 +216,7 @@ class TreeServer extends EventEmitter{
      * @param {number[]} sources 
      */
     matrixSet(path, target, sources) {
-        doMatrixOperation(this, path, target, sources, ember.MatrixOperation.absolute);
+        doMatrixOperation(this, path, target, sources, EmberLib.MatrixOperation.absolute);
     }
 
     /**
@@ -220,22 +224,21 @@ class TreeServer extends EventEmitter{
      * @param {TreeNode} element 
      */
     replaceElement(element) {
-        let path = element.getPath();
-        let parent = this.tree.getElementByPath(path);
-        if ((parent == null)||(parent._parent == null)) {
+        const path = element.getPath();
+        const existingElement = this.tree.getElementByPath(path);
+        if (existingElement == null) {
             throw new Errors.UnknownElement(path);
         }
-        parent = parent._parent;
-        const children = parent.getChildren();
-        for(let i = 0; i <= children.length; i++) {
-            if (children[i] && children[i].getPath() == path) {
-                element._parent = parent; // move it to new tree.
-                children[i] = element;
-                let res = this.getResponse(element);
-                this.updateSubscribers(path,res);
-                return;
-            }
+        const parent = existingElement._parent;
+        if (parent == null) {
+            throw new Errors.InvalidEmberNode(path, "No parent. Can't execute replaceElement");
         }
+        // Replace the element at the parent
+        parent.elements.set(existingElement.getNumber(), element);
+        // point the new element to parent
+        element._parent = parent;
+        const res = this.getResponse(element);
+        this.updateSubscribers(path,res);
     }
 
     /**
@@ -341,7 +344,7 @@ class TreeServer extends EventEmitter{
      * @returns {TreeNode}
      */
     static JSONtoTree(obj) {
-        const tree = new ember.Root();
+        const tree = new EmberLib.Root();
         JSONParser.parseObj(tree, obj);
         return tree;
     }
@@ -355,26 +358,18 @@ const validateMatrixOperation = function(matrix, target, sources) {
     if (matrix.contents == null) {
         throw new Errors.MissingElementContents(matrix.getPath());
     }
-    if (matrix.contents.targetCount == null) {
-        throw new Errors.InvalidEmberNode(matrix.getPath(), "no targetCount");
-    }
-    if ((target < 0) || (target >= matrix.contents.targetCount)) {
-        throw new Errors.InvalidEmberNode(matrix.getPath(), `target id ${target} out of range 0 - ${matrix.contents.targetCount}`);
-    }
-    if (sources.length == null) {
-        throw new Errors.InvalidSourcesFormat();
-    }
+    matrix.validateConnection(target, sources);
 }
 
 const doMatrixOperation = function(server, path, target, sources, operation) {
-    let matrix = server.tree.getElementByPath(path);
+    const matrix = server.tree.getElementByPath(path);
 
     validateMatrixOperation(matrix, target, sources);
 
-    let connection = new ember.MatrixConnection(target);
+    const connection = new EmberLib.MatrixConnection(target);
     connection.sources = sources;
     connection.operation = operation;
-    server.handleMatrixConnections(undefined, matrix, [connection], false);
+    server._handlers.handleMatrixConnections(undefined, matrix, [connection], false);
 }
 
 module.exports = TreeServer;

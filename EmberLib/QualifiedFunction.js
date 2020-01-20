@@ -2,9 +2,9 @@
 
 const QualifiedElement = require("./QualifiedElement");
 const FunctionContent = require("./FunctionContent");
-const {COMMAND_GETDIRECTORY, COMMAND_INVOKE} = require("./constants");
+const {COMMAND_GETDIRECTORY} = require("./constants");
 const BER = require('../ber.js');
-const Invocation = require("./Invocation");
+const Command = require("./Command");
 const Errors = require("../Errors");
 
 class QualifiedFunction extends QualifiedElement {
@@ -20,32 +20,11 @@ class QualifiedFunction extends QualifiedElement {
     }
 
     /**
-     * 
-     * @returns {TreeNode}
-     */
-    getDirectory() {
-        return this.getCommand(COMMAND_GETDIRECTORY);
-    }
-
-    /**
      * @returns {boolean}
      */
     isFunction() {
         return true;
     }
-
-    /**
-     * 
-     * @param {*} params 
-     */
-    invoke(params) {        
-        const invocation = new Invocation(Invocation.newInvocationID());
-        invocation.arguments = params;
-        const qualifiedFunctionNode = this.getCommand(COMMAND_INVOKE, "invocation", invocation);
-        //qualifiedFunctionNode.getElementByNumber(this.getNumber()).getElementByNumber(COMMAND_INVOKE).invocation = invocation
-        return qualifiedFunctionNode;
-    }
- 
 
     /**
      * 

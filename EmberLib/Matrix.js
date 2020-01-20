@@ -409,6 +409,9 @@ class Matrix extends TreeNode
         if (targetID < 0) {
             throw new Errors.InvalidMatrixSignal(targetID, "target");
         }
+        if (sources == null) {
+            throw new Errors.InvalidSourcesFormat();
+        }
         for(let i = 0; i < sources.length; i++) {
             if (sources[i] < 0) {
                 throw new Errors.InvalidMatrixSignal(sources[i], `Source at index ${i}`);

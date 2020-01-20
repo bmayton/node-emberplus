@@ -59,21 +59,6 @@ class QualifiedMatrix extends Matrix {
 
     /**
      * 
-     * @param {number} cmd
-     * @returns {TreeNode}
-     */
-    getCommand(cmd) {
-        const r = this.getNewTree();
-        const qn = new QualifiedMatrix();
-        qn.path = this.getPath();
-        r.addElement(qn);
-        qn.addChild(new Command(cmd));
-        return r;
-    }
-    
-
-    /**
-     * 
      * @param {BER} ber 
      * @returns {QualifiedMatrix}
      */

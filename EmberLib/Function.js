@@ -23,15 +23,6 @@ class Function extends Element {
     }
 
     /**
-     * @returns {Root}
-     */
-    invoke() {
-        return this.getTreeBranch(undefined, (m) => {
-            m.addChild(new Command(COMMAND_INVOKE))
-        });
-    }
-
-    /**
      * @returns {QualifiedFunction}
      */
     toQualified() {

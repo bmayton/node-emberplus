@@ -88,21 +88,34 @@ class S101Socket extends EventEmitter{
     }
 
     /**
-     * 
+     * @param {number} timeout=2
      */
-    disconnect() {
+    disconnect(timeout = 2) {
         if (!this.isConnected()) {
             return Promise.resolve();
         }
         return new Promise((resolve, reject) => {
-                this.socket.once('close', () => {
-                    this.codec = null;
-                    this.socket = null;
-                    resolve();
-                });
-                this.socket.once('error', reject);
                 clearInterval(this.keepaliveIntervalTimer);
-                this.socket.end();
+                let done  = false;
+                const cb = (data, error) => {
+                    if (done) { return; }
+                    done = true;
+                    if (timer != null) {
+                        clearTimeout(timer);
+                        timer = null;
+                    }                    
+                    if (error == null) {
+                        resolve();                        
+                    }
+                    else {
+                        reject(error);
+                    }
+                };
+                let timer;
+                if (timeout != null && (!isNaN(timeout)) && timeout > 0) {
+                    timer = setTimeout(cb, 100 * timeout);
+                }
+                this.socket.end(cb);
                 this.status = "disconnected";
             }
         );

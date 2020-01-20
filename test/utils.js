@@ -39,7 +39,7 @@ const init = function(_src,_tgt) {
                     // path "0.0"
                     identifier: "identity",
                     children: [
-                        {identifier: "product", value: "S-CORE Master"},
+                        {identifier: "product", value: "S-CORE Master", type: "string"},
                         {identifier: "company", value: "EVS", access: "readWrite"},
                         {identifier: "version", value: "1.2.0", access: "readWrite", streamIdentifier: 1234567},
                         {identifier: "author", value: "g.dufour@evs.com"},
@@ -55,7 +55,7 @@ const init = function(_src,_tgt) {
                             type: "oneToN",
                             mode: "linear",
                             targetCount: targets.length,
-                            sourceCount: sources.length,
+                            sourceCount: sources.length,                            
                             connections: buildConnections(sources, targets),
                             labels: [{basePath: "0.1.1000", description: "primary"}],                            
                         },

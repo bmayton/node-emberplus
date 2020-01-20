@@ -25,7 +25,8 @@ class Parameter extends Element {
     }
 
     /**
-     * 
+     * Generate a Root of a partial tree containing the Parameter and its new value.
+     * Should be sent to the Provider to update the value.
      * @param {string|number} value
      * @returns {Root}
      */
