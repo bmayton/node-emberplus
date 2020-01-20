@@ -1,6 +1,6 @@
 "use strict";
 const EventEmitter = require('events').EventEmitter;
-const S101Client = require("./S101Client");
+const S101Socket = require("./S101Socket");
 const net = require('net');
 
 class S101Server extends EventEmitter {
@@ -18,10 +18,11 @@ class S101Server extends EventEmitter {
     }
     /**
      * 
-     * @param {Socket} socket 
+     * @param {Socket} socket - tcp socket
      */
     addClient(socket) {
-        const client = new S101Client(socket, this);
+        // Wrap the tcp socket into an S101Socket.
+        const client = new S101Socket(socket);
         this.emit("connection", client);
     }
     /**

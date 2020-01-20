@@ -20,7 +20,9 @@ Server has been added in version 1.6.0.
 ## Example usage
 
 ### Client
+
 Get Full tree:
+
 ```javascript
 const EmberClient = require('node-emberplus').EmberClient;
 const client = new EmberClient("10.9.8.7", 9000);
@@ -33,12 +35,12 @@ client.connect()
    // Get a Specific Node
    .then(() => client.getElementByPath("0.0.2"))
    .then(node => {
-      console.log(node); 
+      console.log(node);
    })
    // Get a node by its path identifiers
    .then(() => client.getElementByPath("path/to/node"))
    .then(node => {
-      console.log(node); 
+      console.log(node);
    })
    // Expand entire tree under node 0
    .then(() => client.expand(client.root.getElementByNumber(0)))
@@ -48,6 +50,7 @@ client.connect()
 ```
 
 Subsribe to changes
+
 ```javascript
 const {EmberClient, EmberLib} = require('node-emberplus');
 
@@ -59,14 +62,14 @@ client.connect())
    .then(node => {
       // For streams, use subscribe
       return client.subscribe(node, update => {
-         console.log(udpate);      
-      });      
+         console.log(udpate);
+      });
    })
    .then(() => client.getElementByPath("0.2"))
    .then(node => {
       // For non-streams a getDirectory will automatically subscribe for update
       return client.getDirectory(node, update => {
-         console.log(udpate);      
+         console.log(udpate);
       });
    })
    // You can also provide a callback to the getElementByPath
@@ -76,6 +79,7 @@ client.connect())
 ```
 
 ### Invoking Function
+
 ```javascript
 const {EmberClient, EmberLib} = require('node-emberplus');
 
@@ -95,6 +99,7 @@ client.connect())
 ```
 
 ### Matrix Connection
+
 ```javascript
 const {EmberClient, EmberLib} = require('node-emberplus');
 
@@ -104,7 +109,7 @@ client.connect()
    .then(() => client.getDirectory())
    .then(() => client.getElementByPath("0.1.0"))
    .then(matrix => {
-      console.log("Connecting source 1 to target 0); 
+      console.log("Connecting source 1 to target 0);
       return client.matrixConnect(matrix, 0, [1]);
    })
    .then(() => client.matrixDisconnect(matrix, 0, [1]))
@@ -115,6 +120,7 @@ client.connect()
 ```
 
 ### Packet decoder
+
 ```javascript
 // Simple packet decoder
 const Decoder = require('node-emberplus').Decoder;
@@ -124,6 +130,7 @@ fs.readFile("tree.ember", (e,data) => {
    var root = Decoder(data);
 });
 ```
+
 ### Server
 
 ```javascript
@@ -152,6 +159,7 @@ server.listen().then(() => { console.log("listening"); }).catch((e) => { console
 ```
 
 ### Construct Tree
+
 ```javascript
 const EmberServer = require("node-emberplus").EmberServer;
 const {ParameterType, FunctionArgument} = require("node-emberplus").EmberLib;
@@ -159,8 +167,8 @@ const {ParameterType, FunctionArgument} = require("node-emberplus").EmberLib;
 const targets = [ "tgt1", "tgt2", "tgt3" ];
 const sources = [ "src1", "src2", "src3" ];
 const defaultSources = [
-   {identifier: "t-0", value: -1, access: "readWrite" }, 
-   {identifier: "t-1", value: 0, access: "readWrite"}, 
+   {identifier: "t-0", value: -1, access: "readWrite" },
+   {identifier: "t-1", value: 0, access: "readWrite"},
    {identifier: "t-2", value: 0, access: "readWrite"}
 ];
 const labels = function(endpoints, type) {
@@ -277,4 +285,3 @@ const jsonTree = [
 ];
 const root = EmberServer.JSONtoTree(jsonTree);
 ```
-

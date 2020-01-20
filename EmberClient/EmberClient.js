@@ -1,5 +1,5 @@
 const EventEmitter = require('events').EventEmitter;
-const S101Socket = require('../EmberSocket').S101Socket;
+const S101Client = require('../EmberSocket').S101Client;
 const ember = require('../EmberLib');
 const BER = require('../ber.js');
 const Errors = require('../Errors.js');
@@ -8,10 +8,14 @@ const winston = require("winston");
 const DEFAULT_PORT = 9000;
 const DEFAULT_TIMEOUT = 3000;
 
-/** @typedef {{
+/** 
+ * @typedef {{
  *  node: TreeNode,
  *  func: function
- * }} REQUEST*/
+ * }} REQUEST
+ * 
+ */
+
 class EmberClient extends EventEmitter {
     /**
      * 
@@ -28,7 +32,7 @@ class EmberClient extends EventEmitter {
         this._timeout = null;
         this._callback = undefined;
         this._requestID = 0;
-        this._client = new S101Socket(host, port);
+        this._client = new S101Client(host, port);
         this.timeoutValue = DEFAULT_TIMEOUT;
         /** @type {Root} */
         this.root = new ember.Root();
@@ -132,7 +136,7 @@ class EmberClient extends EventEmitter {
      * @param {TreeNode} node 
      */
     _handleNode(parent, node) {
-        var n = parent.getElementByNumber(node.getNumber());
+        let n = parent.getElementByNumber(node.getNumber());
         if (n === null) {
             parent.addChild(node);
             n = node;
@@ -140,9 +144,9 @@ class EmberClient extends EventEmitter {
             n.update(node);
         }
     
-        var children = node.getChildren();
+        const children = node.getChildren();
         if (children !== null) {
-            for (var i = 0; i < children.length; i++) {
+            for (let i = 0; i < children.length; i++) {
                 this._handleNode(n, children[i]);
             }
         }
@@ -158,13 +162,13 @@ class EmberClient extends EventEmitter {
      * @param {TreeNode} node 
      */
     _handleQualifiedNode(parent, node) {
-        var element = parent.getElementByPath(node.path);
+        let element = parent.getElementByPath(node.path);
         if (element !== null) {
             this.emit("value-change", node);
             element.update(node);
         }
         else {
-            var path = node.path.split(".");
+            const path = node.path.split(".");
             if (path.length === 1) {
                 this.root.addChild(node);
             }
@@ -181,9 +185,9 @@ class EmberClient extends EventEmitter {
             element = node;
         }
     
-        var children = node.getChildren();
+        const children = node.getChildren();
         if (children !== null) {
-            for (var i = 0; i < children.length; i++) {
+            for (let i = 0; i < children.length; i++) {
                 if (children[i].isQualified()) {
                     this._handleQualifiedNode(element, children[i]);
                 }
@@ -205,7 +209,7 @@ class EmberClient extends EventEmitter {
         this.root.update(root);
         if (root.elements != null) {
             const elements = root.getChildren();
-            for (var i = 0; i < elements.length; i++) {
+            for (let i = 0; i < elements.length; i++) {
                 if (elements[i].isQualified()) {
                     this._handleQualifiedNode(this.root, elements[i]);
                 }
