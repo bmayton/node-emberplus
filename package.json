@@ -1,6 +1,6 @@
 {
   "name": "node-emberplus",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "description": "Javascript implementation of the Ember+ automation protocol",
   "main": "index.js",
   "scripts": {
@@ -19,7 +19,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "asn1": "github:evs-broadcast/node-asn1#date_20190114",
+    "asn1": "github:evs-broadcast/node-asn1",
     "enum": "^2.4.0",
     "long": "^3.2.0",
     "smart-buffer": "^3.0.3",
