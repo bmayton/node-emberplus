@@ -4,7 +4,7 @@ const Decoder = require('../EmberLib').DecodeBuffer;
 const EmberClient = require("../EmberClient");
 
 const HOST = "127.0.0.1";
-const PORT = 9008;
+const PORT = 9010;
 
 function getRoot() {
     return new Promise((resolve, reject) => {
@@ -44,7 +44,7 @@ describe("EmberClient", () => {
     });
 
     afterEach(() => {
-        server.close();
+        return server.close();
     });
 
     it("should be able to fetch a specific node", () => {

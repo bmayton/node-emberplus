@@ -484,7 +484,8 @@ class EmberClient extends EventEmitter {
      * @param {Matrix} matrixNode 
      * @param {number} targetID 
      * @param {number[]} sources 
-     * @param {MatrixOperation} operation 
+     * @param {MatrixOperation} operation
+     * @returns {Promise<Matrix>}
      */
     matrixOPeration(matrixNode, targetID, sources, operation = ember.MatrixOperation.connect) {
         return new Promise((resolve, reject) => {
@@ -547,6 +548,7 @@ class EmberClient extends EventEmitter {
      * @param {Matrix} matrixNode 
      * @param {number} targetID 
      * @param {number[]} sources 
+     * @returns {Promise<Matrix>}
      */
     matrixConnect(matrixNode, targetID, sources) {
         return this.matrixOPeration(matrixNode, targetID,sources, ember.MatrixOperation.connect)
@@ -556,7 +558,8 @@ class EmberClient extends EventEmitter {
      * 
      * @param {Matrix} matrixNode 
      * @param {number} targetID 
-     * @param {number[]} sources 
+     * @param {number[]} sources
+     * @returns {Promise<Matrix>}
      */
     matrixDisconnect(matrixNode, targetID, sources) {
         return this.matrixOPeration(matrixNode, targetID,sources, ember.MatrixOperation.disconnect)
@@ -567,6 +570,7 @@ class EmberClient extends EventEmitter {
      * @param {Matrix} matrixNode 
      * @param {number} targetID 
      * @param {number[]} sources 
+     * @returns {Promise<Matrix>}
      */
     matrixSetConnection(matrixNode, targetID, sources) {
         return this.matrixOPeration(matrixNode, targetID,sources, ember.MatrixOperation.absolute)
@@ -622,7 +626,8 @@ class EmberClient extends EventEmitter {
     /**
      * 
      * @param {TreeNode} qnode 
-     * @param {function} callback 
+     * @param {function} callback
+     * @returns {Promise}
      */
     subscribe(qnode, callback) {
         if ((qnode.isParameter() || qnode.isMatrix()) && qnode.isStream()) {
@@ -641,15 +646,15 @@ class EmberClient extends EventEmitter {
                     resolve();
                 }});
             });
-        } else {
-            qnode.addCallback(callback);
         }
+        return Promise.resolve();
     }
 
     /**
      * 
      * @param {TreeNode} qnode 
-     * @param {function} callback 
+     * @param {function} callback
+     * @returns {Promise}
      */
     unsubscribe(qnode, callback) {
         if (qnode.isParameter() && qnode.isStream()) {
@@ -664,7 +669,8 @@ class EmberClient extends EventEmitter {
                     resolve();
                 }});
             });
-        }        
+        }
+        return Promise.resolve();
     }
 }
 

@@ -40,7 +40,7 @@ class QualifiedHandlers extends MatrixHandlers {
         if (node.hasChildren()) {
             for(let child of node.children) {
                 if (child.isCommand()) {
-                    this.handleCommand(client, element, child);
+                    this.server._handlers.handleCommand(client, element, child);
                 }
                 break;
             }

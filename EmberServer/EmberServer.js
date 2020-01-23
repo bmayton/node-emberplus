@@ -97,6 +97,16 @@ class TreeServer extends EventEmitter{
 
     /**
      * 
+     * @param {Matrix} matrix 
+     * @param {number} targetID
+     * @returns {number}
+     */
+    getDisconnectSource(matrix, targetID) {
+        return this._handlers.getDisconnectSource(matrix, targetID);
+    }
+
+    /**
+     * 
      * @param {TreeNode} element
      * @returns {TreeNode}
      */
@@ -217,6 +227,152 @@ class TreeServer extends EventEmitter{
      */
     matrixSet(path, target, sources) {
         doMatrixOperation(this, path, target, sources, EmberLib.MatrixOperation.absolute);
+    }
+
+    /**
+     * 
+     * @param {Matrix} matrix 
+     * @param {number} target 
+     * @param {number[]} sources 
+     * @param {S101Socket} client 
+     * @param {boolean} response 
+     */
+    disconnectMatrixTarget(matrix, target, sources, client, response) {
+        const disconnect = new EmberLib.MatrixConnection(target);
+        disconnect.setSources([]);
+        disconnect.disposition = EmberLib.MatrixDisposition.modified;        
+        matrix.setSources(target, []);
+        if (response) {
+            this.emit("matrix-disconnect", {
+                target: target,
+                sources: sources,
+                client: client == null ? null : client.remoteAddress()
+            });
+        }
+        return disconnect;
+    }
+
+    /**
+     * 
+     * @param {Matrix} matrix 
+     * @param {number} target 
+     * @param {number[]} sources 
+     * @param {S101Socket} client 
+     * @param {boolean} response 
+     */
+    disconnectSources(matrix, target, sources, client, response) {
+        const disconnect = new EmberLib.MatrixConnection(target);
+        disconnect.disposition = EmberLib.MatrixDisposition.modified;        
+        matrix.disconnectSources(target, sources);
+        if (response) {
+            this.emit("matrix-disconnect", {
+                target: target,
+                sources: sources,
+                client: client == null ? null : client.remoteAddress()
+            });
+        }
+        return disconnect;
+    }
+
+    /**
+     * 
+     * @param {Matrix} matrix 
+     * @param {MatrixConnection} connection 
+     * @param {Matrix} res - result
+     * @param {S101Socket} client 
+     * @param {boolean} response 
+     */
+    preMatrixConnect(matrix, connection, res, client, response) {
+        const conResult = res[connection.target];
+        
+        if (matrix.contents.type !== EmberLib.MatrixType.nToN && 
+            connection.operation !== EmberLib.MatrixOperation.disconnect &&
+            connection.sources != null && connection.sources.length === 1) {
+            if (matrix.contents.type === EmberLib.MatrixType.oneToOne) {
+                // if the source is being used already, disconnect it from current target.
+                const currentTargets = matrix.getSourceConnections(connection.sources[0]);
+                if (currentTargets.length === 1 && currentTargets[0] !== connection.target) {
+                    res.connections[currentTargets[0]] = 
+                    this.disconnectMatrixTarget(matrix, currentTargets[0], connection.sources, client, response);
+                }
+            }
+            // if the target is connected already, disconnect it
+            if (matrix.connections[connection.target].sources != null && 
+                matrix.connections[connection.target].sources.length === 1) {
+                if (matrix.contents.type === EmberLib.MatrixType.oneToN) {
+                    const disconnectSource = this.getDisconnectSource(matrix, connection.target);
+                    if (matrix.connections[connection.target].sources[0] == connection.sources[0]) {
+                        if (disconnectSource >= 0 && disconnectSource != connection.sources[0]) {
+                            connection.sources = [disconnectSource];
+                        }
+                        else {
+                            // do nothing => set disposition to bypass further processing
+                            conResult.disposition = EmberLib.MatrixDisposition.tally;
+                        }
+                    }
+                }
+                if (matrix.connections[connection.target].sources[0] !== connection.sources[0]) {
+                    this.disconnectMatrixTarget(matrix, connection.target, matrix.connections[connection.target].sources, client, response)
+                }
+                else if (matrix.contents.type === EmberLib.MatrixType.oneToOne) {
+                    // let's change the request into a disconnect
+                    connection.operation = EmberLib.MatrixOperation.disconnect;
+                }
+            }
+        }
+    }
+
+    applyMatrixConnect(matrix, connection, conResult, client, response) {
+        // Apply changes
+        let emitType;
+        if ((connection.operation == null) ||
+        (connection.operation.value == EmberLib.MatrixOperation.absolute)) {
+            matrix.setSources(connection.target, connection.sources);
+            emitType = "matrix-change";
+        }
+        else if (connection.operation == EmberLib.MatrixOperation.connect) {
+            matrix.connectSources(connection.target, connection.sources);
+            emitType = "matrix-connect";
+        }
+        conResult.disposition = EmberLib.MatrixDisposition.modified;
+        if (response && emitType != null) {            
+            // We got a request so emit something.
+            this.emit(emitType, {
+                target: connection.target,
+                sources: connection.sources,
+                client: client == null ? null : client.remoteAddress()
+            });
+        }   
+    }
+
+    /**
+     * 
+     * @param {Matrix} matrix 
+     * @param {MatrixConnection} connection 
+     * @param {Matrix} res - result
+     * @param {S101Socket} client 
+     * @param {boolean} response 
+     */
+    applyMatrixOneToNDisconnect(matrix, connection, res, client, response) {
+        const disconnectSource = this.getDisconnectSource(matrix, connection.target);
+        if (matrix.connections[connection.target].sources[0] == connection.sources[0]) {
+            const conResult = res[connection.target];
+            if (disconnectSource >= 0 && disconnectSource != connection.sources[0]) {
+                if (response) {
+                    this.server.emit("matrix-disconnect", {
+                        target: connection.target,
+                        sources: matrix.connections[connection.target].sources,
+                        client: client == null ? null : client.remoteAddress()
+                    });
+                }
+                matrix.setSources(connection.target, [disconnectSource]);
+                conResult.disposition = EmberLib.MatrixDisposition.modified;
+            }
+            else {
+                // do nothing
+                conResult.disposition = EmberLib.MatrixDisposition.tally;
+            }
+        }
     }
 
     /**
