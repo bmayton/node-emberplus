@@ -25,6 +25,12 @@ class UnimplementedEmberTypeError extends Error {
 
 module.exports.UnimplementedEmberTypeError = UnimplementedEmberTypeError;
 
+class S101SocketError extends Error {
+    constructor(message) {
+        super(message);
+    }
+}
+module.exports.S101SocketError = S101SocketError;
 
 class ASN1Error extends Error {
     constructor(message) {

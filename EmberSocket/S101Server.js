@@ -2,6 +2,7 @@
 const EventEmitter = require('events').EventEmitter;
 const S101Socket = require("./S101Socket");
 const net = require('net');
+const Errors = require("../Errors");
 
 class S101Server extends EventEmitter {
     /**
@@ -26,27 +27,27 @@ class S101Server extends EventEmitter {
         this.emit("connection", client);
     }
     /**
-     * 
+     * @returns {Promise}
      */
-    listen () {
-        if (this.status !== "disconnected") {
-            return;
-        }
-    
-        this.server = net.createServer((socket) => {
-            this.addClient(socket);
+    listen() {
+        return new Promise((resolve, reject) => {
+            if (this.status !== "disconnected") {
+                return reject(new Errors.S101SocketError("Already listening"));
+            }        
+            this.server = net.createServer((socket) => {
+                this.addClient(socket);
+            }).on("error", (e) => {
+                this.emit("error", e);
+                if (this.status === "disconnected") {
+                    return reject(e);
+                }
+            }).on("listening", () => {
+                this.emit("listening");
+                this.status = "listening";
+                resolve();
+            });
+            this.server.listen(this.port, this.address);
         });
-    
-        this.server.on("error", (e) => {
-            this.emit("error", e);
-        });
-    
-        this.server.on("listening", () => {
-            this.emit("listening");
-            this.status = "listening";
-        });
-    
-        this.server.listen(this.port, this.address);
     }
     
 }

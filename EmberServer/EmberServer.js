@@ -17,7 +17,6 @@ class TreeServer extends EventEmitter{
     constructor(host, port, tree) {
         super();
         this._debug = false;
-        this.callback = undefined;
         this.timeoutValue = 2000;
         this.server = new S101Server(host, port);
         this.tree = tree;
@@ -28,10 +27,6 @@ class TreeServer extends EventEmitter{
         this.server.on('listening', () => {
             winston.debug("listening");
             this.emit('listening');
-            if (this.callback != null) {
-                this.callback();
-                this.callback = undefined;
-            }
         });
 
         this.server.on('connection', client => {
@@ -68,9 +63,6 @@ class TreeServer extends EventEmitter{
 
         this.server.on("error", (e) => {
             this.emit("error", e);
-            if (this.callback != null) {
-                this.callback(e);
-            }
         });
     }
 
@@ -187,16 +179,7 @@ class TreeServer extends EventEmitter{
      * @returns {Promise}
      */
     listen() {
-        return new Promise((resolve, reject) => {
-            this.callback = e => {
-                this.callback = null;
-                if (e == null) {
-                    return resolve();
-                }
-                return reject(e);
-            };
-            this.server.listen();
-        });
+        return this.server.listen();
     }
 
     /**

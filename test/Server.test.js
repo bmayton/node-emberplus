@@ -927,12 +927,12 @@ describe("server", function() {
             const PARAMETER_PATH = "0.0.1";
             const jsonTree = jsonRoot();
             const root = EmberServer.JSONtoTree(jsonTree);
-            server = new EmberServer(LOCALHOST, PORT, root);
+            const server = new EmberServer(LOCALHOST, PORT, root);
             const js = server.toJSON();
             expect(js[0].children[0].children[1].path).toBe(PARAMETER_PATH);
         });
         it("should have a toJSON and return empty array if no tree", () => {
-            server = new EmberServer(LOCALHOST, PORT, null);
+            const server = new EmberServer(LOCALHOST, PORT, null);
             const js = server.toJSON();
             expect(js).toBeDefined();
             expect(js.length).toBe(0);
@@ -944,7 +944,7 @@ describe("server", function() {
             const VALUE = "Gilles Dufour"
             const jsonTree = jsonRoot();
             const root = EmberServer.JSONtoTree(jsonTree);
-            server = new EmberServer(LOCALHOST, PORT, root);
+            const server = new EmberServer(LOCALHOST, PORT, root);
             const newParam = new EmberLib.Parameter(1);
             newParam.contents = new EmberLib.ParameterContents(VALUE);
             newParam.path = PARAMETER_PATH;
@@ -955,7 +955,7 @@ describe("server", function() {
             const VALUE = "Gilles Dufour"
             const jsonTree = jsonRoot();
             const root = EmberServer.JSONtoTree(jsonTree);
-            server = new EmberServer(LOCALHOST, PORT, root);
+            const server = new EmberServer(LOCALHOST, PORT, root);
             const newParam = new EmberLib.Parameter(1);
             newParam.contents = new EmberLib.ParameterContents(VALUE);
             let error;
@@ -973,7 +973,7 @@ describe("server", function() {
             const VALUE = "Gilles Dufour"
             const jsonTree = jsonRoot();
             const root = EmberServer.JSONtoTree(jsonTree);
-            server = new EmberServer(LOCALHOST, PORT, root);
+            const server = new EmberServer(LOCALHOST, PORT, root);
             server.tree.getElementByPath(PARAMETER_PATH)._parent = null;
             const newParam = new EmberLib.Parameter(1);
             newParam.contents = new EmberLib.ParameterContents(VALUE);
@@ -1001,22 +1001,10 @@ describe("server", function() {
             expect(error).toBeDefined();
             expect(error.message).toBe(ERROR_MESSAGE);
         });
-        it("should catch error and use callback if present", () => {
-            const jsonTree = jsonRoot();
-            const root = EmberServer.JSONtoTree(jsonTree);
-            const ERROR_MESSAGE = "gdnet internal error";
-            server = new EmberServer(LOCALHOST, PORT, root);
-            let error;
-            server.on("error", e => {});
-            server.callback = e => {error = e;}
-            server.server.emit("error", new Error(ERROR_MESSAGE));
-            expect(error).toBeDefined();
-            expect(error.message).toBe(ERROR_MESSAGE);
-        });
         it("should catch tcp server disconnected message, and clean up clients", () => {
             const jsonTree = jsonRoot();
             const root = EmberServer.JSONtoTree(jsonTree);
-            server = new EmberServer(LOCALHOST, PORT, root);
+            const server = new EmberServer(LOCALHOST, PORT, root);
             server.clients.add(new EmberClient(LOCALHOST, PORT));
             let count = 0;
             server.on("disconnected", () => {count++;});
@@ -1028,7 +1016,7 @@ describe("server", function() {
             const jsonTree = jsonRoot();
             const root = EmberServer.JSONtoTree(jsonTree);
             const ERROR_MESSAGE = "gdnet internal error";
-            server = new EmberServer(LOCALHOST, PORT, root);
+            const server = new EmberServer(LOCALHOST, PORT, root);
             const client = new EmberClient(LOCALHOST, PORT);
             client.remoteAddress = () => {return "address";}
             let info;
