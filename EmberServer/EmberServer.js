@@ -283,7 +283,7 @@ class TreeServer extends EventEmitter{
      * @param {boolean} response 
      */
     preMatrixConnect(matrix, connection, res, client, response) {
-        const conResult = res[connection.target];
+        const conResult = res.connections[connection.target];
         
         if (matrix.contents.type !== EmberLib.MatrixType.nToN && 
             connection.operation !== EmberLib.MatrixOperation.disconnect &&
@@ -356,7 +356,7 @@ class TreeServer extends EventEmitter{
     applyMatrixOneToNDisconnect(matrix, connection, res, client, response) {
         const disconnectSource = this.getDisconnectSource(matrix, connection.target);
         if (matrix.connections[connection.target].sources[0] == connection.sources[0]) {
-            const conResult = res[connection.target];
+            const conResult = res.connections[connection.target];
             if (disconnectSource >= 0 && disconnectSource != connection.sources[0]) {
                 if (response) {
                     this.server.emit("matrix-disconnect", {

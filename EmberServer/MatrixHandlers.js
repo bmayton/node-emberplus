@@ -105,7 +105,7 @@ class MatrixHandlers {
                     matrix.connections[connection.target].sources.length > 0) { 
                     // Disconnect            
                     if (matrix.contents.type === EmberLib.MatrixType.oneToN) {
-                        this.server.applyMatrixOneToNDisconnect()
+                        this.server.applyMatrixOneToNDisconnect(matrix, connection, res, client, response);
                     }
                     else {
                         conResult = this.server.disconnectSources(matrix, connection.target, connection.sources, client, response);
@@ -113,7 +113,7 @@ class MatrixHandlers {
                 }
             }
             if (conResult.disposition == null){
-                winston.debug(`Invalid Matrix operation ${connection.operarion} on target ${connection.target} with sources ${JSON.stringify(connection.sources)}`);
+                winston.debug(`Invalid Matrix operation ${connection.operation} on target ${connection.target} with sources ${JSON.stringify(connection.sources)}`);
                 conResult.disposition = EmberLib.MatrixDisposition.tally;
             }
     
