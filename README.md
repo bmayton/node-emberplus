@@ -7,7 +7,7 @@ communication protocols and user interfaces; this module allows those to be
 integrated with Ember+ somewhat more easily than the reference libember C++
 implementation.
 
-This version support following ember objects : Node, Parameter, Matrix, QualifiedNode,
+This version support following ember objects : Node, Parameter, Matrix, Function, QualifiedNode,
 QualifiedParameter, QualifiedMatrix, QualifiedFunction.
 
 It has been tested with EVS XT4k and Embrionix IP solutions.
@@ -16,6 +16,10 @@ The current version has added new features to the initial commit but it also mod
 the way the lib is used so that now it uses Promise
 
 Server has been added in version 1.6.0.
+
+Support for StreamCollection and UDP is available in a private branch.
+If you want access to full version and/or would like support for new features or integration
+with your projects, please contact Gilles Dufour - dufour.gilles@gmail.com
 
 ## Example usage
 
@@ -76,6 +80,18 @@ client.connect())
    // Be carefull that subscription will be done for all elements in the path
    .then(() => client.getElementByPath("0.3", update => {console.log(update);}))
    ;
+```
+
+### Setting new value
+
+```javascript
+client = new EmberClient(LOCALHOST, PORT);
+await client.connect()
+await client.getDirectory();
+await client.getElementByPath("0.0.1");
+await client.setValue(client.root.getElementByPath("0.0.1"), "gdnet");
+console.log("result", server.tree.getElementByPath("0.0.1").contents.value)
+return client.disconnect().then(() => { console.log("disconnected")});
 ```
 
 ### Invoking Function
