@@ -44,12 +44,14 @@ class FunctionContent {
     
         if(this.result != null && this.result.length > 0) {
             ber.startSequence(BER.CONTEXT(3));
+            ber.startSequence(BER.EMBER_SEQUENCE);
             for(let i = 0; i < this.result.length; i++) {                                
                 ber.startSequence(BER.CONTEXT(0));
                 /** @type {FunctionArgument} */
                 this.result[i].encode(ber);
                 ber.endSequence();
-            }            
+            }
+            ber.endSequence();
             ber.endSequence(); // BER.CONTEXT(3)
         }
 
