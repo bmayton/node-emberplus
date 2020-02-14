@@ -137,7 +137,7 @@ class EmberClient extends EventEmitter {
      */
     _handleNode(parent, node) {
         let n = parent.getElementByNumber(node.getNumber());
-        if (n === null) {
+        if (n == null) {
             parent.addChild(node);
             n = node;
         } else {
@@ -260,14 +260,11 @@ class EmberClient extends EventEmitter {
      * @returns {Promise}
      */
     expand(node, callback = null) {
-        if (node == null) {
-            return Promise.reject(new Errors.InvalidEmberNode("Invalid null node"));
-        }
-        if (node.isParameter() || node.isMatrix() || node.isFunction()) {
+        if (node != null && (node.isParameter() || node.isMatrix() || node.isFunction())) {
             return this.getDirectory(node);
         }    
         return this.getDirectory(node, callback).then(res => {
-            const children = node.getChildren();
+            const children = node == null ? res == null ? null : res.getChildren() : node.getChildren();
             if ((res == null) || (children == null)) {
                 winston.debug("No more children for ", node);
                 return;
@@ -289,7 +286,6 @@ class EmberClient extends EventEmitter {
             return directChildren
         });
     }
-
     /**
      * 
      * @param {TreeNode} qnode 

@@ -17,7 +17,8 @@ the way the lib is used so that now it uses Promise
 
 Server has been added in version 1.6.0.
 
-Support for StreamCollection and UDP is available in a private branch.
+Support for StreamCollection, UDP, packet stats/rate, support for tree with size higher than 8M
+is available in a private branch.
 If you want access to full version and/or would like support for new features or integration
 with your projects, please contact Gilles Dufour - dufour.gilles@gmail.com
 

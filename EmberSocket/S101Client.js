@@ -41,7 +41,7 @@ class S101Client extends S101Socket {
                 this.startKeepAlive();                
                 this.emit('connected');
             })
-            once("timeout", connectTimeoutListener);
+            .once("timeout", connectTimeoutListener);
         this._initSocket();
     }
 }

@@ -81,18 +81,19 @@ class FunctionContent {
                 fc.description = seq.readString(BER.EMBER_STRING);
             } else if(tag == BER.CONTEXT(2)) {
                 fc.arguments = [];
-                let dataSeq = seq.getSequence(BER.EMBER_SEQUENCE);                  
+                let dataSeq = seq.getSequence(BER.EMBER_SEQUENCE);
                 while(dataSeq.remain > 0) {
                     seq = dataSeq.getSequence(BER.CONTEXT(0));
                     fc.arguments.push(FunctionArgument.decode(seq));
                 }
             } else if(tag == BER.CONTEXT(3)) {
                 fc.result = [];
-                while(seq.remain > 0) {
-                    tag = seq.peek();
-                    const dataSeq = seq.getSequence(tag);
+                let dataSeq = seq.getSequence(BER.EMBER_SEQUENCE);
+                while(dataSeq.remain > 0) {
+                    tag = dataSeq.peek();                    
                     if (tag === BER.CONTEXT(0)) {
-                        fc.result.push(FunctionArgument.decode(dataSeq));
+                        const fcSeq = dataSeq.getSequence(tag);
+                        fc.result.push(FunctionArgument.decode(fcSeq));
                     }
                     else {
                         throw new errors.UnimplementedEmberTypeError(tag);
