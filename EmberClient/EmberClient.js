@@ -626,6 +626,11 @@ class EmberClient extends EventEmitter {
      * @returns {Promise<TreeNode>}
      */
     setValueNoAck(node, value) {
+        // This function immediately finish & resolve so we can't get any timeouts ever
+        // This is a pretty ugly hack, but it doesn't look to bring
+        // any negative consequences regarding the execution and resolving of other
+        // functions. It´s needed this because if the node already has the value we are
+        // setting it too, it will cause a timeout.
         return new Promise((resolve, reject) => {
             if (!node.isParameter()) {
                 reject(new Errors.EmberAccessError('not a Parameter'));
@@ -642,6 +647,7 @@ class EmberClient extends EventEmitter {
 
                 this._finishRequest();
                 this._callback = null;
+                return resolve(node)
             }});
         })
     }
