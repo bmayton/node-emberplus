@@ -621,6 +621,51 @@ class EmberClient extends EventEmitter {
 
     /**
      * 
+     * @param {TreeNode} node 
+     * @param {string|number} value
+     * @returns {Promise<TreeNode>}
+     */
+    setValueWithHacksaw(node, value) {
+        return new Promise((resolve, reject) => {
+            if (!node.isParameter()) {
+                reject(new Errors.EmberAccessError('not a Parameter'));
+            }
+            else {
+                this.addRequest({node: node, func: error => {
+                    if (error) {
+                        this._finishRequest();
+                        reject(error);
+                        return;
+                    }
+    
+                    this._callback = (error, node) => {
+                        // this._finishRequest();
+                        // this._callback = null;
+                        if (error) {
+                            reject(error);
+                        }
+                        else {
+                            
+                            // resolve(node);
+                        }
+                    };
+                    winston.debug('setValue sending ...', node.getPath(), value);
+                    this._client.sendBERNode(node.setValue(value));
+
+                    // We now immediately finish & resolve so we can't get any timeouts ever
+                    // This is a pretty ugly hack, but as far as I can tell it doesn't bring
+                    // any negative consequences regarding the execution and resolving of other
+                    // functions. We need this because if the node already has the value we are
+                    // setting it too, it will cause a timeout.
+                    this._finishRequest();
+                    this._callback = null;
+                }});
+            }
+        });
+    }
+   
+    /**
+     * 
      * @param {TreeNode} qnode 
      * @param {function} callback
      * @returns {Promise}
