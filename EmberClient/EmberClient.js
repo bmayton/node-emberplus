@@ -73,7 +73,7 @@ class EmberClient extends EventEmitter {
                 }
             }
             catch(e) {
-                winston.debug(e, root);
+                winston.error(e, root);
                 if (this._callback) {
                     this._callback(e);
                 }
@@ -88,7 +88,7 @@ class EmberClient extends EventEmitter {
         try {
             this._makeRequest();
         } catch(e) {
-            winston.debug(e);
+            winston.error(e);
             if (this._callback != null) {
                 this._callback(e);
             }
@@ -140,8 +140,8 @@ class EmberClient extends EventEmitter {
         if (n == null) {
             parent.addChild(node);
             n = node;
-        } else {
-            n.update(node);
+        } else if (n.update(node)) {
+            n.updateSubscribers();
         }
     
         const children = node.getChildren();
@@ -165,7 +165,9 @@ class EmberClient extends EventEmitter {
         let element = parent.getElementByPath(node.path);
         if (element !== null) {
             this.emit("value-change", node);
-            element.update(node);
+            if (element.update(node)) {
+                element.updateSubscribers();
+            }
         }
         else {
             const path = node.path.split(".");
@@ -344,17 +346,16 @@ class EmberClient extends EventEmitter {
                         if (nodeElements != null &&
                             ((qnode.isMatrix() && nodeElements.length === 1 && nodeElements[0].getPath() === requestedPath) ||
                              (!qnode.isMatrix() && nodeElements.every(el => isDirectSubPathOf(el.getPath(), requestedPath))))) {
-                            winston.debug("Received getDirectory response", node);
+                                winston.debug("Received getDirectory response", node);
                             this._finishRequest();
                             return resolve(node); // make sure the info is treated before going to next request.
                         }
                         else {
                             winston.debug(node);
-                            winston.debug(new Error(requestedPath));
+                            winston.error(new Error(requestedPath));
                         }
                     }
                 };
-                winston.debug("Sending getDirectory", qnode);
                 try {
                     this._client.sendBERNode(qnode.getDirectory(callback));
                 }
@@ -420,6 +421,9 @@ class EmberClient extends EventEmitter {
                     // We have this part already.
                     pos++;
                     if (pos >= pathArray.length) {
+                        if (callback) {
+                            node.getDirectory(callback);
+                        }
                         return node;
                     }
                     currentNode = node;                   
@@ -514,7 +518,7 @@ class EmberClient extends EventEmitter {
                         return; 
                     }
                     if (error) {
-                        winston.debug("Received getDirectory error", error);
+                        winston.error("Received getDirectory error", error);
                         this._clearTimeout(); // clear the timeout now. The resolve below may take a while.
                         this._finishRequest();
                         reject(error);
@@ -612,7 +616,7 @@ class EmberClient extends EventEmitter {
                             resolve(node);
                         }
                     };
-                        winston.debug('setValue sending ...', node.getPath(), value);
+                    winston.debug('setValue sending ...', node.getPath(), value);
                     this._client.sendBERNode(node.setValue(value));
                 }});
             }

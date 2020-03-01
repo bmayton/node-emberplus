@@ -36,28 +36,6 @@ class QualifiedParameter extends QualifiedElement {
         return r;
     }
 
-    /**
-     * 
-     * @param {QualifiedParameter} other 
-     */
-    update(other) {
-        if ((other != null) && (other.contents != null)) {
-            if (this.contents == null) {
-                this.contents = other.contents;
-            }
-            else {
-                for (var key in other.contents) {
-                    if (key[0] === "_") {
-                        continue;
-                    }
-                    if (other.contents.hasOwnProperty(key)) {
-                        this.contents[key] = other.contents[key];
-                    }
-                }
-            }
-        }
-        return;
-    }
 
     /**
      * 

@@ -16,8 +16,7 @@ class TreeNode extends ElementInterface {
     
     _isSubscribable(callback) {
         return (callback != null && 
-            ((this.isParameter() && this.isStream()) ||
-            this.isMatrix()));
+            (this.isParameter() || this.isMatrix()));
     }
 
     _subscribe(callback) {
@@ -236,7 +235,7 @@ class TreeNode extends ElementInterface {
      * @param {function} callback 
      */
     getDirectory(callback) {
-        if (this._isSubscribable(callback)) {
+        if (this._isSubscribable(callback) && !this.isStream()) {
             this._subscribe(callback);
         }
         return this.getCommand(new Command(COMMAND_GETDIRECTORY));
@@ -471,7 +470,7 @@ class TreeNode extends ElementInterface {
      * @param {function} callback 
      */
     subscribe(callback) {
-        if (this._isSubscribable(callback)) {
+        if (this._isSubscribable(callback) && this.isStream()) {
             this._subscribe(callback);
         }
         return this.getCommand(new Command(COMMAND_SUBSCRIBE));

@@ -4,8 +4,8 @@ const EmberLib = require('../EmberLib');
 const JSONParser = require("./JSONParser");
 const ElementHandlers = require("./ElementHandlers");
 const ServerEvents = require("./ServerEvents");
-const winston = require("winston");
 const Errors = require("../Errors");
+const winston = require("winston");
 
 class TreeServer extends EventEmitter{
     /**
@@ -16,7 +16,7 @@ class TreeServer extends EventEmitter{
      */
     constructor(host, port, tree) {
         super();
-        this._debug = false;
+        this._debug = true;
         this.timeoutValue = 2000;
         this.server = new S101Server(host, port);
         this.tree = tree;
@@ -390,6 +390,7 @@ class TreeServer extends EventEmitter{
     setValue(element, value, origin, key) {
         return new Promise(resolve => {
             // Change the element value if write access permitted.
+            winston.debug("New Setvalue request");
             if (element.contents == null) {
                 return resolve();
             }
@@ -398,6 +399,7 @@ class TreeServer extends EventEmitter{
                     (element.contents.access != null) &&
                     (element.contents.access.value > 1)) {
                     element.contents.value = value;
+                    winston.debug("New value ", value, "path", element.getPath());
                     const res = this.getResponse(element);
                     this.updateSubscribers(element.getPath(),res, origin);                    
                 }
@@ -460,6 +462,7 @@ class TreeServer extends EventEmitter{
      */
     updateSubscribers(path, response, origin) {
         if (this.subscribers[path] == null) {
+            winston.debug("No subscribers for", path);
             return;
         }
     
@@ -468,10 +471,12 @@ class TreeServer extends EventEmitter{
                 continue; // already sent the response to origin
             }
             if (this.clients.has(client)) {
+                winston.debug("Sending new value to", client.remoteAddress());
                 client.queueMessage(response);
             }
             else {
                 // clean up subscribers - client is gone
+                winston.debug("deleting client");
                 this.subscribers[path].delete(client);
             }
         }

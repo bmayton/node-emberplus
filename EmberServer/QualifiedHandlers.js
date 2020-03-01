@@ -68,7 +68,6 @@ class QualifiedHandlers extends MatrixHandlers {
             this.server.setValue(element, parameter.contents.value, client);
             let res = this.server.getQualifiedResponse(element);
             client.sendBERNode(res)
-            this.server.updateSubscribers(element.getPath(), res, client);
         }
     }
 }
