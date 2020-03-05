@@ -119,6 +119,19 @@ const init = function(_src,_tgt) {
                     ]
                 }
             ]
+        },
+        {
+            identifier: "PeakValue_2",
+            type: 2,
+            streamIdentifier: 4,
+            streamDescriptor: {
+                format: "ieeeFloat32LittleEndian",
+                offset: 4
+            },
+            access: 1,
+            maximum: 20,
+            minimum: -200,
+            value: -200
         }
     ];
 }

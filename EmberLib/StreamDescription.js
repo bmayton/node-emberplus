@@ -1,15 +1,17 @@
 "use strict";
-const Element = require("./Element");
 const BER = require('../ber.js');
 const StreamFormat = require("./StreamFormat");
 const Errors = require("../Errors");
 
-class StreamDescription extends Element{
+class StreamDescription {
     /**
      * 
+     * @param {number} offset 
+     * @param {StreamFormat} format 
      */
-    constructor() {
-        super();
+    constructor(offset, format) {
+        this.offset = offset;
+        this.format = format;
     }
 
     /**

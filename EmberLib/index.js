@@ -32,6 +32,7 @@ const StringIntegerPair = require("./StringIntegerPair");
 const StringIntegerCollection = require("./StringIntegerCollection");
 const StreamFormat = require("./StreamFormat");
 const StreamDescription = require("./StreamDescription");
+const StreamCollection = require("./StreamCollection");
 const Template = require("./Template");
 const TemplateElement = require("./TemplateElement");
 const QualifiedTemplate = require("./QualifiedTemplate");
@@ -151,6 +152,7 @@ module.exports = {
     QualifiedTemplate,
     StreamFormat,
     StreamDescription,
+    StreamCollection,
     StringIntegerPair,
     StringIntegerCollection,
     Template,
