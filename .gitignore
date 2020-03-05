@@ -1,5 +1,6 @@
 # intellij, pycharm, webstorm...
 /.idea/*
-
+.vscode
 node_modules
 .*.swp
+coverage

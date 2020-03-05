@@ -90,6 +90,15 @@ class JSONParser {
                 else {
                     emberElement.contents.access = ember.ParameterAccess.read;
                 }
+                if (content.streamDescriptor != null) {
+                    if (content.streamDescriptor.offset == null || content.streamDescriptor.format == null) {
+                        throw new Error("Missing offset or format for streamDescriptor");
+                    }
+                    emberElement.contents.streamDescriptor = new ember.StreamDescription();
+                    emberElement.contents.streamDescriptor.offset = content.streamDescriptor.offset;
+                    emberElement.contents.streamDescriptor.format = ember.StreamFormat.get(content.streamDescriptor.format);
+                    delete content.streamDescriptor;
+                }
             }
             else if (content.func != null) {
                 emberElement = new ember.Function(number, content.func);

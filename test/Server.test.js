@@ -19,9 +19,11 @@ describe("server", function() {
             const root = EmberServer.JSONtoTree(jsonTree);
             expect(root).toBeDefined();
             expect(root.elements).toBeDefined();
-            expect(root.elements.size).toBe(1);
+            expect(root.elements.size).toBe(jsonTree.length);
             expect(root.getElementByNumber(0).contents.identifier).toBe("scoreMaster");
             expect(root.getElementByNumber(0).elements.size).toBe(jsonTree[0].children.length);
+            expect(root.getElementByNumber(1).contents.streamDescriptor instanceof EmberLib.StreamDescription).toBeTruthy();
+            expect(root.getElementByNumber(1).contents.streamDescriptor.offset).toBe(jsonTree[1].streamDescriptor.offset);
         });
         it("should throw an error if invalid matrix mode", function() {
             jsonTree[0].children[1].children[0].mode = "invalid";
