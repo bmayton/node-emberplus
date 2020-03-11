@@ -17,6 +17,8 @@ describe("server", function() {
         });
         it("should generate an ember tree from json", function() {
             const root = EmberServer.JSONtoTree(jsonTree);
+            // JSONtoTree will modify the json object.
+            jsonTree = jsonRoot();
             expect(root).toBeDefined();
             expect(root.elements).toBeDefined();
             expect(root.elements.size).toBe(jsonTree.length);
@@ -47,6 +49,10 @@ describe("server", function() {
             expect(matrix).toBeDefined();
             expect(matrix.contents.maximumConnectsPerTarget).toBe(jsonTree[0].children[1].children[0].maximumConnectsPerTarget);
             expect(matrix.contents.maximumTotalConnects).toBe(jsonTree[0].children[1].children[0].maximumTotalConnects);
+            expect(matrix.contents.type).toBe(EmberLib.MatrixType.nToN);
+            const jMatrix = matrix.toJSON();
+            expect(jMatrix.type).toBeDefined();
+            expect(jMatrix.mode).toBeDefined();
         });
         it("should support matrix type oneToOne", function() {
             jsonTree[0].children[1].children[0].type = "oneToOne";
@@ -66,6 +72,19 @@ describe("server", function() {
             }
             expect(error).toBeDefined();
             expect(error instanceof Errors.InvalidEmberNode).toBeDefined();
+        });
+        it("should generate a matrix with a valid toJSON", function() {
+            const root = EmberServer.JSONtoTree(jsonTree);
+            const matrix = root.getElementByPath("0.1.0");
+            matrix.connectSources(0, [0]);
+            matrix.connectSources(1, [1]);
+            const jMatrix = matrix.toJSON();
+            expect(jMatrix.type).toBeDefined();
+            expect(jMatrix.type).toBe(matrix.contents.type.value);
+            expect(jMatrix.mode).toBeDefined();
+            expect(jMatrix.mode).toBe(matrix.contents.mode.value);
+            expect(jMatrix.connections[0].sources.length).toBe(1);
+            expect(jMatrix.connections[0].sources[0]).toBe(0);
         });
     });
 
@@ -96,7 +115,7 @@ describe("server", function() {
                 .then(() => {
                     expect(client.root).toBeDefined();
                     expect(client.root.elements).toBeDefined();
-                    expect(client.root.elements.size).toBe(1);
+                    expect(client.root.elements.size).toBe(jsonTree.length);
                     expect(client.root.getElementByNumber(0).contents.identifier).toBe("scoreMaster");
                     return client.getDirectory(client.root.getElementByNumber(0));
                 })
@@ -958,7 +977,7 @@ describe("server", function() {
             const jsonTree = jsonRoot();
             const root = EmberServer.JSONtoTree(jsonTree);
             const server = new EmberServer(LOCALHOST, PORT, root);
-            const newParam = new EmberLib.Parameter(1);
+            const newParam = new EmberLib.Parameter(1000);
             newParam.contents = new EmberLib.ParameterContents(VALUE);
             let error;
             try {
