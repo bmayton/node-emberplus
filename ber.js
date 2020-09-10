@@ -22,7 +22,7 @@
  ***************************************************************************/
 
 const BER = require('asn1').Ber;
-const errors = require('./errors.js');
+const errors = require('./Errors.js');
 const util = require('util');
 const Long = require('long');
 
@@ -74,17 +74,21 @@ function ExtendedReader(data) {
 util.inherits(ExtendedReader, BER.Reader);
 module.exports.Reader = ExtendedReader;
 
-
-readBlock = function(ber) {
-
-}
-
-
 ExtendedReader.prototype.getSequence = function(tag) {
     var buf = this.readString(tag, true);
     return new ExtendedReader(buf);
 }
 
+/**
+Value ::=
+ CHOICE {
+ integer Integer64,
+ real REAL,
+ string EmberString,
+ boolean BOOLEAN,
+ octets OCTET STRING,
+ null NULL
+ } */
 ExtendedReader.prototype.readValue = function() {
     var tag = this.peek();
 
@@ -108,7 +112,7 @@ ExtendedReader.prototype.readValue = function() {
 
 
 ExtendedReader.prototype.readReal = function(tag) {
-    if(tag !== undefined) {
+    if(tag != null) {
         tag = UNIVERSAL(9);
     }
 
@@ -313,7 +317,7 @@ ExtendedWriter.prototype.writeValue = function(value, tag) {
 }
 
 ExtendedWriter.prototype.writeIfDefined = function(property, writer, outer, inner) {
-    if(property !== undefined) {
+    if(property != null) {
         this.startSequence(CONTEXT(outer));
         writer.call(this, property, inner);
         this.endSequence();
@@ -321,9 +325,9 @@ ExtendedWriter.prototype.writeIfDefined = function(property, writer, outer, inne
 }
 
 ExtendedWriter.prototype.writeIfDefinedEnum = function(property, type, writer, outer, inner) {
-    if(property !== undefined) {
+    if(property != null) {
         this.startSequence(CONTEXT(outer));
-        if(property.value !== undefined) {
+        if(property.value != null) {
             writer.call(this, property.value, inner);
         } else {
             writer.call(this, type.get(property), inner);
