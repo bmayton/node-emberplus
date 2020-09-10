@@ -3,7 +3,7 @@ const BER = require('../ber.js');
 const ElementInterface = require("./ElementInterface");
 const Invocation = require("./Invocation");
 const Command = require("./Command");
-const {COMMAND_GETDIRECTORY, COMMAND_SUBSCRIBE, COMMAND_UNSUBSCRIBE, COMMAND_INVOKE} = require("./constants");
+const {COMMAND_GETDIRECTORY, COMMAND_SUBSCRIBE, COMMAND_UNSUBSCRIBE} = require("./constants");
 const Errors = require("../Errors");
 
 class TreeNode extends ElementInterface {
@@ -410,9 +410,7 @@ class TreeNode extends ElementInterface {
         const node = this;
         if (this.isRoot()) {
             const elements = this.getChildren();
-            return {
-                elements: elements.map(e => e.toJSON())
-            };
+            return elements ? {elements: elements.map(e => e.toJSON())}: {elements: []};
         }
         res.number = node.getNumber();
         res.path = node.getPath();        
