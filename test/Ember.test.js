@@ -10,6 +10,7 @@ const errorBuffer = Buffer.from("76fe000e0001c001021f026082008d6b820089a0176a15a
 const identifier = "node_identifier";
 const description = "node_description";
 
+
 describe("Ember", () => {
     describe("generic", () => {
         let client;
@@ -375,7 +376,6 @@ describe("Ember", () => {
             expect(f.contents.description).toBe(description);
             expect(f.contents.result.length).toBe(1);
             expect(f.contents.templateReference).toBe(func.contents.templateReference);
-
             writer = new BER.Writer();
             func.contents.identifier = null;
             func.contents.arguments = null;
