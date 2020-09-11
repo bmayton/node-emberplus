@@ -1,14 +1,16 @@
 const expect = require("expect");
 const { S101Client } = require("../EmberSocket");
-const s101Buffer = Buffer.from("fe000e0001c001021f026082008d6b820089a0176a15a0050d03010201a10c310aa0080c066c6162656c73a01b6a19a0050d03010202a110310ea00c0c0a706172616d6574657273a051714fa0050d03010203a1463144a0080c066d6174726978a403020104a503020104aa183016a0147212a0050d03010201a1090c075072696d617279a203020102a303020101a8050d03010202a903020101f24cff", "hex");
-const errorBuffer = Buffer.from("76fe000e0001c001021f026082008d6b820089a0176a15a0050d03010201a10c310aa0080c066c6162656c73a01b6a19a0050d03010202a110310ea00c0c0a706172616d6574657273a051714fa0050d03010203a1463144a0080c066d6174726978a403020104a503020104aa183016a0147212a0050d03010201a1090c075072696d617279a203020102a303020101a8050d03010202a903020101f24cff", "hex");
-const ember = require("../EmberLib");
 const BER = require('../ber.js');
 const Errors = require('../Errors.js');
 const EmberLib = require("../EmberLib");
 const {ParameterTypefromBERTAG, ParameterTypetoBERTAG} = require("../EmberLib/ParameterType");
+
+const s101Buffer = Buffer.from("fe000e0001c001021f026082008d6b820089a0176a15a0050d03010201a10c310aa0080c066c6162656c73a01b6a19a0050d03010202a110310ea00c0c0a706172616d6574657273a051714fa0050d03010203a1463144a0080c066d6174726978a403020104a503020104aa183016a0147212a0050d03010201a1090c075072696d617279a203020102a303020101a8050d03010202a903020101f24cff", "hex");
+const errorBuffer = Buffer.from("76fe000e0001c001021f026082008d6b820089a0176a15a0050d03010201a10c310aa0080c066c6162656c73a01b6a19a0050d03010202a110310ea00c0c0a706172616d6574657273a051714fa0050d03010203a1463144a0080c066d6174726978a403020104a503020104aa183016a0147212a0050d03010201a1090c075072696d617279a203020102a303020101a8050d03010202a903020101f24cff", "hex");
 const identifier = "node_identifier";
 const description = "node_description";
+
+
 describe("Ember", () => {
     describe("generic", () => {
         let client;
@@ -32,7 +34,7 @@ describe("Ember", () => {
 
         it("should handle Errors in message", () => {
             var ber = new BER.Reader(errorBuffer);
-            expect(() => ember.Root.decode(ber)).toThrow(Errors.UnimplementedEmberTypeError);
+            expect(() => EmberLib.Root.decode(ber)).toThrow(Errors.UnimplementedEmberTypeError);
         });
         it("Should have a toJSON()", () => {
             const node = new EmberLib.Node();
@@ -78,7 +80,7 @@ describe("Ember", () => {
             expect(res.contents.identifier).toBe(identifier);
         });
 
-        it("should throw error if function getElement called from a node with longer parh", () => {
+        it("should throw error if function getElement called from a node with longer path", () => {
             const root = new EmberLib.Root();
             root.addChild(new EmberLib.Node(0));
             root.getElement(0).addChild(new EmberLib.Node(1));
@@ -107,11 +109,17 @@ describe("Ember", () => {
             let res = node.getRoot();
             expect(res).toBe(root);
         });
+        it("Root should have a toJSON function", () =>{
+           const root = new EmberLib.Root();
+           expect(root.toJSON()).toEqual({"elements": []});
+           root.addChild(new EmberLib.Node(0));
+           root.getElement(0).addChild(new EmberLib.Node(1));
+           expect(root.toJSON()).toEqual({"elements": [{"children": [{"nodeType": "Node", "number": 1, "path": "0.1"}], "nodeType": "Node", "number": 0, "path": "0"}]});
+        });
         it("should have a getDirectory() and accept a callback for subscribers", () => {
             const parameter = new EmberLib.Parameter(0);
             parameter.contents = new EmberLib.ParameterContents(7, "integer");
-            parameter.contents.streamIdentifier = 12345;
-            let res = parameter.getDirectory(0, () => {});
+            let res = parameter.getDirectory(() => {});
             expect(res).toBeDefined();
             expect(parameter._subscribers.size).toBe(1);
         });
@@ -368,7 +376,6 @@ describe("Ember", () => {
             expect(f.contents.description).toBe(description);
             expect(f.contents.result.length).toBe(1);
             expect(f.contents.templateReference).toBe(func.contents.templateReference);
-
             writer = new BER.Writer();
             func.contents.identifier = null;
             func.contents.arguments = null;
@@ -391,8 +398,8 @@ describe("Ember", () => {
                 EmberLib.FunctionContent.decode(new BER.Reader(writer.buffer));
                 throw new Error("Should not succeed");
             }
-            catch(e) {  
-                expect(e instanceof Errors.UnimplementedEmberTypeError).toBeTruthy();
+            catch(e) {
+                expect(e.name).toEqual('InvalidAsn1Error');
             }
         });
         it("should throw an error if unable to decode content", () => {
