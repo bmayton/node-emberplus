@@ -22,7 +22,7 @@
  ***************************************************************************/
 
 const BER = require('asn1').Ber;
-const errors = require('./errors.js');
+const errors = require('./Errors.js');
 const util = require('util');
 const Long = require('long');
 
@@ -30,15 +30,42 @@ var APPLICATION = function(x) { return x | 0x60; };
 var CONTEXT = function(x) { return x | 0xa0; };
 var UNIVERSAL = function(x) { return x; };
 
-const EMBER_SET = 0x20 | 17;
-const EMBER_STRING = 12;
 
+const EMBER_BOOLEAN             = 1;
+const EMBER_INTEGER             = 2;
+const EMBER_BITSTRING           = 3;
+const EMBER_OCTETSTRING         = 4;
+const EMBER_NULL                = 5;
+const EMBER_OBJECTIDENTIFIER    = 6;
+const EMBER_OBJECTDESCRIPTOR    = 7;
+const EMBER_EXTERNAL            = 8;
+const EMBER_REAL                = 9;
+const EMBER_ENUMERATED          = 10;
+const EMBER_EMBEDDED            = 11;
+const EMBER_STRING              = 12;
+const EMBER_RELATIVE_OID        = 13;
+
+const EMBER_SEQUENCE            = 0x20 | 16;
+const EMBER_SET                 = 0x20 | 17;
 
 module.exports.APPLICATION = APPLICATION;
 module.exports.CONTEXT = CONTEXT;
 module.exports.UNIVERSAL = UNIVERSAL;
 module.exports.EMBER_SET = EMBER_SET;
+module.exports.EMBER_SEQUENCE = EMBER_SEQUENCE;
+module.exports.EMBER_BOOLEAN = EMBER_BOOLEAN;
+module.exports.EMBER_INTEGER = EMBER_INTEGER;
+module.exports.EMBER_BITSTRING = EMBER_BITSTRING;
+module.exports.EMBER_OCTETSTRING = EMBER_OCTETSTRING;
+module.exports.EMBER_NULL = EMBER_NULL;
+module.exports.EMBER_OBJECTIDENTIFIER = EMBER_OBJECTIDENTIFIER;
+module.exports.EMBER_OBJECTDESCRIPTOR = EMBER_OBJECTDESCRIPTOR;
+module.exports.EMBER_EXTERNAL = EMBER_EXTERNAL;
+module.exports.EMBER_REAL = EMBER_REAL;
+module.exports.EMBER_ENUMERATED = EMBER_ENUMERATED;
+module.exports.EMBER_EMBEDDED = EMBER_EMBEDDED;
 module.exports.EMBER_STRING = EMBER_STRING;
+module.exports.EMBER_RELATIVE_OID = EMBER_RELATIVE_OID;
 
 function ExtendedReader(data) {
     ExtendedReader.super_.call(this, data);
@@ -52,25 +79,40 @@ ExtendedReader.prototype.getSequence = function(tag) {
     return new ExtendedReader(buf);
 }
 
+/**
+Value ::=
+ CHOICE {
+ integer Integer64,
+ real REAL,
+ string EmberString,
+ boolean BOOLEAN,
+ octets OCTET STRING,
+ null NULL
+ } */
 ExtendedReader.prototype.readValue = function() {
-    var tag = this.peek(tag);
+    var tag = this.peek();
+
     if(tag == EMBER_STRING) {
         return this.readString(EMBER_STRING);
-    } else if(tag == UNIVERSAL(2)) {
+    } else if(tag == EMBER_INTEGER) {
         return this.readInt();
-    } else if(tag == UNIVERSAL(9)) {
+    } else if(tag == EMBER_REAL) {
         return this.readReal();
-    } else if(tag == UNIVERSAL(1)) {
+    } else if(tag == EMBER_BOOLEAN) {
         return this.readBoolean();
-    } else if(tag == UNIVERSAL(4)) {
+    } else if(tag == EMBER_OCTETSTRING) {
         return this.readString(UNIVERSAL(4), true);
-    } else {
+    } else if (tag === EMBER_RELATIVE_OID) {
+        return this.readOID(EMBER_RELATIVE_OID);
+    }
+    else {
         throw new errors.UnimplementedEmberTypeError(tag);
     }
 }
 
+
 ExtendedReader.prototype.readReal = function(tag) {
-    if(tag !== undefined) {
+    if(tag != null) {
         tag = UNIVERSAL(9);
     }
 
@@ -241,21 +283,41 @@ ExtendedWriter.prototype.writeReal = function(value, tag) {
 }
 
 ExtendedWriter.prototype.writeValue = function(value, tag) {
-    if(Number.isInteger(value)) {
+    // accepts Ember.ParameterContents for enforcing real types
+     if(typeof value === 'object' && value.type && value.type.key && value.type.key.length && typeof value.type.key === 'string') {
+         if(value.type.key === 'real') {
+            this.writeReal(value.value, tag);
+            return
+         }
+     }
+
+     if(Number.isInteger(value)) {
+        if (tag === undefined) {
+            tag = EMBER_INTEGER;
+        }
         this.writeInt(value, tag);
     } else if(typeof value == 'boolean') {
+        if (tag === undefined) {
+            tag = EMBER_BOOLEAN;
+        }
         this.writeBoolean(value, tag);
     } else if(typeof value == 'number') {
+        if (tag === undefined) {
+            tag = EMBER_REAL;
+        }
         this.writeReal(value, tag);
     } else if(Buffer.isBuffer(value)) {
         this.writeBuffer(value, tag);
     } else {
+        if (tag === undefined) {
+            tag = EMBER_STRING;
+        }
         this.writeString(value.toString(), tag);
     }
 }
 
 ExtendedWriter.prototype.writeIfDefined = function(property, writer, outer, inner) {
-    if(property !== undefined) {
+    if(property != null) {
         this.startSequence(CONTEXT(outer));
         writer.call(this, property, inner);
         this.endSequence();
@@ -263,9 +325,9 @@ ExtendedWriter.prototype.writeIfDefined = function(property, writer, outer, inne
 }
 
 ExtendedWriter.prototype.writeIfDefinedEnum = function(property, type, writer, outer, inner) {
-    if(property !== undefined) {
-        this.startSequence(BER.CONTEXT(outer));
-        if(property.value !== undefined) {
+    if(property != null) {
+        this.startSequence(CONTEXT(outer));
+        if(property.value != null) {
             writer.call(this, property.value, inner);
         } else {
             writer.call(this, type.get(property), inner);
