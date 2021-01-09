@@ -40,6 +40,9 @@ const main = async () => {
     const data = readFileSync(argv.file);
     const tree = argv.json ? EmberServer.JSONtoTree(JSON.parse(data.toString())) : Decoder(data);
     const server = new EmberServer(argv.host, argv.port, tree);
+    server.on('error', (e) => {
+        console.log(e);
+    });
     server._debug = true;
     console.log(Date.now(), 'starting server');
     if (argv.debug) {
