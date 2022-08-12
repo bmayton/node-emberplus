@@ -127,6 +127,9 @@ class TreeServer extends EventEmitter{
         const children = element.getChildren();
         if (children != null) {
             for (let i = 0; i < children.length; i++) {
+                if (children[i].hidden) {
+                    continue;
+                }
                 res.addChild(children[i].toQualified().getMinimalContent());
             }
         }

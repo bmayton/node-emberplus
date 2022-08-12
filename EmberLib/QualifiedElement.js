@@ -2,7 +2,6 @@
 const TreeNode = require("./TreeNode");
 const BER = require('../ber.js');
 const Command = require("./Command");
-const {COMMAND_GETDIRECTORY} = require("./constants");
 
 class QualifiedElement extends TreeNode {
     /**

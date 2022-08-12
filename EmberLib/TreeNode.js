@@ -12,6 +12,7 @@ class TreeNode extends ElementInterface {
         /** @type {TreeNode} */
         this._parent = null;
         this._subscribers = new Set();
+        this.hidden = false;
     }
     
     _isSubscribable(callback) {
