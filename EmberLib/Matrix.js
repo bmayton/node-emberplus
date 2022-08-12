@@ -1,7 +1,7 @@
 "use strict";
 const MatrixConnection = require("./MatrixConnection");
 const TreeNode = require("./TreeNode");
-const BER = require('../ber.js');
+const BER = require('../ber');
 const MatrixMode = require("./MatrixMode");
 const MatrixOperation = require("./MatrixOperation");
 const MatrixType = require("./MatrixType");
@@ -13,7 +13,9 @@ class Matrix extends TreeNode
         super();
         this._connectedSources = {};
         this._numConnections = 0;
+        /**@type number[] | null */
         this.targets = null;
+        /**@type number[] | null */
         this.sources = null;
         this.connections = {};
     }
@@ -364,19 +366,14 @@ class Matrix extends TreeNode
             for(let id in newMatrix.connections) {
                 if (newMatrix.connections.hasOwnProperty(id)) {
                     const connection = newMatrix.connections[id];
-                    if ((connection.target < matrix.contents.targetCount) &&
-                        (connection.target >= 0)) {
-                        if (matrix.connections[connection.target] == null) {
-                            matrix.connections[connection.target] = new MatrixConnection(connection.target);
-                            modified = true;
-                        }
-                        if (matrix.connections[connection.target].isDifferent(connection.sources)) {
-                            matrix.connections[connection.target].setSources(connection.sources);
-                            modified = true;
-                        }
+                    this.validateConnection(matrix, connection.target, connection.sources);
+                    if (matrix.connections[connection.target] == null) {
+                        matrix.connections[connection.target] = new MatrixConnection(connection.target);
+                        modified = true;
                     }
-                    else {
-                        throw new Errors.InvalidMatrixSignal(connection.target, "Invalid target")
+                    if (matrix.connections[connection.target].isDifferent(connection.sources)) {
+                        matrix.connections[connection.target].setSources(connection.sources);
+                        modified = true;
                     }
                 }
             }
@@ -431,29 +428,15 @@ class Matrix extends TreeNode
             throw new Errors.InvalidEmberNode(matrixNode.getPath(),"Non-Linear matrix should have targets and sources");
         }    
         else {
-            let found = false;
-            for(let i = 0; i < matrixNode.targets.length; i++) {
-                if (matrixNode.targets[i] === targetID) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
+            if (!matrixNode.targets.includes(targetID)) {
                 throw new Errors.InvalidMatrixSignal(targetID, "Not part of existing targets");
             }
-            found = false;
             for(let i = 0; i < sources.length; i++) {
-                for(let j = 0; j < matrixNode.sources.length; j++) {
-                    if (matrixNode.sources[j] === sources[i]) {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
+                if (!matrixNode.sources.includes(sources[i])) {
                     throw new Errors.InvalidMatrixSignal(sources[i],`Unknown source at index ${i}`);
                 }
             }
-        }    
+        }
     }
 }
 

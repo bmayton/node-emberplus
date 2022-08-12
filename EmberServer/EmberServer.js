@@ -41,7 +41,7 @@ class TreeServer extends EventEmitter{
                         this.emit("request", {client: client.remoteAddress(), root: root, path: path});
                     }
                     catch(e) {
-                        winston.debug(e.stack)
+                        winston.debug(e.stack);
                         this.emit("error", e);
                     }
                 });
@@ -127,11 +127,14 @@ class TreeServer extends EventEmitter{
         const children = element.getChildren();
         if (children != null) {
             for (let i = 0; i < children.length; i++) {
+                if (children[i].hidden) {
+                    continue;
+                }
                 res.addChild(children[i].toQualified().getMinimalContent());
             }
         }
         else {
-           res.addChild(dup);
+            res.addChild(dup);
         }
         return res;
     }

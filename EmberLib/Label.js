@@ -25,11 +25,13 @@ class Label {
         ber.writeRelativeOID(this.basePath, BER.EMBER_RELATIVE_OID);
         ber.endSequence();
         if (this.description == null) { 
-            throw new Errors.InvalidEmberNode("", "Missing label description");
+            //throw new Errors.InvalidEmberNode("", "Missing label description");
         }
-        ber.startSequence(BER.CONTEXT(1));
-        ber.writeString(this.description, BER.EMBER_STRING);
-        ber.endSequence();
+        else {
+            ber.startSequence(BER.CONTEXT(1));
+            ber.writeString(this.description, BER.EMBER_STRING);
+            ber.endSequence();
+        }
         ber.endSequence();
     }
 

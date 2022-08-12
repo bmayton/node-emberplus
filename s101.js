@@ -257,7 +257,6 @@ var finalizeBuffer = function(smartbuf) {
     var crc = (~calculateCRCCE(smartbuf.toBuffer().slice(1, smartbuf.length))) & 0xFFFF;
     var crc_hi = crc >> 8;
     var crc_lo = crc & 0xFF;
-
     if(crc_lo < S101_INV) {
         smartbuf.writeUInt8(crc_lo);
     } else {
@@ -284,6 +283,7 @@ var calculateCRC = function(buf) {
     }
     return crc;
 }
+S101Codec.prototype.calculateCRC = calculateCRC;
 
 var calculateCRCCE = function(buf) {
     var crc = 0xFFFF;
@@ -296,6 +296,8 @@ var calculateCRCCE = function(buf) {
     }
     return crc;
 }
+
+S101Codec.prototype.calculateCRCCE = calculateCRCCE;
 
 var validateFrame = function(buf) {
     return calculateCRC(buf) == 0xF0B8;

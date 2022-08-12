@@ -12,6 +12,7 @@ class TreeNode extends ElementInterface {
         /** @type {TreeNode} */
         this._parent = null;
         this._subscribers = new Set();
+        this.hidden = false;
     }
     
     _isSubscribable(callback) {
@@ -410,7 +411,7 @@ class TreeNode extends ElementInterface {
         const node = this;
         if (this.isRoot()) {
             const elements = this.getChildren();
-            return { elements: elements ? elements.map(e => e.toJSON()) : [] };
+            return elements ? {elements: elements.map(e => e.toJSON())}: {elements: []};
         }
         res.number = node.getNumber();
         res.path = node.getPath();        

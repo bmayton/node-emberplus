@@ -148,6 +148,10 @@ class JSONParser {
             }
             else {
                 emberElement = new ember.Node(number);
+                if (content.hidden === 'true' || content.hidden === true) {
+                    emberElement.hidden = true;                    
+                }
+                delete content.hidden;
                 emberElement.contents = new ember.NodeContents();
             }
             for(let id in content) {

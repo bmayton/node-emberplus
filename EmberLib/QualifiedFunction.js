@@ -2,9 +2,7 @@
 
 const QualifiedElement = require("./QualifiedElement");
 const FunctionContent = require("./FunctionContent");
-const {COMMAND_GETDIRECTORY} = require("./constants");
 const BER = require('../ber.js');
-const Command = require("./Command");
 const Errors = require("../Errors");
 
 class QualifiedFunction extends QualifiedElement {

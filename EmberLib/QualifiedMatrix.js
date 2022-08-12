@@ -1,12 +1,11 @@
 "use strict";
 
 const Matrix = require("./Matrix");
-const BER = require('../ber.js');
-const Command = require("./Command");
+const BER = require('../ber');
 const MatrixContents = require("./MatrixContents");
 const MatrixConnection = require("./MatrixConnection");
 const errors = require("../Errors");
-
+console.log(Matrix)
 class QualifiedMatrix extends Matrix {
     /**
      * 
